@@ -509,4 +509,4 @@
   } else {
     root.WCards = api
   }
-})(this)
+})(this ?? window)

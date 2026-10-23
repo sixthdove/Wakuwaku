@@ -1098,8 +1098,10 @@
   // (wdesk.js, loaded the first time one is shown), each in its glass at
   // its size, with the desktop's stylesheet in a shadow of their own so
   // neither page's styles reach the other's (desk.css takes its colours
-  // from :host there, light as Windows is: tb-light).
-  const PAGE_BASE = document.currentScript?.src || location.href
+  // from :host there, light as Windows is: tb-light). Beside this script's
+  // own tag (a module has no currentScript; the preview writes the page into
+  // one of its own, so location is not where these files are).
+  const PAGE_BASE = document.querySelector('script[src$="settings.js"]')?.src || location.href
   let deskCards = null
   function loadDeskCards() {
     if (window.WDesk) return Promise.resolve()

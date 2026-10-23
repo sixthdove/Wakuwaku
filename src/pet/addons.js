@@ -726,4 +726,4 @@
     root.Addons = api
     if (new URLSearchParams(location.search).get('role') === 'island' && root.pet?.addons) boot()
   }
-})(this)
+})(this ?? window)

@@ -39,4 +39,4 @@
   } else {
     root.Hovers = api
   }
-})(this)
+})(this ?? window)

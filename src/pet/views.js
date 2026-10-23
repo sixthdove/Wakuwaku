@@ -375,4 +375,4 @@
   const api = { createViews, viewable, boot, PING_EVERY, ANSWER_MS, LOAD_MS, MISSES, SENDS }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Views = api
-})(this)
+})(this ?? window)

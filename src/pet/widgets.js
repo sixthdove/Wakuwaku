@@ -553,4 +553,4 @@
   } else {
     root.Widgets = api
   }
-})(this)
+})(this ?? window)

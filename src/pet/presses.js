@@ -50,4 +50,4 @@
   } else {
     root.Presses = api
   }
-})(this)
+})(this ?? window)

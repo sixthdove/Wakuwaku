@@ -429,4 +429,4 @@
   } else {
     root.Agents = api
   }
-})(this)
+})(this ?? window)

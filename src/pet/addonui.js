@@ -544,4 +544,4 @@
     api.news = makeNews()
     root.AddonUI = api
   }
-})(this)
+})(this ?? window)

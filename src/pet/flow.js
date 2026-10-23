@@ -516,4 +516,4 @@
   } else {
     root.Flow = api
   }
-})(this)
+})(this ?? window)

@@ -234,4 +234,4 @@
   const api = { MODES, MAX_PINS, SPINS, isKey, keyOfWidget, idOfKey, storedOf, derive, effective, canPin, setMode, move, add, remove, restore, patchFor, spinOf, spinPatch, fitPins }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Capsule = api
-})(this)
+})(this ?? window)

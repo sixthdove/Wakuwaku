@@ -89,4 +89,4 @@
   } else {
     root.Status = api
   }
-})(this)
+})(this ?? window)

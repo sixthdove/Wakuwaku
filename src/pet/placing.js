@@ -184,4 +184,4 @@
   const api = { RUNS, keyOf, itemOf, slotAt, beforeTray, insertAt, fitStrip, withSizes, removalOf, without, restoreEntry, placedKeys, switchPatch, switchesPatch, placedOnPatch, whereIs, missingParam }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Placing = api
-})(this)
+})(this ?? window)

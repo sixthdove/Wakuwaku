@@ -53,4 +53,4 @@
   } else {
     root.Sprite = api
   }
-})(this)
+})(this ?? window)

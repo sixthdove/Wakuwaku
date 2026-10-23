@@ -122,4 +122,4 @@
   } else {
     root.Aim = api
   }
-})(this)
+})(this ?? window)

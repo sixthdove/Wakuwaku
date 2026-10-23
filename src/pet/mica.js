@@ -325,4 +325,4 @@
   } else {
     root.Mica = api
   }
-})(this)
+})(this ?? window)

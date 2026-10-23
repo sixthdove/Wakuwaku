@@ -3304,4 +3304,4 @@
   } else {
     root.I18n = api
   }
-})(this)
+})(this ?? window)

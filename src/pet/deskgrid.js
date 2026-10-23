@@ -699,4 +699,4 @@
   } else {
     root.DeskGrid = api
   }
-})(this)
+})(this ?? window)

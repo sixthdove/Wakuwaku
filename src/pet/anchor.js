@@ -66,4 +66,4 @@
   } else {
     root.Anchor = api
   }
-})(this)
+})(this ?? window)

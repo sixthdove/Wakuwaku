@@ -303,4 +303,4 @@
   } else {
     root.WDesk = api
   }
-})(this)
+})(this ?? window)
