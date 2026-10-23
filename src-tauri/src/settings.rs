@@ -3,10 +3,11 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
+use agent_core::event::Agent;
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, WebviewWindow};
 
-use crate::{connection, data, fetch, fullscreen, i18n, island, mail, now_ms, pet, plugins, set_display, set_out, shared, Shared};
+use crate::{connection, data, fetch, fullscreen, i18n, island, logon, mail, now_ms, pet, plugins, set_display, set_out, shared, Shared};
 
 const REPO: &str = "https://github.com/zhoupengjie/wakuwaku";
 // How to write a plugin (the Plugins page's 开发文档, under a .zip it cannot take).
@@ -25,21 +26,41 @@ const AGENT_SITES: [(&str, &str); 8] = [
     ("reasonix", "https://github.com/esengine/DeepSeek-Reasonix"),
 ];
 
-// DeepSeek Harness's block: connection.rs dsh_view (hooks, why, load), its
-// patch file and the same as read, whether a copy of it was kept, the
-// plugin's file as read (the Agent page shows both), and whether any event
-// of it came since she started (the plugin's word on loading is one).
-fn dsh_block(sh: &Shared) -> Value {
-    let mut block = connection::dsh_view(sh.port, &sh.setting("dshVia"), sh.dsh_seen.load(Ordering::SeqCst));
-    let patch = connection::dsh_patch_file();
-    block["file"] = json!(patch.to_string_lossy());
-    block["fileShown"] = json!(connection::shown_path(&patch));
-    block["backup"] = json!(connection::backup_of(&patch).exists());
-    block["listShown"] = json!(connection::shown_path(&connection::dsh_plugin_file()));
-    // The hook bridge's hook list, in her data folder (the other way's).
-    block["hooksShown"] = json!(connection::shown_path(&connection::dsh_hooks_file()));
-    block["seen"] = json!(sh.dsh_seen.load(Ordering::SeqCst) > 0);
+// When an agent's last event came (ms), 0 never (main.rs seen).
+fn seen_at(sh: &Shared, agent: Agent) -> u64 {
+    sh.seen[connection::slot(agent)].load(Ordering::SeqCst)
+}
+
+// An agent's block of the snapshot, what each has: how ours stands
+// (connection::status, unless its own say), the file it is written into
+// and the same as read (~ for the home folder), whether a copy of that was
+// kept, whether any event of it came since she started; then its own.
+fn agent_block(sh: &Shared, agent: Agent, own: Value) -> Value {
+    let file = connection::file(agent);
+    let mut block = json!({
+        "file": file.as_ref().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default(),
+        "fileShown": file.as_ref().map(|f| connection::shown_path(f)).unwrap_or_default(),
+        "backup": file.as_ref().is_some_and(|f| connection::backup_of(f).exists()),
+        "seen": seen_at(sh, agent) > 0,
+    });
+    if own.get("hooks").is_none() {
+        block["hooks"] = json!(connection::status(agent, sh.port));
+    }
+    if let (Some(block), Value::Object(own)) = (block.as_object_mut(), own) {
+        block.extend(own);
+    }
     block
+}
+
+// DeepSeek Harness's own: connection/dsh.rs dsh_view (hooks, why, load),
+// the plugin's file as read (the Agent page shows it beside the patch
+// file), and the hook bridge's hook list, in her data folder (the other
+// way's).
+fn dsh_block(sh: &Shared) -> Value {
+    let mut own = connection::dsh_view(sh.port, &sh.setting("dshVia"), seen_at(sh, Agent::Dsh));
+    own["listShown"] = json!(connection::shown_path(&connection::dsh_plugin_file()));
+    own["hooksShown"] = json!(connection::shown_path(&connection::dsh_hooks_file()));
+    agent_block(sh, Agent::Dsh, own)
 }
 
 // Everything the settings show.
@@ -56,13 +77,11 @@ pub fn snapshot(sh: &Shared) -> Value {
         (pet.get(now_ms()), pet.list())
     };
     let (win_light, win_accent) = crate::wallpaper::look();
-    // Whether either is connected, as the island tells it (connection.rs).
+    // Whether any is connected, as the island tells it (connection.rs).
     let conn = connection::connection(sh.port);
-    let omp = connection::omp_hooks_status(sh.port);
-    if connection::note_connected(conn != "none" || connection::is_codex_connected() || connection::is_agy_connected() || connection::is_opencode_connected(sh.port) || matches!(omp, "ok" | "stale" | "partial")) {
+    if connection::note_connected(connection::any_connected(sh.port)) {
         sh.redraw();
     }
-    let omp_files = connection::omp_files();
     // The monitor's source in effect: the one chosen, else LHM while it answers.
     let lhm = crate::lhm::view();
     let lhm_status = lhm["status"].as_str().unwrap_or("").to_string();
@@ -82,7 +101,7 @@ pub fn snapshot(sh: &Shared) -> Value {
         "hooks": connection::hooks_status(sh.port),
         // Whether any Claude Code event came since she started: installed,
         // and a session seen (connected), or still waiting for one.
-        "claudeSeen": sh.claude_seen.load(Ordering::SeqCst) > 0,
+        "claudeSeen": seen_at(sh, Agent::Claude) > 0,
         "settingsFile": connection::claude_settings_file().to_string_lossy(),
         // The same as read (~ for the home folder), whether a copy of it was
         // kept (none: there was no file before), and whether Claude Code is
@@ -91,78 +110,31 @@ pub fn snapshot(sh: &Shared) -> Value {
         "settingsShown": connection::shown_path(&connection::claude_settings_file()),
         "settingsBackup": connection::backup_of(&connection::claude_settings_file()).exists(),
         "claudeHere": connection::claude_here(),
-        // Codex's hooks.json, whether any Codex event came (they run once
-        // trusted), whether Codex trusts them as they are (null: not known),
-        // and its version: one before 0.148 gets no background hooks.
-        "codex": {
-            "hooks": connection::codex_hooks_status(),
-            "file": connection::codex_hooks_file().to_string_lossy(),
-            "fileShown": connection::shown_path(&connection::codex_hooks_file()),
-            "seen": sh.codex_seen.load(Ordering::SeqCst) > 0,
+        // Each agent's block (agent_block): Codex's with whether Codex
+        // trusts ours as they are (null: not known) and its version (one
+        // before 0.148 gets no background hooks); omp's with how many agent
+        // folders of its profiles besides the first it is in too; DeepSeek
+        // Harness's with how its plugin or bridge stands and loads
+        // (dsh_block); Reasonix's with its line ("0.x", "1.x", "2.x", or
+        // none where nothing says: 0.x is unsupported).
+        "codex": agent_block(sh, Agent::Codex, json!({
             "trusted": connection::codex_trusted(),
             "version": connection::codex_version().map(|(a, b, c)| format!("{a}.{b}.{c}")),
             "async": connection::codex_runs_async(),
-        },
-        // Antigravity's hooks.json (connection.rs), the same, and whether it
-        // is on this computer at all (agy's folder, or its 2.0 app's).
-        "agy": {
-            "hooks": connection::agy_hooks_status(),
-            "file": connection::agy_hooks_file().to_string_lossy(),
-            "fileShown": connection::shown_path(&connection::agy_hooks_file()),
-            "backup": connection::backup_of(&connection::agy_hooks_file()).exists(),
-            "seen": sh.agy_seen.load(Ordering::SeqCst) > 0,
-        },
-        // Our plugin in OpenCode's plugin folder (connection.rs): absent (no
-        // OpenCode here), missing, ok, stale (another port or version), and
-        // whether any of its events came since she started.
-        "opencode": {
-            "plugin": connection::opencode_status(sh.port),
-            "file": connection::opencode_plugin_file().to_string_lossy(),
-            "fileShown": connection::shown_path(&connection::opencode_plugin_file()),
-            "seen": sh.opencode_seen.load(Ordering::SeqCst) > 0,
-        },
-        // omp's extension (connection.rs): in its agent folder, and each
-        // profile's (more: how many besides the first); whether any omp
-        // event came; whether omp is on this computer at all.
-        "omp": {
-            "hooks": omp,
-            "file": omp_files.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default(),
-            "fileShown": omp_files.first().map(|f| connection::shown_path(f)).unwrap_or_default(),
-            "more": omp_files.len().saturating_sub(1),
-            "seen": sh.omp_seen.load(Ordering::SeqCst) > 0,
-        },
-        // ZCode's config.json (connection.rs), the same; absent without its folder.
-        "zcode": {
-            "hooks": connection::zcode_hooks_status(),
-            "file": connection::zcode_config_file().to_string_lossy(),
-            "fileShown": connection::shown_path(&connection::zcode_config_file()),
-            "backup": connection::backup_of(&connection::zcode_config_file()).exists(),
-            "seen": sh.zcode_seen.load(Ordering::SeqCst) > 0,
-        },
-        // DeepSeek Harness's home-level patch file, where her plugin is
-        // inserted, and the plugin in its own folder beside it (connection.rs):
-        // how they stand, why not as written, whether DSH loaded it (dsh_view);
-        // absent without DSH's folder.
+        })),
+        "agy": agent_block(sh, Agent::Agy, json!({})),
+        "opencode": agent_block(sh, Agent::Opencode, json!({})),
+        "omp": agent_block(sh, Agent::Omp, json!({ "more": connection::omp_files().len().saturating_sub(1) })),
+        "zcode": agent_block(sh, Agent::Zcode, json!({})),
         "dsh": dsh_block(sh),
-        // Reasonix's global settings.json (connection.rs), the same; absent
-        // without its home, unsupported for the Node 0.x alone (its line: "0.x",
-        // "1.x", "2.x",
-        // or none where nothing says).
-        "reasonix": {
-            "hooks": connection::reasonix_hooks_status(),
-            "file": connection::reasonix_settings_file().to_string_lossy(),
-            "fileShown": connection::shown_path(&connection::reasonix_settings_file()),
-            "backup": connection::backup_of(&connection::reasonix_settings_file()).exists(),
-            "seen": sh.reasonix_seen.load(Ordering::SeqCst) > 0,
-            "line": connection::reasonix_line().map(|major| format!("{major}.x")),
-        },
+        "reasonix": agent_block(sh, Agent::Reasonix, json!({ "line": connection::reasonix_line().map(|major| format!("{major}.x")) })),
         // The agents' versions where a file of theirs says (connection.rs
         // versions; Codex's is its block's): the Agent page shows them.
         "agentVersions": connection::versions(),
         // How many displays there are: her taskbar on all of them is offered
         // only with more than one (Look, taskbarDisplays).
         "displayCount": sh.screens().areas.len(),
-        "loginAtStart": connection::is_open_at_login(),
+        "loginAtStart": logon::is_open_at_login(),
         // Windows' own mode and accent colour (settings_win_look sets them).
         "winLook": { "light": win_light, "accent": crate::theme::current_accent().or(win_accent.map(|a| a.base)) },
         // The desktop's picture as it is (paper.rs).
@@ -815,123 +787,23 @@ pub async fn settings_wallpaper(app: AppHandle, what: String, value: Option<Stri
 #[tauri::command]
 pub async fn settings_login(app: AppHandle, on: bool) -> Value {
     let sh = shared(&app);
-    if let Err(err) = connection::set_open_at_login(on) {
+    if let Err(err) = logon::set_open_at_login(on) {
         sh.log(&format!("start at login: {err}"));
     }
     snapshot(&sh)
 }
 
-// install, install-http, remove: Claude Code's settings.json.
-#[tauri::command]
-pub async fn settings_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_hooks(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
-}
-
-// install, remove: Codex's hooks.json.
-#[tauri::command]
-pub async fn settings_codex_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_codex_hooks(&action, &i18n::t(sh.lang(), "codex.waiting")) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
-}
-
-// install, remove: Antigravity's hooks.json.
-#[tauri::command]
-pub async fn settings_agy_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_agy_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        // The folder she is in, for one whose path agy can't run (kind "path").
-        Err(error) => {
-            let folder = std::env::current_exe().ok().and_then(|exe| exe.parent().map(|p| p.to_string_lossy().into_owned())).unwrap_or_default();
-            json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "folder": folder, "snapshot": snapshot(&sh) })
-        }
-    }
-}
-
-// install, remove: our plugin in OpenCode's plugin folder.
-#[tauri::command]
-pub async fn settings_opencode(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_opencode_plugin(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
-}
-
-// install, remove: ZCode's config.json.
-#[tauri::command]
-pub async fn settings_zcode_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_zcode_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
-}
-
-// install, remove: omp's extension, in each of its agent folders.
-#[tauri::command]
-pub async fn settings_omp_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_omp_hooks(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
-}
-
-// install, remove: DeepSeek Harness, the way chosen (dshVia: her plugin,
-// its folder in DSH's home and its row in the home-level patch file; or
-// DSH's own hook bridge, its packages in DSH's profiles, its row and her
-// hook list). "install:npmmirror": the bridge's packages from npmmirror,
-// the person having picked it after the registry pnpm names could not be
-// reached. "via:plugin", "via:bridge" (and ":npmmirror"): the way switched,
-// the chosen one put in, then the other taken away (connection.rs
-// write_dsh_hooks), the setting kept only once that went well; one command
-// for all (another costs the exe some 9 KB of glue). pnpm may take a
-// while: off the async runtime's threads.
-#[tauri::command]
-pub async fn settings_dsh_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    let Some(via) = action.strip_prefix("via:") else {
-        let way = dsh_way(&sh);
-        return dsh_write(sh, action, way).await;
-    };
-    let (way, mirror) = via.split_once(':').map_or((via, ""), |(w, r)| (w, r));
-    let way: &'static str = match way {
-        "bridge" => "bridge",
-        "plugin" => "plugin",
-        _ => return json!({ "ok": false, "kind": "other", "error": format!("unknown way {via}"), "snapshot": snapshot(&sh) }),
-    };
-    let action = if mirror == "npmmirror" { "install:npmmirror" } else { "install" };
-    let got = dsh_write(sh.clone(), action.to_string(), way).await;
-    if got["ok"] == json!(true) {
-        sh.log(&format!("dsh: followed through {}", if way == "bridge" { "DSH's hook bridge" } else { "her plugin" }));
-        sh.change(json!({ "dshVia": way }));
-        return json!({ "ok": true, "snapshot": snapshot(&sh) });
-    }
-    got
-}
-
-// The way DSH is followed, as chosen or as the rows have it (connection.rs dsh_way).
-fn dsh_way(sh: &Shared) -> &'static str {
-    connection::dsh_rows_status(sh.port, &sh.setting("dshVia")).0
-}
-
-async fn dsh_write(sh: Arc<Shared>, action: String, way: &'static str) -> Value {
-    let (action, registry) = match action.split_once(':') {
-        Some((action, "npmmirror")) => (action.to_string(), Some(crate::dsh_bridge::NPMMIRROR)),
-        _ => (action, None),
-    };
+// One agent's files written (connection::write), off the async runtime's
+// threads (pnpm may take a while for DeepSeek Harness's bridge), and the
+// page's answer: the snapshot after it, or why not (kind, error; for a path
+// agy can't run, the folder she is in) and the snapshot as it is. The
+// write's lines for her log go there, and its failure too.
+async fn agent_write(sh: Arc<Shared>, agent: Agent, action: String, dsh_way: &'static str) -> Value {
     let port = sh.port;
+    let waiting = i18n::t(sh.lang(), "codex.waiting");
     let (done, log) = tauri::async_runtime::spawn_blocking(move || {
         let mut log = Vec::new();
-        let done = connection::write_dsh_hooks(&action, way, port, registry, &mut log);
+        let done = connection::write(agent, &action, &mut connection::Writing { port, waiting: &waiting, dsh_way, log: &mut log });
         (done, log)
     })
     .await
@@ -942,21 +814,60 @@ async fn dsh_write(sh: Arc<Shared>, action: String, way: &'static str) -> Value 
     match done {
         Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
         Err(error) => {
-            sh.log(&format!("dsh: {error}"));
-            json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) })
+            sh.log(&format!("{}: {error}", agent.tag().unwrap_or("claude")));
+            let kind = connection::error_kind(&error);
+            let mut got = json!({ "ok": false, "kind": kind, "error": error, "snapshot": snapshot(&sh) });
+            if kind == "path" {
+                got["folder"] = json!(std::env::current_exe().ok().and_then(|exe| exe.parent().map(|p| p.to_string_lossy().into_owned())).unwrap_or_default());
+            }
+            got
         }
     }
 }
 
-
-// install, remove: Reasonix's global settings.json (zhoupengjie/Wakuwaku#60).
+// One agent's files, by its id (agents.js): install, remove; Claude Code's
+// install-http too (no command to start her). DeepSeek Harness's go the
+// way chosen (dshVia: her plugin, its folder in DSH's home and its row in
+// the home-level patch file; or DSH's own hook bridge, its packages in
+// DSH's profiles, its row and her hook list). "install:npmmirror": the
+// bridge's packages from npmmirror, the person having picked it after the
+// registry pnpm names could not be reached. "via:plugin", "via:bridge"
+// (and ":npmmirror"): the way switched, the chosen one put in, then the
+// other taken away (connection/dsh.rs write_dsh_hooks), the setting kept
+// only once that went well. One command for them all (another costs the
+// exe some 9 KB of glue).
 #[tauri::command]
-pub async fn settings_reasonix_hooks(app: AppHandle, action: String) -> Value {
+pub async fn settings_agent(app: AppHandle, agent: String, action: String) -> Value {
     let sh = shared(&app);
-    match connection::write_reasonix_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
+    let Some(agent) = connection::by_id(&agent) else {
+        return json!({ "ok": false, "kind": "other", "error": format!("unknown agent {agent}"), "snapshot": snapshot(&sh) });
+    };
+    if agent != Agent::Dsh {
+        return agent_write(sh, agent, action, "").await;
     }
+    let Some(via) = action.strip_prefix("via:") else {
+        let way = dsh_way(&sh);
+        return agent_write(sh, agent, action, way).await;
+    };
+    let (way, mirror) = via.split_once(':').map_or((via, ""), |(w, r)| (w, r));
+    let way: &'static str = match way {
+        "bridge" => "bridge",
+        "plugin" => "plugin",
+        _ => return json!({ "ok": false, "kind": "other", "error": format!("unknown way {via}"), "snapshot": snapshot(&sh) }),
+    };
+    let action = if mirror == "npmmirror" { "install:npmmirror" } else { "install" };
+    let got = agent_write(sh.clone(), agent, action.to_string(), way).await;
+    if got["ok"] == json!(true) {
+        sh.log(&format!("dsh: followed through {}", if way == "bridge" { "DSH's hook bridge" } else { "her plugin" }));
+        sh.change(json!({ "dshVia": way }));
+        return json!({ "ok": true, "snapshot": snapshot(&sh) });
+    }
+    got
+}
+
+// The way DSH is followed, as chosen or as the rows have it (connection/dsh.rs dsh_way).
+fn dsh_way(sh: &Shared) -> &'static str {
+    connection::dsh_rows_status(sh.port, &sh.setting("dshVia")).0
 }
 
 // The CPU temperature/power helper (sensors.rs, #18 part B). She is not

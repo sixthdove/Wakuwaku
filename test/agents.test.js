@@ -23,7 +23,7 @@ function snapshot(change = {}) {
     settingsBackup: false,
     codex: block('missing', { version: '0.150.0', async: true }),
     agy: block('missing'),
-    opencode: { plugin: 'missing', file: 'C:\\Users\\me\\.config\\opencode\\plugins\\wakuwaku.js', fileShown: '~\\.config\\opencode\\plugins\\wakuwaku.js', seen: false },
+    opencode: { hooks: 'missing', file: 'C:\\Users\\me\\.config\\opencode\\plugins\\wakuwaku.js', fileShown: '~\\.config\\opencode\\plugins\\wakuwaku.js', seen: false },
     omp: block('missing', { more: 0 }),
     zcode: block('missing'),
     dsh: block('missing', { why: '', listShown: '~\\.dsh\\wakuwaku\\wakuwaku.js' }),
@@ -34,19 +34,21 @@ function snapshot(change = {}) {
     ...change,
   }
 }
-const absent = { codex: { hooks: 'absent' }, agy: { hooks: 'absent' }, opencode: { plugin: 'absent' }, omp: { hooks: 'absent' }, zcode: { hooks: 'absent' }, dsh: { hooks: 'absent' }, reasonix: { hooks: 'absent' } }
+const absent = { codex: { hooks: 'absent' }, agy: { hooks: 'absent' }, opencode: { hooks: 'absent' }, omp: { hooks: 'absent' }, zcode: { hooks: 'absent' }, dsh: { hooks: 'absent' }, reasonix: { hooks: 'absent' } }
 
 test('each agent in the table is whole, and its words are there in both languages', () => {
   const bridge = read('src/pet/bridge.js')
   const sites = read('src-tauri/src/settings.rs')
   const keys = new Set()
+  // Each written or removed through the bridge's one call, by its id.
+  assert.match(bridge, /\n\s+agent: \(id, action\) => invoke\('settings_agent', \{ agent: id, action \}\)/)
   assert.equal(Agents.TABLE.length, 8)
   for (const a of Agents.TABLE) {
     assert.match(a.id, /^[a-z]+$/)
     assert.ok(a.name, a.id)
     assert.ok(['hooks', 'plugin', 'extension', 'bridge'].includes(a.via), `${a.id}: via ${a.via}`)
-    // Its call is the bridge's, and its site one settings.rs may open.
-    assert.match(bridge, new RegExp(`\\n\\s+${a.call}: action => invoke\\('settings_`), `${a.id}: bridge call ${a.call}`)
+    // Its site one settings.rs may open (its id one settings_agent knows:
+    // connection/mod.rs's test connected_as_the_page_counts_it).
     assert.equal(a.site, `agent:${a.id}`)
     assert.match(sites, new RegExp(`\\("${a.id}", "https://`), `${a.id}: its site in AGENT_SITES`)
     assert.deepEqual(Object.keys(a.caps), Agents.CAPS, a.id)
@@ -71,11 +73,13 @@ test('each agent in the table is whole, and its words are there in both language
 })
 
 test('the table has every agent the server hears, and no other', () => {
-  // server.rs: each agent's events by its ?agent= name, Claude Code's by none.
-  const server = read('src-tauri/src/server.rs')
-  const heard = [...server.matchAll(/Some\("(\w+)"\) => &sh\.(\w+)_seen/g)].map(m => m[1])
-  assert.ok(heard.length >= 6, 'the scan is broken')
-  assert.deepEqual(['claude', ...heard].sort(), Agents.TABLE.map(a => a.id).sort())
+  // connection/mod.rs ALL: the agents she connects and hears (server.rs
+  // keeps when each was last heard by its place there), agent-core's names
+  // for them, which are their ids in lower case.
+  const all = /pub const ALL: \[Agent; \d+\] = \[([^\]]*)\]/.exec(read('src-tauri/src/connection/mod.rs'))[1]
+  const heard = [...all.matchAll(/Agent::(\w+)/g)].map(m => m[1].toLowerCase())
+  assert.ok(heard.length >= 8, 'the scan is broken')
+  assert.deepEqual(heard.sort(), Agents.TABLE.map(a => a.id).sort())
 })
 
 test('what she can do is what the code does', () => {
@@ -114,7 +118,7 @@ test('found here or not', () => {
   // Claude Code's folder gone, its plugin still on: here.
   assert.deepEqual(Agents.here(snapshot({ claudeHere: false, connection: 'plugin', ...absent })), ['claude'])
   // Only OpenCode and ZCode.
-  const two = snapshot({ claudeHere: false, ...absent, opencode: { plugin: 'missing' }, zcode: { hooks: 'ok', seen: true } })
+  const two = snapshot({ claudeHere: false, ...absent, opencode: { hooks: 'missing' }, zcode: { hooks: 'ok', seen: true } })
   assert.deepEqual(Agents.here(two), ['opencode', 'zcode'])
 })
 
@@ -132,7 +136,7 @@ test('how each stands, and its one button', () => {
     assert.equal(state({ [id]: { hooks: 'ok', seen: true } }, id), 'on', id)
     assert.equal(action({ [id]: { hooks: 'ok', seen: true } }, id), null, id)
   }
-  assert.equal(state({ opencode: { plugin: 'ok', seen: false } }, 'opencode'), 'set')
+  assert.equal(state({ opencode: { hooks: 'ok', seen: false } }, 'opencode'), 'set')
   // Codex written and not trusted yet: a step of the person's, its button opens the row.
   assert.equal(state({ codex: { hooks: 'ok', seen: false } }, 'codex'), 'step')
   assert.deepEqual(action({ codex: { hooks: 'ok', seen: false } }, 'codex'), { act: 'open', label: 'ag.do.trust' })
@@ -164,7 +168,7 @@ test('how each stands, and its one button', () => {
     assert.equal(state({ [id]: { hooks: status } }, id), 'repair', `${id} ${status}`)
     assert.deepEqual(action({ [id]: { hooks: status } }, id), { act: 'install', label: 'settings.repair' }, `${id} ${status}`)
   }
-  assert.equal(state({ opencode: { plugin: 'stale' } }, 'opencode'), 'repair')
+  assert.equal(state({ opencode: { hooks: 'stale' } }, 'opencode'), 'repair')
   // Its file unreadable: no button; written and failed: Retry; being written: none.
   assert.equal(state({ zcode: { hooks: 'unreadable' } }, 'zcode'), 'error')
   assert.equal(action({ zcode: { hooks: 'unreadable' } }, 'zcode'), null)
@@ -261,8 +265,8 @@ test("DeepSeek Harness's other way: its own hook bridge", () => {
   for (const key of keys) assert.ok(key in STRINGS.zh && key in STRINGS.en, key)
   assert.equal(STRINGS.zh['ag.dsh.viaNote.plugin'], '不用联网，事件即时，能在岛上批准和回答提问')
   assert.equal(STRINGS.zh['ag.dsh.viaNote.bridge'], 'DSH 官方的钩子桥，要从 npm 下载两个包，每个事件约 1 秒，不能审批')
-  // Every kind connection.rs error_kind gives the bridge's failures has its words.
-  const rust = read('src-tauri/src/connection.rs')
+  // Every kind connection/mod.rs error_kind gives the bridge's failures has its words.
+  const rust = read('src-tauri/src/connection/mod.rs')
   for (const [, kind] of rust.matchAll(/=> "(bridge[A-Z]\w+)",/g)) assert.ok(`s.dshBK.${kind}` in STRINGS.zh, kind)
 })
 

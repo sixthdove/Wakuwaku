@@ -17,8 +17,8 @@
 //   settings.rs    what the settings show and change
 //   pointer.rs     click-through, for both windows; screen.rs the work areas
 //   asks.rs        prompts answered on her or the island
-//   connection.rs  the plugin, hooks in settings.json and Codex's hooks.json, start at login
-//   logon.rs       her logon task (start at login, the taskbar home), the session's logon
+//   connection/    each agent's hooks, plugin or extension, written and read (one file each)
+//   logon.rs       start at login: the Run value and her logon task; the session's logon
 //   hw.rs          the monitor's built-in hardware readings (Windows' own: PDH, D3DKMT, the drives)
 //   lhm.rs         hardware sensors from LibreHardwareMonitor's web server (the monitor)
 //   lhm_setup.rs   LibreHardwareMonitor downloaded, set up and started, on the person's click
@@ -163,24 +163,12 @@ pub struct Shared {
     // Nobody at the keyboard or mouse for a while (check_quiet).
     quiet: AtomicBool,
     greeted: AtomicBool,
-    // When the last Codex event came (ms), 0 never: Codex runs its hooks
-    // only once the person trusts them.
-    pub codex_seen: std::sync::atomic::AtomicU64,
-    // The same for Antigravity's, and for omp's (its extension is loaded
-    // only by an omp started after it was written).
-    pub agy_seen: std::sync::atomic::AtomicU64,
-    // And OpenCode's, from her plugin in it.
-    pub opencode_seen: std::sync::atomic::AtomicU64,
-    pub omp_seen: std::sync::atomic::AtomicU64,
-    // And ZCode's.
-    pub zcode_seen: std::sync::atomic::AtomicU64,
-    // And DeepSeek Harness's.
-    pub dsh_seen: std::sync::atomic::AtomicU64,
-    // And Reasonix's.
-    pub reasonix_seen: std::sync::atomic::AtomicU64,
-    // When the last Claude Code event came (ms), 0 never: the settings tell
-    // connected from installed, waiting for a session (settings.js).
-    pub claude_seen: std::sync::atomic::AtomicU64,
+    // When each agent's last event came (ms), 0 never, by its place in
+    // connection::ALL (connection::slot): the settings tell connected from
+    // installed, waiting for a session (agents.js). Codex runs its hooks only
+    // once the person trusts them; omp loads its extension only as it
+    // starts after it was written.
+    pub seen: [std::sync::atomic::AtomicU64; 8],
     is_logging: bool,
     // Our windows' handles: never counted as another app full screen.
     own: Mutex<Vec<isize>>,
@@ -302,7 +290,7 @@ impl Shared {
         }
     }
 
-    // Whether she keeps start at login to where she is (connection.rs):
+    // Whether she keeps start at login to where she is (logon.rs):
     // on her own port, with her own data folder; a test's copy on another
     // port, or with a folder of its own, leaves it as it is.
     pub fn keeps_login(&self) -> bool {
@@ -311,17 +299,17 @@ impl Shared {
 
     // Start at login kept up as she starts, off the thread starting her
     // (logged too: how long after the logon she came up and what started
-    // her, `by`: connection::started_by).
+    // her, `by`: logon::started_by).
     pub fn keep_login(self: &Arc<Self>, by: Option<&'static str>) {
         let sh = self.clone();
         spawn_named("login", move || {
             if let Some(since) = logon::since_logon() {
-                sh.log(&format!("started {} after logon{}", logon::how_long(since), connection::said_by(by)));
+                sh.log(&format!("started {} after logon{}", logon::how_long(since), logon::said_by(by)));
             }
             if !sh.keeps_login() {
                 return;
             }
-            for line in connection::login_at_start() {
+            for line in logon::login_at_start() {
                 sh.log(&format!("login: {line}"));
             }
         });
@@ -1520,7 +1508,7 @@ fn main() {
         std::process::exit(lhm_setup::admin(&args[at + 1..]));
     }
     let port: u16 = std::env::var("WAKUWAKU_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
-    if let Some(at) = args.iter().position(|a| a == connection::ENSURE_FLAG || a == connection::LEGACY_ENSURE_FLAG) {
+    if let Some(at) = args.iter().position(|a| a == connection::ENSURE_FLAG) {
         return ensure_running(port, &args[at + 1..]);
     }
     if std::env::args().any(|a| a == connection::CODEX_FLAG) {
@@ -1539,11 +1527,11 @@ fn main() {
         return reasonix_hook(port, args.get(at + 1).map_or("", String::as_str));
     }
 
-    // Started at login (connection.rs): by her logon task, or by the Run value.
+    // Started at login (logon.rs): by her logon task, or by the Run value.
     // The task's, with start at login turned off since (the Run value taken
     // away, or turned off in Task Manager), takes the task away and goes.
-    let at_login = connection::started_by(&args);
-    if at_login == Some(connection::BY_TASK) && connection::login_task_unwanted() {
+    let at_login = logon::started_by(&args);
+    if at_login == Some(logon::BY_TASK) && logon::login_task_unwanted() {
         eprintln!("wakuwaku: started by her logon task, but start at login is off: the task is taken away");
         return;
     }
@@ -1648,14 +1636,7 @@ fn main() {
             settings::settings_login,
             settings::settings_win_look,
             settings::settings_wallpaper,
-            settings::settings_hooks,
-            settings::settings_codex_hooks,
-            settings::settings_agy_hooks,
-            settings::settings_opencode,
-            settings::settings_omp_hooks,
-            settings::settings_zcode_hooks,
-            settings::settings_dsh_hooks,
-            settings::settings_reasonix_hooks,
+            settings::settings_agent,
             settings::settings_cpu_sensors,
             bars::bar_ready,
             desk::desk_ready,
@@ -1786,14 +1767,7 @@ fn main() {
                 by_fullscreen: AtomicBool::new(false),
                 quiet: AtomicBool::new(false),
                 greeted: AtomicBool::new(false),
-                codex_seen: std::sync::atomic::AtomicU64::new(0),
-                agy_seen: std::sync::atomic::AtomicU64::new(0),
-                opencode_seen: std::sync::atomic::AtomicU64::new(0),
-                omp_seen: std::sync::atomic::AtomicU64::new(0),
-                zcode_seen: std::sync::atomic::AtomicU64::new(0),
-                dsh_seen: std::sync::atomic::AtomicU64::new(0),
-                reasonix_seen: std::sync::atomic::AtomicU64::new(0),
-                claude_seen: std::sync::atomic::AtomicU64::new(0),
+                seen: Default::default(),
                 own: Mutex::new(Vec::new()),
                 prev_focus: Mutex::new(0),
                 push_pending: AtomicBool::new(false),

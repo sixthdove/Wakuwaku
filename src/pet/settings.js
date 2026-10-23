@@ -2734,7 +2734,7 @@
   let connectingAll = false
   const known = () => ({ busy: connecting, failed })
 
-  // One written or removed (its call in bridge.js, agents.js call): what
+  // One written or removed (bridge.js settings.agent): what
   // came back shown; not written, why (the card names the file), its row
   // open to say so, and Claude Code's plugin the other way.
   async function agentDo(id, action) {
@@ -2747,7 +2747,7 @@
       delete failed[id]
       draw()
     }
-    const got = await window.pet.settings[a.call](action)
+    const got = await window.pet.settings.agent(id, action)
     connecting = ''
     dshSwitching = ''
     snap = got.snapshot

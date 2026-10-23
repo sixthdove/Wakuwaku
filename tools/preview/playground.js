@@ -681,9 +681,7 @@
       toIsland('island:desk-answer', clone(said))
       return { value: null }
     },
-    settings_hooks: () => noteValue('连接要改本机的 Claude Code 设置，试玩里不做'),
-    settings_codex_hooks: () => noteValue('连接要改本机的 Codex 设置，试玩里不做'),
-    settings_reasonix_hooks: () => noteValue('连接要改本机的 Reasonix 设置，试玩里不做'),
+    settings_agent: (from, { agent }) => noteValue(`连接要改本机的 ${frames.island.win?.Agents?.byId(agent)?.name || agent} 设置，试玩里不做`),
     settings_open_site: () => noteValue('打开网页在这里不做'),
     settings_update: () => noteValue('更新在这里不做'),
     settings_wallpaper: () => noteValue('换壁纸要在 Windows 上'),

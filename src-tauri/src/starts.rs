@@ -3,7 +3,7 @@
 // She is started:
 //   - by hand (her exe opened from Explorer, a shortcut), or by any program
 //     that runs her exe (a terminal, a script);
-//   - at login: her logon task or her Run value (connection.rs started_by);
+//   - at login: her logon task or her Run value (logon.rs started_by);
 //   - by a session's hook, her not up as its session starts: Claude Code's
 //     SessionStart command (--wakuwaku-ensure-running, written into
 //     settings.json; Claude's desktop app's Code tab runs the same, in the
@@ -100,8 +100,8 @@ pub fn by_of(args: &[String]) -> Option<&str> {
 pub fn starter(args: &[String], parents: impl FnOnce() -> Vec<String>) -> String {
     let mut who = if let Some(by) = by_of(args) {
         by.to_string()
-    } else if let Some(by) = crate::connection::started_by(args) {
-        if by == crate::connection::BY_TASK { "her logon task" } else { "her Run value, at logon" }.to_string()
+    } else if let Some(by) = crate::logon::started_by(args) {
+        if by == crate::logon::BY_TASK { "her logon task" } else { "her Run value, at logon" }.to_string()
     } else if let Some(at) = args.iter().position(|a| a == crate::updates::AFTER_UPDATE) {
         format!("an update or a restart by an older version of hers (pid {})", args.get(at + 1).map_or("?", String::as_str))
     } else {
