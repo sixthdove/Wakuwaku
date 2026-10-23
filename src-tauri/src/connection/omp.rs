@@ -105,10 +105,6 @@ pub fn omp_hooks_status(port: u16) -> &'static str {
     omp_status_of(&found, &omp_wanted(port))
 }
 
-pub fn is_omp_connected(port: u16) -> bool {
-    matches!(omp_hooks_status(port), "ok" | "stale" | "partial")
-}
-
 // Write the extension into every agent folder, or take it out of each (its
 // extensions folder too, once empty). action: install, remove.
 pub fn write_omp_hooks(action: &str, port: u16) -> Result<(), String> {

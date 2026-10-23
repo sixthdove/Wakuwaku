@@ -360,10 +360,6 @@ fn toml_key(text: &str) -> Option<String> {
     Some(out)
 }
 
-pub fn is_codex_connected() -> bool {
-    matches!(codex_hooks_status(), "ok" | "stale" | "upgradable" | "partial")
-}
-
 // Change Codex's hooks.json, backed up once beside itself. action: install, remove.
 pub fn write_codex_hooks(action: &str, waiting: &str) -> Result<(), String> {
     let file = codex_hooks_file();

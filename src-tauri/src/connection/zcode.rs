@@ -149,10 +149,6 @@ pub fn zcode_hooks_status() -> &'static str {
     }
 }
 
-pub fn is_zcode_connected() -> bool {
-    matches!(zcode_hooks_status(), "ok" | "stale" | "partial")
-}
-
 // Change ZCode's config.json, backed up once beside itself. action: install, remove.
 pub fn write_zcode_hooks(action: &str) -> Result<(), String> {
     let file = zcode_config_file();

@@ -78,10 +78,6 @@ pub fn opencode_status(port: u16) -> &'static str {
     }
 }
 
-pub fn is_opencode_connected(port: u16) -> bool {
-    matches!(opencode_status(port), "ok" | "stale")
-}
-
 // Write or take away our plugin. action: install, remove. Someone else's
 // file of that name is kept (once) beside it before ours goes in its place,
 // and never removed.

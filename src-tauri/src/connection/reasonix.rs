@@ -237,10 +237,6 @@ pub fn reasonix_hooks_status() -> &'static str {
     }
 }
 
-pub fn is_reasonix_connected() -> bool {
-    matches!(reasonix_hooks_status(), "ok" | "stale" | "partial")
-}
-
 // Change Reasonix's global settings.json, backed up once beside itself.
 // action: install (into its home's, made from the older one's while it has
 // none: reasonix_settings_file), remove (from the one it reads; its home's

@@ -432,10 +432,6 @@ pub fn dsh_rows_status(port: u16, setting: &Value) -> (&'static str, &'static st
     (way, status, why)
 }
 
-pub fn is_dsh_connected(port: u16) -> bool {
-    matches!(dsh_rows_status(port, &Value::Null).1, "ok" | "stale")
-}
-
 // The plugin's word that DSH loaded it (loaded-<profile>.json beside it):
 // which process, when (ms since 1970), which version, which code (its
 // file's digest as DSH imported it: dsh_plugin_sha), in which profile.

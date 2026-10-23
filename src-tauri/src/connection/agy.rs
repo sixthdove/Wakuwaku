@@ -119,10 +119,6 @@ pub fn agy_hooks_status() -> &'static str {
     }
 }
 
-pub fn is_agy_connected() -> bool {
-    matches!(agy_hooks_status(), "ok" | "stale")
-}
-
 // What keeps this program from agy's hooks, as write_agy_hooks says it
 // (error_kind: "path").
 pub(super) const AGY_NO_NAME: &str = "no name for this program without quotes";

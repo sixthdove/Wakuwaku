@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use agent_core::event::Agent;
 use serde_json::{json, Map, Value};
 
 mod agy;
@@ -86,12 +87,12 @@ pub fn note_connected(connected: bool) -> bool {
     CONNECTED.swap(connected, std::sync::atomic::Ordering::SeqCst) != connected
 }
 
-// Whether any of them is, as their files say now: the one list of them, for
-// looking (below) and for the settings' snapshot alike (settings.rs; its
-// own list there once left ZCode, DeepSeek Harness and Reasonix out, and
-// the island asked to connect one of them while it was).
+// Whether any of them is, as their files say now: for looking (below) and
+// for the settings' snapshot alike (settings.rs; its own list there once
+// left ZCode, DeepSeek Harness and Reasonix out, and the island asked to
+// connect one of them while it was).
 pub fn any_connected(port: u16) -> bool {
-    connection(port) != "none" || is_codex_connected() || is_agy_connected() || is_opencode_connected(port) || is_omp_connected(port) || is_zcode_connected() || is_dsh_connected(port) || is_reasonix_connected()
+    ALL.iter().any(|&agent| connected(agent, port))
 }
 
 pub fn look_connected(port: u16) -> bool {
@@ -110,15 +111,117 @@ pub fn seems_connected() -> bool {
 // theirs; none found, all but omp, ZCode, DeepSeek Harness and Reasonix
 // (it can not be told).
 pub fn tools_here() -> Vec<&'static str> {
-    let here: Vec<&str> = [("Claude Code", claude_here()), ("Codex", codex_home().is_dir()), ("Antigravity", agy_here()), ("OpenCode", opencode_here()), ("omp", omp_here()), ("ZCode", zcode_here()), ("DeepSeek Harness", dsh_here()), ("Reasonix", reasonix_here())]
-        .into_iter()
-        .filter(|(_, is)| *is)
-        .map(|(name, _)| name)
-        .collect();
+    let here: Vec<&str> = ALL.into_iter().filter(|&agent| here(agent)).map(name).collect();
     if here.is_empty() {
-        vec!["Claude Code", "Codex", "Antigravity", "OpenCode"]
+        [Agent::Claude, Agent::Codex, Agent::Agy, Agent::Opencode].map(name).to_vec()
     } else {
         here
+    }
+}
+
+// --- Each of them, by its name in agent-core (Agent) -------------------------------
+//
+// One match for each thing asked of them all, so that an agent added to
+// agent-core is asked for here, by the compiler, in each.
+
+// The agents she connects, in the order she names them (tools_here; the
+// Agent page has its own, agents.js).
+pub const ALL: [Agent; 8] = [Agent::Claude, Agent::Codex, Agent::Agy, Agent::Opencode, Agent::Omp, Agent::Zcode, Agent::Dsh, Agent::Reasonix];
+
+// Its name, as the island says it.
+pub fn name(agent: Agent) -> &'static str {
+    match agent {
+        Agent::Claude => "Claude Code",
+        Agent::Codex => "Codex",
+        Agent::Agy => "Antigravity",
+        Agent::Opencode => "OpenCode",
+        Agent::Omp => "omp",
+        Agent::Zcode => "ZCode",
+        Agent::Dsh => "DeepSeek Harness",
+        Agent::Reasonix => "Reasonix",
+    }
+}
+
+// Whether it is on this computer, as far as can be told: its folder.
+pub fn here(agent: Agent) -> bool {
+    match agent {
+        Agent::Claude => claude_here(),
+        Agent::Codex => codex_home().is_dir(),
+        Agent::Agy => agy_here(),
+        Agent::Opencode => opencode_here(),
+        Agent::Omp => omp_here(),
+        Agent::Zcode => zcode_here(),
+        Agent::Dsh => dsh_here(),
+        Agent::Reasonix => reasonix_here(),
+    }
+}
+
+// How ours stands in its files, in its own words (each file's): absent (not
+// on this computer), unreadable, missing, ok, stale and the like. Claude
+// Code's is its settings.json's hooks (its plugin: connection); DeepSeek
+// Harness's the way its rows have it (dsh_view tells the way chosen).
+pub fn status(agent: Agent, port: u16) -> &'static str {
+    match agent {
+        Agent::Claude => hooks_status(port),
+        Agent::Codex => codex_hooks_status(),
+        Agent::Agy => agy_hooks_status(),
+        Agent::Opencode => opencode_status(port),
+        Agent::Omp => omp_hooks_status(port),
+        Agent::Zcode => zcode_hooks_status(),
+        Agent::Dsh => dsh_rows_status(port, &Value::Null).1,
+        Agent::Reasonix => reasonix_hooks_status(),
+    }
+}
+
+// Whether ours is there, working or to be repaired: Claude Code's plugin or
+// hooks, any other's statuses as counts_in has them.
+pub fn connected(agent: Agent, port: u16) -> bool {
+    match agent {
+        Agent::Claude => connection(port) != "none",
+        _ => counts_in(agent, status(agent, port)),
+    }
+}
+
+// The statuses that count as ours being there: each the page's `in` too
+// (agents.js; its DeepSeek Harness's words its own, from these two).
+fn counts_in(agent: Agent, status: &str) -> bool {
+    match agent {
+        Agent::Claude => !matches!(status, "missing" | "unreadable"),
+        Agent::Codex => matches!(status, "ok" | "stale" | "upgradable" | "partial"),
+        Agent::Agy | Agent::Opencode | Agent::Dsh => matches!(status, "ok" | "stale"),
+        Agent::Omp | Agent::Zcode | Agent::Reasonix => matches!(status, "ok" | "stale" | "partial"),
+    }
+}
+
+// What a write takes besides the agent and the action: her port, Codex's
+// words for a prompt waiting on her (its hooks carry them), and for
+// DeepSeek Harness the way it goes (dsh_way) and its lines for her log.
+pub struct Writing<'a> {
+    pub port: u16,
+    pub waiting: &'a str,
+    pub dsh_way: &'a str,
+    pub log: &'a mut Vec<String>,
+}
+
+// Write ours into its files, or take it out. action: install, remove;
+// Claude Code's install-http too, DeepSeek Harness's install:npmmirror (the
+// bridge's packages from npmmirror).
+pub fn write(agent: Agent, action: &str, w: &mut Writing) -> Result<(), String> {
+    match agent {
+        Agent::Claude => write_hooks(action, w.port),
+        Agent::Codex => write_codex_hooks(action, w.waiting),
+        Agent::Agy => write_agy_hooks(action),
+        Agent::Opencode => write_opencode_plugin(action, w.port),
+        Agent::Omp => write_omp_hooks(action, w.port),
+        Agent::Zcode => write_zcode_hooks(action),
+        Agent::Dsh => {
+            let (action, registry) = match action.split_once(':') {
+                Some((action, "npmmirror")) => (action, Some(crate::dsh_bridge::NPMMIRROR)),
+                _ => (action, None),
+            };
+            write_dsh_hooks(action, w.dsh_way, w.port, registry, w.log)
+        }
+        Agent::Reasonix => write_reasonix_hooks(action),
     }
 }
 
@@ -129,5 +232,55 @@ mod tests {
         assert_eq!(super::error_kind("另一个程序正在使用此文件，进程无法访问。 (os error 32)"), "locked");
         assert_eq!(super::error_kind("expected `,` or `}` at line 3 column 5"), "invalid");
         assert_eq!(super::error_kind("拒绝访问。 (os error 5)"), "other");
+    }
+
+    use super::*;
+
+    // Every agent once, each with a name of its own: what any_connected and
+    // tools_here go through (the settings' own list of them once left three
+    // out). A new agent goes here as into ALL.
+    #[test]
+    fn all_of_them_once() {
+        let every = [Agent::Claude, Agent::Codex, Agent::Agy, Agent::Opencode, Agent::Omp, Agent::Zcode, Agent::Dsh, Agent::Reasonix];
+        for agent in every {
+            assert_eq!(ALL.iter().filter(|&&a| a == agent).count(), 1, "{agent:?} in ALL once");
+        }
+        assert_eq!(ALL.len(), every.len());
+        let names: std::collections::HashSet<&str> = ALL.into_iter().map(name).collect();
+        assert_eq!(names.len(), ALL.len());
+    }
+
+    // What counts as ours being there, here and on the page (agents.js, each
+    // agent's `in`): the same statuses, so the island and the Agent page
+    // never tell one apart. Claude Code's counts by its plugin or hooks
+    // (connection), and the page's DeepSeek Harness words come of ok and
+    // stale (dsh_view): those two count, and are among its own.
+    #[test]
+    fn connected_as_the_page_counts_it() {
+        let page = include_str!("../../../src/pet/agents.js");
+        let mut ins: Vec<(Agent, Vec<String>)> = Vec::new();
+        for part in page.split("      id: '").skip(1) {
+            let id = &part[..part.find('\'').unwrap()];
+            let list = part.split("      in: [").nth(1).and_then(|rest| rest.split(']').next()).unwrap_or_else(|| panic!("{id}'s in"));
+            ins.push((Agent::from_tag(Some(id)), list.split(',').map(|s| s.trim().trim_matches('\'').to_string()).filter(|s| !s.is_empty()).collect()));
+        }
+        assert_eq!(ins.len(), ALL.len(), "the page's table has them all");
+        let mut every: Vec<String> = ins.iter().flat_map(|(_, list)| list.clone()).collect();
+        every.extend(["absent", "missing", "unreadable", "off", "unsupported"].map(String::from));
+        for (agent, list) in &ins {
+            match agent {
+                Agent::Claude => {}
+                Agent::Dsh => {
+                    let counted: Vec<&String> = every.iter().filter(|s| counts_in(*agent, s)).collect();
+                    assert!(counted.iter().all(|s| ["ok", "stale"].contains(&s.as_str())), "{counted:?}");
+                    assert!(list.contains(&"ok".to_string()) && list.contains(&"stale".to_string()));
+                }
+                _ => {
+                    for status in &every {
+                        assert_eq!(counts_in(*agent, status), list.contains(status), "{agent:?} {status}");
+                    }
+                }
+            }
+        }
     }
 }

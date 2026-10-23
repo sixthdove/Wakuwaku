@@ -3,6 +3,7 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
+use agent_core::event::Agent;
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, WebviewWindow};
 
@@ -821,68 +822,72 @@ pub async fn settings_login(app: AppHandle, on: bool) -> Value {
     snapshot(&sh)
 }
 
+// One agent's files written (connection::write), off the async runtime's
+// threads (pnpm may take a while for DeepSeek Harness's bridge), and the
+// page's answer: the snapshot after it, or why not (kind, error; for a path
+// agy can't run, the folder she is in) and the snapshot as it is. The
+// write's lines for her log go there, and its failure too.
+async fn agent_write(sh: Arc<Shared>, agent: Agent, action: String, dsh_way: &'static str) -> Value {
+    let port = sh.port;
+    let waiting = i18n::t(sh.lang(), "codex.waiting");
+    let (done, log) = tauri::async_runtime::spawn_blocking(move || {
+        let mut log = Vec::new();
+        let done = connection::write(agent, &action, &mut connection::Writing { port, waiting: &waiting, dsh_way, log: &mut log });
+        (done, log)
+    })
+    .await
+    .unwrap_or_else(|e| (Err(e.to_string()), Vec::new()));
+    for line in log {
+        sh.log(&line);
+    }
+    match done {
+        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
+        Err(error) => {
+            sh.log(&format!("{}: {error}", agent.tag().unwrap_or("claude")));
+            let kind = connection::error_kind(&error);
+            let mut got = json!({ "ok": false, "kind": kind, "error": error, "snapshot": snapshot(&sh) });
+            if kind == "path" {
+                got["folder"] = json!(std::env::current_exe().ok().and_then(|exe| exe.parent().map(|p| p.to_string_lossy().into_owned())).unwrap_or_default());
+            }
+            got
+        }
+    }
+}
+
 // install, install-http, remove: Claude Code's settings.json.
 #[tauri::command]
 pub async fn settings_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_hooks(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Claude, action, "").await
 }
 
 // install, remove: Codex's hooks.json.
 #[tauri::command]
 pub async fn settings_codex_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_codex_hooks(&action, &i18n::t(sh.lang(), "codex.waiting")) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Codex, action, "").await
 }
 
 // install, remove: Antigravity's hooks.json.
 #[tauri::command]
 pub async fn settings_agy_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_agy_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        // The folder she is in, for one whose path agy can't run (kind "path").
-        Err(error) => {
-            let folder = std::env::current_exe().ok().and_then(|exe| exe.parent().map(|p| p.to_string_lossy().into_owned())).unwrap_or_default();
-            json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "folder": folder, "snapshot": snapshot(&sh) })
-        }
-    }
+    agent_write(shared(&app), Agent::Agy, action, "").await
 }
 
 // install, remove: our plugin in OpenCode's plugin folder.
 #[tauri::command]
 pub async fn settings_opencode(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_opencode_plugin(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Opencode, action, "").await
 }
 
 // install, remove: ZCode's config.json.
 #[tauri::command]
 pub async fn settings_zcode_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_zcode_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Zcode, action, "").await
 }
 
 // install, remove: omp's extension, in each of its agent folders.
 #[tauri::command]
 pub async fn settings_omp_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_omp_hooks(&action, sh.port) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Omp, action, "").await
 }
 
 // install, remove: DeepSeek Harness, the way chosen (dshVia: her plugin,
@@ -893,14 +898,13 @@ pub async fn settings_omp_hooks(app: AppHandle, action: String) -> Value {
 // reached. "via:plugin", "via:bridge" (and ":npmmirror"): the way switched,
 // the chosen one put in, then the other taken away (connection.rs
 // write_dsh_hooks), the setting kept only once that went well; one command
-// for all (another costs the exe some 9 KB of glue). pnpm may take a
-// while: off the async runtime's threads.
+// for all (another costs the exe some 9 KB of glue).
 #[tauri::command]
 pub async fn settings_dsh_hooks(app: AppHandle, action: String) -> Value {
     let sh = shared(&app);
     let Some(via) = action.strip_prefix("via:") else {
         let way = dsh_way(&sh);
-        return dsh_write(sh, action, way).await;
+        return agent_write(sh, Agent::Dsh, action, way).await;
     };
     let (way, mirror) = via.split_once(':').map_or((via, ""), |(w, r)| (w, r));
     let way: &'static str = match way {
@@ -909,7 +913,7 @@ pub async fn settings_dsh_hooks(app: AppHandle, action: String) -> Value {
         _ => return json!({ "ok": false, "kind": "other", "error": format!("unknown way {via}"), "snapshot": snapshot(&sh) }),
     };
     let action = if mirror == "npmmirror" { "install:npmmirror" } else { "install" };
-    let got = dsh_write(sh.clone(), action.to_string(), way).await;
+    let got = agent_write(sh.clone(), Agent::Dsh, action.to_string(), way).await;
     if got["ok"] == json!(true) {
         sh.log(&format!("dsh: followed through {}", if way == "bridge" { "DSH's hook bridge" } else { "her plugin" }));
         sh.change(json!({ "dshVia": way }));
@@ -923,40 +927,10 @@ fn dsh_way(sh: &Shared) -> &'static str {
     connection::dsh_rows_status(sh.port, &sh.setting("dshVia")).0
 }
 
-async fn dsh_write(sh: Arc<Shared>, action: String, way: &'static str) -> Value {
-    let (action, registry) = match action.split_once(':') {
-        Some((action, "npmmirror")) => (action.to_string(), Some(crate::dsh_bridge::NPMMIRROR)),
-        _ => (action, None),
-    };
-    let port = sh.port;
-    let (done, log) = tauri::async_runtime::spawn_blocking(move || {
-        let mut log = Vec::new();
-        let done = connection::write_dsh_hooks(&action, way, port, registry, &mut log);
-        (done, log)
-    })
-    .await
-    .unwrap_or_else(|e| (Err(e.to_string()), Vec::new()));
-    for line in log {
-        sh.log(&line);
-    }
-    match done {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => {
-            sh.log(&format!("dsh: {error}"));
-            json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) })
-        }
-    }
-}
-
-
 // install, remove: Reasonix's global settings.json (zhoupengjie/Wakuwaku#60).
 #[tauri::command]
 pub async fn settings_reasonix_hooks(app: AppHandle, action: String) -> Value {
-    let sh = shared(&app);
-    match connection::write_reasonix_hooks(&action) {
-        Ok(()) => json!({ "ok": true, "snapshot": snapshot(&sh) }),
-        Err(error) => json!({ "ok": false, "kind": connection::error_kind(&error), "error": error, "snapshot": snapshot(&sh) }),
-    }
+    agent_write(shared(&app), Agent::Reasonix, action, "").await
 }
 
 // The CPU temperature/power helper (sensors.rs, #18 part B). She is not
