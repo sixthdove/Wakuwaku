@@ -5,7 +5,10 @@
 // hears:
 //   - Explorer started again (TaskbarCreated, from a new taskbar window):
 //     its taskbar put away again, the strip taken again (island.rs), the
-//     tray put first again and programs asked for their icons
+//     tray put first again and programs asked for their icons, once the new
+//     Explorer has settled (zhoupengjie/Wakuwaku#85: until then hers is set
+//     behind its tray; nor is the taskbar taken from an Explorer still
+//     starting)
 //   - Explorer's taskbar shown (a WinEvent): put away again at once
 //   - the tray's icons changing: drawn into PNGs and sent to the island's
 //     page (taskbar:tray)
@@ -514,8 +517,9 @@ mod imp {
         }
     }
 
-    // Waiting for another copy to let the taskbar go: this one's window
-    // stays hidden (island.rs is_shown) and takes nothing.
+    // Waiting for another copy to let the taskbar go, or for Explorer to
+    // settle (wait_for_explorer): this one's window stays hidden (island.rs
+    // is_shown) and takes nothing.
     pub fn waiting() -> bool {
         WAITING.load(Ordering::SeqCst)
     }
@@ -538,14 +542,233 @@ mod imp {
         });
     }
 
+    // --- Explorer starting (zhoupengjie/Wakuwaku#85) ---------------------------------
+    // On 22621 (23H2 22631.2861, explorer.exe 10.0.22621.2792) Explorer
+    // failed fast again and again while it was starting with hers the first
+    // tray (0xc0000409 in ucrtbase.dll, as in #62): at a logon her task had
+    // started her before Explorer had a taskbar at all, or a few seconds
+    // after, and each Explorer Windows started again found hers first again,
+    // some 25 a minute, until Windows stopped starting it: no desktop, no
+    // taskbar. Started after Explorer had settled (by the Run value), none.
+    // So she takes the taskbar only once Explorer has a taskbar and a
+    // desktop and has run EXPLORER_SETTLE (its battery icon, the last of
+    // #85's log before each crash, came some 6 s after its taskbar); while
+    // she holds it, a new Explorer has hers set behind its tray until it has
+    // run as long (explorer_check, come_forward); and Explorer started
+    // again LOOP_TIMES times within LOOP_WITHIN all the same, the taskbar is
+    // given back for a while (step_away), the home kept.
+    const EXPLORER_SETTLE: Duration = Duration::from_secs(30);
+    // An Explorer that never comes (another shell, Explorer ended by hand):
+    // the taskbar taken anyway after so long, and not waited for again.
+    const EXPLORER_AT_MOST: Duration = Duration::from_secs(90);
+    static EXPLORER_FORCED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    const LOOP_TIMES: usize = 3;
+    const LOOP_WITHIN: Duration = Duration::from_secs(120);
+    // Given back for Explorer to run so long first, then twice as long each
+    // time it loops again, up to the most.
+    const AWAY_FIRST: u64 = 120;
+    const AWAY_MOST: u64 = 1800;
+
+    // What keeps her from taking the taskbar from Explorer yet, for the log
+    // (None: nothing): how long Explorer's taskbar's process has run (None:
+    // it has none), whether the desktop is Explorer's, how long it is to run.
+    fn unready(up: Option<Duration>, desktop: bool, settle: Duration) -> Option<String> {
+        match up {
+            None => Some("Explorer has no taskbar yet".to_string()),
+            Some(_) if !desktop => Some("Explorer's desktop is not up yet".to_string()),
+            Some(up) if up < settle => Some(format!("Explorer up {:.1} s, under the {} s it is given to start", up.as_secs_f64(), settle.as_secs())),
+            Some(_) => None,
+        }
+    }
+
+    fn explorer_up(pid: u32) -> Option<Duration> {
+        (pid != 0).then(|| shell::running_for(pid)).flatten()
+    }
+
+    fn explorer_unready(settle: Duration) -> Option<String> {
+        if EXPLORER_FORCED.load(Ordering::SeqCst) {
+            return None;
+        }
+        unready(explorer_up(shell::explorer_pid()), shell::desktop_up(), settle)
+    }
+
+    // Waits as for another copy (waiting: her window hidden, nothing taken),
+    // looking every second, until Explorer has run `settle` (at_most: or so
+    // long has gone by); then shown again, which takes the strip.
+    fn wait_for_explorer(sh: &Shared, why: &str, settle: Duration, at_most: Option<Duration>) {
+        if WAITING.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        sh.log(&format!("taskbar: {why}: this one waits for it (zhoupengjie/Wakuwaku#85)"));
+        let sh = crate::shared(&sh.app);
+        std::thread::spawn(move || {
+            let began = Instant::now();
+            loop {
+                std::thread::sleep(Duration::from_secs(1));
+                let Some(why) = explorer_unready(settle) else {
+                    sh.log(&format!("taskbar: Explorer has run {} s, waited {:.0} s: this one takes it", settle.as_secs(), began.elapsed().as_secs_f64()));
+                    break;
+                };
+                if at_most.is_some_and(|most| began.elapsed() >= most) {
+                    EXPLORER_FORCED.store(true, Ordering::SeqCst);
+                    sh.log(&format!("taskbar: waited {:.0} s, {why}: this one takes it anyway", began.elapsed().as_secs_f64()));
+                    break;
+                }
+            }
+            WAITING.store(false, Ordering::SeqCst);
+            crate::island::apply_visibility(&sh);
+        });
+    }
+
+    // Each time Explorer started again while hers held the taskbar: how
+    // long to give it back for when that makes LOOP_TIMES within
+    // LOOP_WITHIN (step_away). Kept for her whole run.
+    struct Restarts {
+        at: Vec<Instant>,
+        away: u32,
+    }
+
+    impl Restarts {
+        const fn new() -> Self {
+            Restarts { at: Vec::new(), away: 0 }
+        }
+
+        fn seen(&mut self, now: Instant) -> Option<Duration> {
+            self.at.retain(|&t| now.duration_since(t) < LOOP_WITHIN);
+            self.at.push(now);
+            if self.at.len() < LOOP_TIMES {
+                return None;
+            }
+            self.at.clear();
+            let secs = (AWAY_FIRST << self.away.min(8)).min(AWAY_MOST);
+            self.away += 1;
+            Some(Duration::from_secs(secs))
+        }
+    }
+
+    static RESTARTS: Mutex<Restarts> = Mutex::new(Restarts::new());
+    // Explorer's taskbar's process as last seen while hers is up (0: none yet).
+    static EXPLORER_PID: AtomicU32 = AtomicU32::new(0);
+
+    // On the taskbar's thread (each tick, Windows' shown again, TaskbarCreated):
+    // whether Explorer is another process than the last one seen with a
+    // taskbar. A new one has ours set behind its tray (come_forward puts it
+    // first again) and is counted (Restarts).
+    fn explorer_check() -> bool {
+        let pid = shell::explorer_pid();
+        if pid == 0 || EXPLORER_PID.swap(pid, Ordering::SeqCst) == pid {
+            return false;
+        }
+        let up = explorer_up(pid).map_or_else(|| "gone".to_string(), |d| format!("up {:.1} s", d.as_secs_f64()));
+        systray::set_aside(true);
+        log(&format!("Explorer started again (pid {pid}, {up}): ours set behind its tray until it has run {} s (zhoupengjie/Wakuwaku#85)", EXPLORER_SETTLE.as_secs()));
+        if let Some(away) = RESTARTS.lock().unwrap().seen(Instant::now()) {
+            step_away(away);
+        }
+        true
+    }
+
+    // Set behind a new Explorer's tray: first again once it has run
+    // EXPLORER_SETTLE, and programs asked for their icons (what they added
+    // meanwhile went to Explorer's alone).
+    fn come_forward() {
+        if !systray::aside() {
+            return;
+        }
+        let pid = EXPLORER_PID.load(Ordering::SeqCst);
+        let up = explorer_up(pid);
+        if unready(up, true, EXPLORER_SETTLE).is_some() {
+            return;
+        }
+        systray::set_aside(false);
+        systray::keep_first();
+        log(&format!("Explorer (pid {pid}) up {:.0} s: ours first again", up.unwrap_or_default().as_secs_f64()));
+        ASK_AT.store(TICKS.load(Ordering::SeqCst) + SETTLE_TICKS, Ordering::SeqCst);
+    }
+
+    // Explorer started again LOOP_TIMES times within LOOP_WITHIN, hers set
+    // behind it or not: the taskbar given back (Windows' own shown, her
+    // window hidden: waiting) until Explorer has run `away`, then taken
+    // again. The home stays the taskbar: this passes (#69's tug of war, which
+    // makes it the island, does not). Not on the taskbar's thread: giving it
+    // back stops that thread and waits for it.
+    fn step_away(away: Duration) {
+        log(&format!("Explorer started again {LOOP_TIMES} times within {} s: Windows' taskbar given back until Explorer has run {} s", LOOP_WITHIN.as_secs(), away.as_secs()));
+        let Some(sh) = sh() else { return };
+        std::thread::spawn(move || {
+            let why = format!("Explorer started again {LOOP_TIMES} times within {} s", LOOP_WITHIN.as_secs());
+            wait_for_explorer(&sh, &why, away, None);
+            crate::island::apply_visibility(&sh);
+        });
+    }
+
+    #[cfg(test)]
+    mod explorer_tests {
+        use super::{unready, Restarts, AWAY_FIRST, AWAY_MOST, LOOP_TIMES, LOOP_WITHIN};
+        use std::time::{Duration, Instant};
+
+        const SETTLE: Duration = Duration::from_secs(30);
+
+        // #85's two logons: hers before Explorer had a taskbar (and a
+        // desktop), and just after; then Explorer settled.
+        #[test]
+        fn explorer_is_waited_for_until_it_has_settled() {
+            assert_eq!(unready(None, false, SETTLE).as_deref(), Some("Explorer has no taskbar yet"));
+            assert_eq!(unready(Some(Duration::from_secs(40)), false, SETTLE).as_deref(), Some("Explorer's desktop is not up yet"));
+            assert_eq!(unready(Some(Duration::from_millis(2500)), true, SETTLE).as_deref(), Some("Explorer up 2.5 s, under the 30 s it is given to start"));
+            assert_eq!(unready(Some(SETTLE), true, SETTLE), None);
+            assert_eq!(unready(Some(Duration::from_secs(7200)), true, SETTLE), None);
+        }
+
+        // Explorer started again now and then (by hand, an update): never a loop.
+        #[test]
+        fn a_restart_now_and_then_is_nothing() {
+            let (mut r, t) = (Restarts::new(), Instant::now());
+            assert!((0..20u64).all(|i| r.seen(t + LOOP_WITHIN * i as u32 / 2).is_none()));
+        }
+
+        // #85's: one every two seconds. Given back at the third, for longer
+        // each time it loops again, up to the most.
+        #[test]
+        fn a_crash_loop_gives_it_back_for_longer_each_time() {
+            let (mut r, t) = (Restarts::new(), Instant::now());
+            let mut away = Vec::new();
+            for i in 0..LOOP_TIMES as u64 * 7 {
+                if let Some(d) = r.seen(t + Duration::from_secs(2 * i)) {
+                    away.push((i, d.as_secs()));
+                }
+            }
+            let at: Vec<u64> = away.iter().map(|a| a.0).collect();
+            assert_eq!(at, (1..=7).map(|n| n * LOOP_TIMES as u64 - 1).collect::<Vec<_>>());
+            let secs: Vec<u64> = away.iter().map(|a| a.1).collect();
+            assert_eq!(secs[..4], [AWAY_FIRST, AWAY_FIRST * 2, AWAY_FIRST * 4, AWAY_FIRST * 8]);
+            assert!(secs.iter().all(|&s| s <= AWAY_MOST));
+            assert_eq!(secs.last(), Some(&AWAY_MOST));
+        }
+
+        // The window slides: two, a long while, then two more is no loop.
+        #[test]
+        fn restarts_far_apart_are_apart() {
+            let (mut r, t) = (Restarts::new(), Instant::now());
+            assert!(r.seen(t).is_none());
+            assert!(r.seen(t + Duration::from_secs(1)).is_none());
+            assert!(r.seen(t + LOOP_WITHIN + Duration::from_secs(5)).is_none());
+            assert!(r.seen(t + LOOP_WITHIN + Duration::from_secs(6)).is_none());
+            assert!(r.seen(t + LOOP_WITHIN + Duration::from_secs(7)).is_some());
+        }
+    }
+
     // Before this one's window shows for the taskbar (island.rs): should
     // another copy hold it, this one waits.
+    // Nor while Explorer is still starting (explorer_unready): it waits too.
     pub fn look_for_other(sh: &Shared) {
         if is_up() || waiting() {
             return;
         }
         if let Some((pid, _)) = other_holder() {
             wait_for_other(sh, pid);
+        } else if let Some(why) = explorer_unready(EXPLORER_SETTLE) {
+            wait_for_explorer(sh, &why, EXPLORER_SETTLE, Some(EXPLORER_AT_MOST));
         }
     }
 
@@ -567,13 +790,18 @@ mod imp {
     }
 
     // Windows' taskbar put away and the tray taken, before the strip is
-    // laid; false while another copy holds it (this one then waits).
+    // laid; false while another copy holds it, or while Explorer is still
+    // starting (this one then waits).
     pub fn take(sh: &Shared, strip: (i32, i32, i32, i32)) -> bool {
         if is_up() {
             return true;
         }
         if let Some((pid, _)) = other_holder() {
             wait_for_other(sh, pid);
+            return false;
+        }
+        if let Some(why) = explorer_unready(EXPLORER_SETTLE) {
+            wait_for_explorer(sh, &why, EXPLORER_SETTLE, Some(EXPLORER_AT_MOST));
             return false;
         }
         *SH.lock().unwrap() = Some(crate::shared(&sh.app));
@@ -1975,6 +2203,7 @@ mod imp {
             }
             CREATED_MSG.store(shell::taskbar_created(), Ordering::SeqCst);
             EXPLORER.store(shell::taskbars().first().copied().unwrap_or(0), Ordering::SeqCst);
+            EXPLORER_PID.store(shell::explorer_pid(), Ordering::SeqCst);
             let hooks: Vec<isize> = WINDOW_EVENTS.iter().map(|&(min, max)| SetWinEventHook(min, max, 0, on_event, 0, 0, 0)).collect();
             SHELL_MSG.store(RegisterWindowMessageW(wide("SHELLHOOK").as_ptr()), Ordering::SeqCst);
             let shell_hook = RegisterShellHookWindow(hwnd) != 0;
@@ -2180,7 +2409,8 @@ mod imp {
         if HANDING_BACK.load(Ordering::SeqCst) || TUG.lock().unwrap().lost {
             return;
         }
-        if TUG.lock().unwrap().shown(TICKS.load(Ordering::SeqCst)) {
+        // A new Explorer's taskbar showing is no tug of war (zhoupengjie/Wakuwaku#85).
+        if !explorer_check() && TUG.lock().unwrap().shown(TICKS.load(Ordering::SeqCst)) {
             give_up();
             return;
         }
@@ -2305,6 +2535,10 @@ mod imp {
         if shell::visible() {
             put_away_again("seen by the timer");
         }
+        // A new Explorer (one whose taskbar does not show, too): ours set
+        // behind it while it starts, and first again once it has.
+        explorer_check();
+        come_forward();
         // The desktop lifted over her taskbar after the raises that followed
         // it to the front (over_desktop): raised again.
         if let Some(sh) = sh() {
@@ -2394,6 +2628,7 @@ mod imp {
     // Explorer started again (a new taskbar window), or a program's asking
     // (the same one: ours, or another tray's).
     fn on_created() {
+        explorer_check();
         let now = shell::taskbars().first().copied().unwrap_or(0);
         if now == EXPLORER.swap(now, Ordering::SeqCst) || HANDING_BACK.load(Ordering::SeqCst) {
             return;
