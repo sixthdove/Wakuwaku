@@ -1325,7 +1325,7 @@ fn codex_hook(port: u16) {
 
 // Antigravity's hook (connection::AGY_FLAG and the event's name, which its
 // payload does not carry): its answer printed first, whatever comes after
-// (a hook that fails or answers nothing breaks agy's turn: connection.rs),
+// (a hook that fails or answers nothing breaks agy's turn: connection/agy.rs),
 // then the event handed to her port with its name and let go (post_and_go:
 // agy waits on each hook, and her answer is nothing to it). Quit by the
 // person, she is not up: nothing tried. Its session starting with her not
@@ -1399,7 +1399,7 @@ fn zcode_hook(port: u16, name: &str) {
 
 // DeepSeek Harness's hook (connection::DSH_FLAG and the event's name), as
 // her old rows had it run (until 0.3.2; her own plugin in DSH replaces them,
-// connection.rs, and they are no longer written: this stays for a DSH still
+// connection/dsh.rs, and they are no longer written: this stays for a DSH still
 // running them), by its Claude Code bridge through its PowerShell, in its sandbox: the event
 // handed to her port and let go. As a session starts or a turn begins it
 // waits for her answer instead (some ms), this connection held while she
@@ -2056,7 +2056,7 @@ fn main() {
                 });
             }
             // DeepSeek Harness's rows and files seen to as she starts
-            // (connection.rs dsh_at_start: 0.3.2's broken bridge rows to her
+            // (connection/dsh.rs dsh_at_start: 0.3.2's broken bridge rows to her
             // plugin, the bridge's hook list for where she is now, her
             // plugin's files for this version); her own copy only.
             if sh.keeps_login() {

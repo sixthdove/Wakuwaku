@@ -144,7 +144,7 @@ pub fn snapshot(sh: &Shared) -> Value {
         "hidden": sh.hidden.load(Ordering::SeqCst),
         // Each agent's block (agent_row), by its id.
         "agents": connection::ALL.into_iter().map(|agent| (connection::id(agent).to_string(), json!(agent_row(sh, agent)))).collect::<Map<String, Value>>(),
-        // The agents' versions where a file of theirs says (connection.rs
+        // The agents' versions where a file of theirs says (connection/versions.rs
         // versions; Codex's is its block's): the Agent page shows them.
         "agentVersions": connection::versions(),
         // How many displays there are: her taskbar on all of them is offered
@@ -602,7 +602,7 @@ fn is_ok(sh: &Shared, key: &str, v: &Value) -> bool {
         "islandLook" | "islandTopLook" => v.is_null() || v.as_object().is_some_and(|m| m.iter().all(|(mode, look)| matches!(mode.as_str(), "dark" | "light") && is_island_look(look))),
         "mailAgent" => matches!(v.as_str(), Some("claude" | "codex" | "agy")),
         // How DeepSeek Harness is followed: her own plugin, or its own hook
-        // bridge (connection.rs dsh_way); none: the plugin, or 0.3.2's rows as they are.
+        // bridge (connection/dsh.rs dsh_way); none: the plugin, or 0.3.2's rows as they are.
         "dshVia" => matches!(v.as_str(), Some("plugin" | "bridge")),
         // The Mail page in two panes (list, letter), or one.
         "mailPanes" => matches!(v.as_str(), Some("one" | "two")),

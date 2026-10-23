@@ -298,7 +298,7 @@ fn take(sh: &Shared, hook: Hook) {
         sh.apply_event(&ev, chain);
     } else if agent == Some("dsh") {
         // Her plugin's word as DSH loads it: said in her log, and the open
-        // Connect page tells it loaded (connection.rs dsh_view).
+        // Connect page tells it loaded (connection/dsh.rs dsh_view).
         if let Some(line) = events_dsh::log_line(&event, None, &dsh_home) {
             sh.log(&line);
             sh.push_settings();

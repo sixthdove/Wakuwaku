@@ -481,7 +481,7 @@ mod imp {
 
     // When each running process of this exe's name started (ms since 1970),
     // those that may be asked: whether an app runs, and since when
-    // (connection.rs dsh_view).
+    // (connection/dsh.rs dsh_view).
     pub fn started_named(exe: &str) -> Vec<u64> {
         let exe = exe.to_lowercase();
         processes().into_iter().filter(|(_, (_, name))| *name == exe).filter_map(|(pid, _)| started_ms(pid)).collect()

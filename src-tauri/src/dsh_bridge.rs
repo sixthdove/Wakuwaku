@@ -1,5 +1,5 @@
 // DeepSeek Harness's own Claude Code hook bridge, the other way she can
-// follow it (the setting dshVia "bridge"; her own plugin, connection.rs, is
+// follow it (the setting dshVia "bridge"; her own plugin, connection/dsh.rs, is
 // the one she takes by herself): the bridge's packages put into DSH's
 // profiles, through DSH's own Node and pnpm.
 //

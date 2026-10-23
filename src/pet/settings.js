@@ -1814,7 +1814,7 @@
   // Who a letter goes to first (the setting), and the others that read mail
   // (agents.js mailAgents): Antigravity only where it is (or set first), as
   // few have it: its agy found, or Antigravity on this computer as the Agent
-  // page has it (agy's folder, or the 2.0 app's: connection.rs agy_here).
+  // page has it (agy's folder, or the 2.0 app's: connection/agy.rs agy_here).
   // The app alone brings no agy, which mail runs: Antigravity is listed
   // then, greyed, with a line on why (zhoupengjie/Wakuwaku#42). agent.rs
   // looks for agy again while the settings are open, and once installed it
@@ -2762,7 +2762,7 @@
   }
 
   // DeepSeek Harness's way switched (her plugin, or DSH's own hook bridge:
-  // agents.js, connection.rs dsh_way): the chosen one put in, the other
+  // agents.js, connection/dsh.rs dsh_way): the chosen one put in, the other
   // taken away, in its row meanwhile (the bridge's packages come from npm:
   // a minute or two); not connected yet, the choice is kept for Connect.
   // registry: 'npmmirror', picked after the registry pnpm names could not
@@ -2875,7 +2875,7 @@
     return `${next ? `<div class="ag-note">${esc(next)}</div>` : ''}<div class="ag-note">${esc(T(Agents.noteOf(id, state, snap)))}</div>`
   }
 
-  // DSH and her plugin (connection.rs dsh_view): loaded, when and in which
+  // DSH and her plugin (connection/dsh.rs dsh_view): loaded, when and in which
   // profile; an older one loaded; DSH to be restarted; DSH to start.
   function dshNote(state) {
     const r = Agents.read(snap, 'dsh') || {}

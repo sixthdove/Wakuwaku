@@ -87,7 +87,7 @@ mod codex {
 }
 
 // oh-my-pi's events, from her extension inside omp (integrations/omp/
-// wakuwaku.ts, written by connection.rs): agent-core reads them (omp.rs
+// wakuwaku.ts, written by connection/omp.rs): agent-core reads them (omp.rs
 // to_event), events.rs tells them in her words (an omp call's step,
 // step_of_omp: ours for the tools Claude Code has, else the model's intent).
 // Here, what she makes of them.
@@ -205,7 +205,7 @@ mod omp {
 }
 
 // OpenCode's events, from her plugin in OpenCode's background service
-// (integrations/opencode/wakuwaku.js, installed by connection.rs): agent-core
+// (integrations/opencode/wakuwaku.js, installed by connection/opencode.rs): agent-core
 // reads them (opencode.rs: normalize, by the names Claude Code's hooks have,
 // for the prompts and the jump too; to_event), events.rs tells them in her
 // words. Here, what she makes of them.

@@ -31,7 +31,7 @@
   // there (its status: absent when it is not on this computer), its file
   // and the same as read (~ for the home folder), whether a copy was kept,
   // whether an event came since she started; its version (Codex's in its
-  // block, the others' where a file says it: agentVersions, connection.rs
+  // block, the others' where a file says it: agentVersions, connection/versions.rs
   // versions); whether it trusts ours as they are (Codex's, from its own
   // settings: true, false, null when not known). Each under the snapshot's
   // agents, by its id (settings.rs AgentRow).
@@ -188,11 +188,11 @@
       via: 'plugin',
       site: 'agent:dsh',
       // Her plugin's file in DSH's folder, besides the patch file; whether
-      // DSH loaded it (connection.rs dsh_view: load), which counts as seen;
+      // DSH loaded it (connection/dsh.rs dsh_view: load), which counts as seen;
       // the old bridge's rows as a status of their own (bridge), and one
       // written but not loaded while DSH runs (notLoaded, why: off when DSH's
       // own settings turned it off).
-      // Two ways (way, connection.rs dsh_way): her plugin, or DSH's own hook
+      // Two ways (way, connection/dsh.rs dsh_way): her plugin, or DSH's own hook
       // bridge, whose stale rows say why as statuses of their own (way: the
       // plugin's rows there; hooks: its hook list for another exe or
       // folder; packages: not in DSH's profiles; version: another DSH's).
