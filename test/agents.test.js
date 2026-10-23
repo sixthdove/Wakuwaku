@@ -261,8 +261,8 @@ test("DeepSeek Harness's other way: its own hook bridge", () => {
   for (const key of keys) assert.ok(key in STRINGS.zh && key in STRINGS.en, key)
   assert.equal(STRINGS.zh['ag.dsh.viaNote.plugin'], '不用联网，事件即时，能在岛上批准和回答提问')
   assert.equal(STRINGS.zh['ag.dsh.viaNote.bridge'], 'DSH 官方的钩子桥，要从 npm 下载两个包，每个事件约 1 秒，不能审批')
-  // Every kind connection.rs error_kind gives the bridge's failures has its words.
-  const rust = read('src-tauri/src/connection.rs')
+  // Every kind connection/mod.rs error_kind gives the bridge's failures has its words.
+  const rust = read('src-tauri/src/connection/mod.rs')
   for (const [, kind] of rust.matchAll(/=> "(bridge[A-Z]\w+)",/g)) assert.ok(`s.dshBK.${kind}` in STRINGS.zh, kind)
 })
 
