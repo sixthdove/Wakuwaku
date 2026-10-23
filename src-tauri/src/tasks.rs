@@ -138,7 +138,7 @@ mod imp {
     }
 
     // A packaged program's app, as its package names it.
-    fn process_app_id(pid: u32) -> Option<String> {
+    pub fn process_app_id(pid: u32) -> Option<String> {
         // SAFETY: a handle we close; the id goes into our own buffer of the
         // length passed.
         unsafe {
@@ -1521,6 +1521,9 @@ mod imp {
     pub fn app_id(_hwnd: isize) -> Option<String> {
         None
     }
+    pub fn process_app_id(_pid: u32) -> Option<String> {
+        None
+    }
     pub fn with_com() {}
     pub fn file_icon(_path: &str) -> isize {
         0
@@ -1568,7 +1571,7 @@ mod imp {
     }
 }
 
-pub use imp::{alive, app_id, app_name, close, cover, covered, is_topmost, destroy_icon, file_icon, front, icon_of, in_use, ime_native, is_ours, is_desktop, is_search, is_shell_flyout, is_start, is_task_window, keys_cheap, keys_held, launch, launch_as_admin, list, net, dwm_flush, no_transitions, plain_program_icon, press, press_all, raise_own, raise_top, shift_down, title, toggle_native, under_desktop, window_menu, with_com, end_task, launch_with, launch_as_admin_with};
+pub use imp::{alive, app_id, app_name, process_app_id, close, cover, covered, is_topmost, destroy_icon, file_icon, front, icon_of, in_use, ime_native, is_ours, is_desktop, is_search, is_shell_flyout, is_start, is_task_window, keys_cheap, keys_held, launch, launch_as_admin, list, net, dwm_flush, no_transitions, plain_program_icon, press, press_all, raise_own, raise_top, shift_down, title, toggle_native, under_desktop, window_menu, with_com, end_task, launch_with, launch_as_admin_with};
 
 #[cfg(test)]
 mod tests {

@@ -192,12 +192,25 @@ mod imp {
     }
 
     // The chain of a Codex session, from inside its hook command: from Codex
-    // up, past this command and the shell Codex runs it in.
-    pub fn hook_chain() -> Chain {
-        named_chain(std::process::id(), &processes())
+    // up, past this command and the shell Codex runs it in. With the agent's
+    // own exe (`host`) up the chain, from the nearest of it: a hook of ours
+    // handed on by a wrapper of the person's (a node script, gone once it
+    // has handed the event on) is not the session's process
+    // (zhoupengjie/Wakuwaku#75).
+    pub fn hook_chain(host: Option<&str>) -> Chain {
+        chain_from_hook(named_chain(std::process::id(), &processes()), host)
+    }
+
+    // hook_chain's cut, over the chain from the hook itself up.
+    pub(super) fn chain_from_hook(named: Vec<(u32, u64, String)>, host: Option<&str>) -> Chain {
+        let host = host.filter(|h| named.iter().skip(1).any(|(_, _, name)| name.eq_ignore_ascii_case(h)));
+        named
             .into_iter()
             .skip(1)
-            .skip_while(|(_, _, name)| SHELLS.contains(&name.as_str()))
+            .skip_while(|(_, _, name)| match host {
+                Some(h) => !name.eq_ignore_ascii_case(h),
+                None => SHELLS.contains(&name.as_str()),
+            })
             .map(|(pid, at, _)| (pid, at))
             .collect()
     }
@@ -504,6 +517,38 @@ mod imp {
         None
     }
 
+    // A session whose app keeps its window in the tray (Codex's desktop app,
+    // hidden there: no window to find), its own process still running: the
+    // app started again by its app id, the first one up the chain (still
+    // the same) that Windows knows as a packaged app's, below any shell
+    // (above one is the terminal the agent runs in, which would open a new
+    // window); one of it at a time, it shows the window it has. That window
+    // then looked for, 2 s at most (zhoupengjie/Wakuwaku#75).
+    pub fn wake(chain: &Chain, hints: &[&str]) -> Option<isize> {
+        let &(first, at) = chain.first()?;
+        if started(first) != Some(at) {
+            return None;
+        }
+        let all = processes();
+        let id = chain
+            .iter()
+            .take_while(|(pid, _)| !all.get(pid).is_some_and(|(_, name)| SHELLS.contains(&name.as_str())))
+            .filter(|&&(pid, at)| started(pid) == Some(at))
+            .find_map(|&(pid, _)| crate::tasks::process_app_id(pid))?;
+        crate::tasks::with_com();
+        if !open_url(&format!("shell:AppsFolder\\{id}")) {
+            return None;
+        }
+        let asked = std::time::Instant::now();
+        while asked.elapsed() < std::time::Duration::from_secs(2) {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if let Some(hwnd) = window_of(chain, hints, true) {
+                return Some(hwnd);
+            }
+        }
+        None
+    }
+
     // The window a process's console shows in: the terminal's that hosts it
     // (it owns the console's window), or the console's own. Never
     // while this program has a console of its own (a debug build): it would
@@ -644,7 +689,7 @@ mod imp {
     pub fn chain_of(_pid: u32) -> Chain {
         Vec::new()
     }
-    pub fn hook_chain() -> Chain {
+    pub fn hook_chain(_host: Option<&str>) -> Chain {
         Vec::new()
     }
     pub fn parent_names(_max: usize) -> Vec<String> {
@@ -663,6 +708,9 @@ mod imp {
         true
     }
     pub fn window_of(_chain: &Chain, _hints: &[&str], _needs_own: bool) -> Option<isize> {
+        None
+    }
+    pub fn wake(_chain: &Chain, _hints: &[&str]) -> Option<isize> {
         None
     }
     pub fn windows_for(asks: &[(Chain, Vec<String>)]) -> Vec<Option<(isize, u32)>> {
@@ -722,12 +770,13 @@ pub fn chain_from_json(value: Option<&serde_json::Value>) -> Chain {
         .unwrap_or_default()
 }
 
-// To the session: its window to the front; for a session of the Claude
-// desktop app, the app opens it too. True when anything was found to go to.
+// To the session: its window to the front, its app woken from the tray
+// first should its window be there; for a session of the Claude desktop
+// app, the app opens it too. True when anything was found to go to.
 pub fn go(session: &str, chain: &Chain, hints: &[&str]) -> bool {
     // The desktop app's session is the app's to show, its process running or not.
     let desktop = imp::desktop_session(session);
-    let window = imp::window_of(chain, hints, desktop.is_none());
+    let window = imp::window_of(chain, hints, desktop.is_none()).or_else(|| desktop.is_none().then(|| imp::wake(chain, hints)).flatten());
     let brought = window.is_some_and(imp::bring);
     let opened = desktop.is_some_and(|id| imp::open_url(&format!("claude://code/continue?session={id}")));
     brought || opened
@@ -797,6 +846,25 @@ mod tests {
         assert_eq!(super::imp::outermost_in(&no_app, 9, app, started), 7);
     }
 
+    // Codex's hook (wakuwaku ← shell ← codex): its chain from Codex up; a
+    // wrapper of the person's between (wakuwaku ← node ← pwsh ← codex,
+    // zhoupengjie/Wakuwaku#75) cut away too. No Codex above, or no host
+    // asked: past the shells only, as before.
+    #[cfg(windows)]
+    #[test]
+    fn a_hook_chain_starts_at_its_host() {
+        let named = |names: &[&str]| names.iter().enumerate().map(|(i, n)| (100 - i as u32, 1_000 - i as u64, n.to_string())).collect::<Vec<_>>();
+        let pids = |chain: Chain| chain.into_iter().map(|(pid, _)| pid).collect::<Vec<_>>();
+        let plain = named(&["wakuwaku.exe", "pwsh.exe", "codex.exe", "codex.exe"]);
+        assert_eq!(pids(super::imp::chain_from_hook(plain.clone(), Some("codex.exe"))), [98, 97]);
+        assert_eq!(pids(super::imp::chain_from_hook(plain, None)), [98, 97]);
+        let wrapped = named(&["wakuwaku.exe", "node.exe", "pwsh.exe", "codex.exe", "codex.exe"]);
+        assert_eq!(pids(super::imp::chain_from_hook(wrapped.clone(), Some("codex.exe"))), [97, 96]);
+        assert_eq!(pids(super::imp::chain_from_hook(wrapped, None)), [99, 98, 97, 96]);
+        let no_host = named(&["wakuwaku.exe", "node.exe", "cmd.exe", "windowsterminal.exe"]);
+        assert_eq!(pids(super::imp::chain_from_hook(no_host, Some("codex.exe"))), [99, 98, 97]);
+    }
+
     #[cfg(windows)]
     #[test]
     fn a_port_listened_on_is_seen() {
@@ -813,7 +881,7 @@ mod tests {
     fn how_long_a_hook_chain_takes() {
         let t = std::time::Instant::now();
         for _ in 0..20 {
-            let _ = hook_chain();
+            let _ = hook_chain(None);
         }
         println!("hook_chain: {:?} each", t.elapsed() / 20);
         let t = std::time::Instant::now();

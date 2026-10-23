@@ -1316,7 +1316,7 @@ fn post_and_go(port: u16, agent: &str, event: &Value) -> bool {
 fn codex_hook(port: u16) {
     let Some(mut event) = read_event() else { return };
     if let Some(fields) = event.as_object_mut() {
-        fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain()));
+        fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain(Some("codex.exe"))));
     }
     let name = event["hook_event_name"].as_str().unwrap_or("").to_string();
     if name != "PermissionRequest" {
@@ -1363,7 +1363,7 @@ fn agy_hook(port: u16, name: &str) {
     if let Some(fields) = event.as_object_mut() {
         fields.insert("hook_event_name".into(), json!(name));
         if turn {
-            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain()));
+            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain(None)));
         }
     }
     if !post_and_go(port, "agy", &event) {
@@ -1386,7 +1386,7 @@ fn zcode_hook(port: u16, name: &str) {
     if let Some(fields) = event.as_object_mut() {
         fields.insert("hook_event_name".into(), json!(name));
         if matches!(name.as_str(), "SessionStart" | "UserPromptSubmit") {
-            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain()));
+            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain(None)));
         }
     }
     if name != "PermissionRequest" {
@@ -1457,7 +1457,7 @@ fn reasonix_hook(port: u16, name: &str) {
         // The name her server reads every agent's events by.
         fields.insert("hook_event_name".into(), json!(name));
         if matches!(name.as_str(), "SessionStart" | "UserPromptSubmit") {
-            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain()));
+            fields.insert(jump::CODEX_CHAIN.into(), jump::chain_json(&jump::hook_chain(None)));
         }
     }
     if !post_and_go(port, "reasonix", &event) {
