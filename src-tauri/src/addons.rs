@@ -2167,15 +2167,21 @@ fn decoded(path: &str) -> Option<String> {
 // each with the plugin's policy.
 pub fn serve(app: &AppHandle, req: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
     let dir = app.try_state::<Arc<Shared>>().map(|s| s.dir.clone());
-    let path = req.uri().path().to_string();
-    let head = req.method() == tauri::http::Method::HEAD;
-    if req.method() != tauri::http::Method::GET && !head {
+    respond(dir.as_deref(), req.method(), req.uri().path(), |id| read(|r| r.manifest(id).filter(|m| m.runs()).map(|m| m.view.clone())))
+}
+
+// serve's answer to a method and a path, her data folder known (None: she
+// is not up yet); `view_of`: for a plugin here that runs, its view.html if
+// it has one (None: no such plugin to serve).
+fn respond(dir: Option<&Path>, method: &tauri::http::Method, path: &str, view_of: impl Fn(&str) -> Option<Option<String>>) -> tauri::http::Response<Vec<u8>> {
+    let head = method == tauri::http::Method::HEAD;
+    if method != tauri::http::Method::GET && !head {
         return status(405, "GET only");
     }
     let Some(dir) = dir else { return status(503, "not up yet") };
     let (id, file) = path.trim_start_matches('/').split_once('/').unwrap_or((path.trim_start_matches('/'), ""));
     let id = id.to_string();
-    let Some(view) = (if is_id(&id) { read(|r| r.manifest(&id).filter(|m| m.runs()).map(|m| m.view.clone())) } else { None }) else {
+    let Some(view) = (if is_id(&id) { view_of(&id) } else { None }) else {
         return status(404, "no such plugin");
     };
     let (body, kind) = match file {
@@ -3228,6 +3234,52 @@ mod tests {
         assert_eq!(widget_id("hello", Some("two2")).as_deref(), Ok("hello_two2"));
         assert!(widget_id("hello", Some("Two")).is_err() && widget_id("hello", Some(&"a".repeat(17))).is_err() && widget_id(&"a".repeat(30), Some("abcdefghijk")).is_err());
         assert!(is_widget_of("hello", "hello_x") && !is_widget_of("hello", "hellox") && !is_widget_of("hello", "hello_"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    // What her plugin scheme answers (serve): a running plugin's own files
+    // and her two pages for it, each with the headers that keep it in; for
+    // any other plugin, path or method, nothing of it.
+    #[test]
+    fn the_scheme_gives_a_running_plugin_its_own_files_alone() {
+        use tauri::http::{Method, Response};
+        let dir = scratch("respond");
+        let plugins = plugins_dir(&dir);
+        for id in ["hello", "sleepy"] {
+            std::fs::create_dir_all(plugins.join(id)).unwrap();
+            std::fs::write(plugins.join(id).join("main.js"), "waku.widget.set({})").unwrap();
+        }
+        let view = "<html><head><title>v</title></head><body>v</body></html>";
+        std::fs::write(plugins.join("hello").join("view.html"), view).unwrap();
+        std::fs::write(plugins.join("other.js"), "x").unwrap();
+        // hello runs, with a view; sleepy is here but does not run.
+        let view_of = |id: &str| (id == "hello").then(|| Some("view.html".to_string()));
+        let get = |method: &Method, path: &str| respond(Some(&dir), method, path, view_of);
+        let header = |res: &Response<Vec<u8>>, k: &str| res.headers().get(k).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+        let res = get(&Method::GET, "/hello/main.js");
+        assert_eq!((res.status().as_u16(), res.body().as_slice()), (200, b"waku.widget.set({})".as_slice()));
+        assert_eq!(header(&res, "content-type"), "text/javascript; charset=utf-8");
+        assert_eq!(header(&res, "content-security-policy"), policy("hello"));
+        for (k, v) in [("x-content-type-options", "nosniff"), ("cache-control", "no-store"), ("referrer-policy", "no-referrer"), ("x-dns-prefetch-control", "off")] {
+            assert_eq!(header(&res, k), v, "{k}");
+        }
+        // HEAD: its length, no body.
+        let res = get(&Method::HEAD, "/hello/main.js");
+        assert_eq!((res.status().as_u16(), header(&res, "content-length"), res.body().len()), (200, "waku.widget.set({})".len().to_string(), 0));
+        // Her pages for it: its frame's first and the SDK, nothing else under __waku.
+        let res = get(&Method::GET, "/hello/__waku/main.html");
+        assert_eq!((header(&res, "content-type"), res.body().clone()), ("text/html; charset=utf-8".to_string(), host_page("hello").into_bytes()));
+        assert_eq!(header(&res, "content-security-policy"), policy("hello"));
+        assert_eq!(get(&Method::GET, "/hello/__waku/sdk.js").body().as_slice(), SDK.as_bytes());
+        // Its view with her SDK first.
+        assert_eq!(get(&Method::GET, "/hello/view.html").body().clone(), view_page("hello", view).into_bytes());
+        for path in ["/hello/__waku/main.js", "/hello/../other.js", "/hello/%2e%2e/other.js", "/hello/missing.js", "/hello/", "/hello", "/sleepy/main.js", "/nobody/main.js", "/Hello/main.js", "/../hello/main.js", "/"] {
+            assert_eq!(get(&Method::GET, path).status().as_u16(), 404, "{path}");
+        }
+        for method in [Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS] {
+            assert_eq!(get(&method, "/hello/main.js").status().as_u16(), 405, "{method}");
+        }
+        assert_eq!(respond(None, &Method::GET, "/hello/main.js", view_of).status().as_u16(), 503);
         let _ = std::fs::remove_dir_all(dir);
     }
 }
