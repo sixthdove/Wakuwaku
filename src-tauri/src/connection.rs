@@ -20,9 +20,6 @@ pub const ENSURE_FLAG: &str = "--wakuwaku-ensure-running";
 pub const CODEX_FLAG: &str = "--wakuwaku-codex-hook";
 pub const AGY_FLAG: &str = "--wakuwaku-agy-hook";
 const URL_MARK: &str = "from=wakuwaku";
-// What the app wrote before it was called Wakuwaku (claude-pets).
-pub const LEGACY_ENSURE_FLAG: &str = "--claude-pets-ensure-running";
-const LEGACY_URL_MARK: &str = "from=claude-pets";
 pub const PLUGIN_ID: &str = "wakuwaku@wakuwaku";
 pub const PLUGIN_COMMANDS: [&str; 2] = ["/plugin marketplace add zhoupengjie/wakuwaku", "/plugin install wakuwaku@wakuwaku"];
 
@@ -203,7 +200,7 @@ fn is_ours(hook: &Value) -> bool {
         text.push(' ');
         text.push_str(&arg.to_string());
     }
-    [URL_MARK, ENSURE_FLAG, CODEX_FLAG, ZCODE_FLAG, REASONIX_FLAG, LEGACY_URL_MARK, LEGACY_ENSURE_FLAG, "claude-hook.js"].iter().any(|m| text.contains(m))
+    [URL_MARK, ENSURE_FLAG, CODEX_FLAG, ZCODE_FLAG, REASONIX_FLAG].iter().any(|m| text.contains(m))
 }
 
 // Our hooks, event by event.
@@ -739,8 +736,16 @@ pub fn note_connected(connected: bool) -> bool {
     CONNECTED.swap(connected, std::sync::atomic::Ordering::SeqCst) != connected
 }
 
+// Whether any of them is, as their files say now: the one list of them, for
+// looking (below) and for the settings' snapshot alike (settings.rs; its
+// own list there once left ZCode, DeepSeek Harness and Reasonix out, and
+// the island asked to connect one of them while it was).
+pub fn any_connected(port: u16) -> bool {
+    connection(port) != "none" || is_codex_connected() || is_agy_connected() || is_opencode_connected(port) || is_omp_connected(port) || is_zcode_connected() || is_dsh_connected(port) || is_reasonix_connected()
+}
+
 pub fn look_connected(port: u16) -> bool {
-    let connected = connection(port) != "none" || is_codex_connected() || is_agy_connected() || is_opencode_connected(port) || is_omp_connected(port) || is_zcode_connected() || is_dsh_connected(port) || is_reasonix_connected();
+    let connected = any_connected(port);
     note_connected(connected);
     connected
 }

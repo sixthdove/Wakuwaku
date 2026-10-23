@@ -1520,7 +1520,7 @@ fn main() {
         std::process::exit(lhm_setup::admin(&args[at + 1..]));
     }
     let port: u16 = std::env::var("WAKUWAKU_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
-    if let Some(at) = args.iter().position(|a| a == connection::ENSURE_FLAG || a == connection::LEGACY_ENSURE_FLAG) {
+    if let Some(at) = args.iter().position(|a| a == connection::ENSURE_FLAG) {
         return ensure_running(port, &args[at + 1..]);
     }
     if std::env::args().any(|a| a == connection::CODEX_FLAG) {
