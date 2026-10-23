@@ -4,7 +4,7 @@
 // <its config folder>/plugins/ by itself (and again as one changes), into its
 // background service. Ours is integrations/opencode/wakuwaku.js, written
 // there with her port in it: it tells her port of its sessions and asks the
-// person there too (events_opencode.rs); no program of hers runs. Its config
+// person there too (events_tests.rs opencode); no program of hers runs. Its config
 // folder, as OpenCode 2.0.29 finds it: OPENCODE_CONFIG_DIR, else
 // $XDG_CONFIG_HOME/opencode, else ~/.config/opencode (on Windows too).
 

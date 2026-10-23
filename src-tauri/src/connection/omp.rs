@@ -5,7 +5,7 @@
 // integrations/omp/wakuwaku.ts, is written there with this copy's port, exe
 // and data folder filled in (an omp started after that loads it), and taken
 // out again; nothing else of omp's is touched. It reports to her port from
-// inside omp (events_omp.rs). The agent folder as omp 18.11.1 finds it (its
+// inside omp (events_tests.rs omp). The agent folder as omp 18.11.1 finds it (its
 // utils/src/dirs.ts): ~/.omp/agent, PI_CONFIG_DIR in place of .omp,
 // PI_CODING_AGENT_DIR in place of the whole; and a profile (omp --profile
 // <name>, or OMP_PROFILE) has one of its own, ~/.omp/profiles/<name>/agent,

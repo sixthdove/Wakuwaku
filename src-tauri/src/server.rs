@@ -11,9 +11,9 @@
 //                      ?agent=dsh: a DeepSeek Harness one, from her plugin inside DSH
 //                      (integrations/dsh/wakuwaku.js, events_dsh.rs), or handed on by
 //                      this program for its old hook bridge (main.rs dsh_hook)
-//                      ?agent=opencode: an OpenCode event, from her plugin in it (events_opencode.rs)
+//                      ?agent=opencode: an OpenCode event, from her plugin in it (events_tests.rs opencode)
 //                      ?agent=omp: an oh-my-pi one, from her extension inside omp
-//                      (integrations/omp/wakuwaku.ts, events_omp.rs)
+//                      (integrations/omp/wakuwaku.ts, events_tests.rs omp)
 //   GET  /v1/info      the agents' sessions told to other apps on this machine (agent-hub,
 //   GET  /v1/sessions  its lib.rs says how): the hub; the sessions; each event as it comes
 //   GET  /v1/events    (Server-Sent Events). The last two take the token in her data

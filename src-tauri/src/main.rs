@@ -27,9 +27,9 @@
 //   jump.rs        to a session's window, when you click the session
 //   tray.rs        the tray icon and the menu
 //   server.rs      the port the hooks report to
-//   state.rs       per-session moods; events.rs (Claude Code),
-//                  events_codex.rs (Codex), events_agy.rs (Antigravity) and
-//                  events_opencode.rs (OpenCode) hook events into messages
+//   state.rs       per-session moods; events.rs the agents' events into her
+//                  words (events_agy.rs, events_dsh.rs: their log lines;
+//                  events_tests.rs: what she makes of the others')
 //   data.rs        her folder, settings and pets; the mark of a quit by choice
 //   starts.rs      what starts her (the hooks, at login, by hand), whether it may, and who did
 //   widgets.rs     plugins in the island: widgets from scripts, and the built-in ones
@@ -58,13 +58,10 @@ mod desk;
 mod detach;
 mod events;
 mod events_agy;
-mod events_codex;
-mod events_opencode;
-mod events_omp;
 mod events_dsh;
-mod events_reasonix;
+#[cfg(test)]
+mod events_tests;
 mod dsh_bridge;
-mod events_zcode;
 mod fetch;
 mod focus;
 mod fullscreen;
