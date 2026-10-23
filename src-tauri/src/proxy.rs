@@ -600,4 +600,42 @@ mod tests {
         assert_eq!(Via::of(&json!({ "mode": "manual", "kind": "socks5", "address": "127.0.0.1:10808" })).map(|v| v.json()), Some(json!({ "mode": "manual", "kind": "socks5", "address": "127.0.0.1:10808" })));
         assert_eq!(Via::of(&json!({ "mode": "follow" })), None);
     }
+
+    // A plugin's fetch straight to the web (guarded_agent): a name or an
+    // address of this computer is not connected to at all, whatever the
+    // pre-check said (addons.rs resolves_inside), as the same agent
+    // unguarded would.
+    #[test]
+    fn a_guarded_agent_never_connects_inside() {
+        use std::io::{ErrorKind, Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        listener.set_nonblocking(true).unwrap();
+        let timeout = Duration::from_secs(5);
+        for url in [format!("http://127.0.0.1:{port}/"), format!("http://localhost:{port}/"), format!("http://[::ffff:127.0.0.1]:{port}/")] {
+            let agent = Way::Straight.guarded_agent(timeout, |c| c.http_status_as_error(false)).unwrap();
+            let got = agent.get(&url).call();
+            assert!(matches!(got, Err(ureq::Error::HostNotFound)), "{url}: {got:?}");
+            assert_eq!(listener.accept().map(|_| ()).map_err(|e| e.kind()), Err(ErrorKind::WouldBlock), "{url}: connected");
+        }
+        // Unguarded, the same address is reached: the listener hears it.
+        let heard = std::thread::spawn(move || {
+            let until = std::time::Instant::now() + Duration::from_secs(5);
+            loop {
+                match listener.accept() {
+                    Ok((mut s, _)) => {
+                        s.set_nonblocking(false).unwrap();
+                        let _ = s.read(&mut [0; 1024]);
+                        s.write_all(b"HTTP/1.1 204 No Content\r\nconnection: close\r\n\r\n").unwrap();
+                        return true;
+                    }
+                    Err(_) if std::time::Instant::now() < until => std::thread::sleep(Duration::from_millis(10)),
+                    Err(_) => return false,
+                }
+            }
+        });
+        let agent = Way::Straight.agent(timeout).unwrap();
+        assert_eq!(agent.get(&format!("http://127.0.0.1:{port}/")).call().map(|r| r.status().as_u16()).ok(), Some(204));
+        assert!(heard.join().unwrap());
+    }
 }
