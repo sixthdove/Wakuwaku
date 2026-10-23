@@ -3800,10 +3800,14 @@
   // inner edge is the work area's, where maximized windows stop (a hairline
   // gap at 175%: zhoupengjie/Wakuwaku#2). 48 until told.
   let stripThick = 0
+  let stripScale = 1
   function setStrip() {
     if (!stripThick) return
     document.documentElement.style.setProperty('--strip-h', `${stripThick / (devicePixelRatio || 1)}px`)
     fitPage()
+    // A monitor's scale or Windows text scaling may have changed while the
+    // settings are open; recompute their body height with the new CSS room.
+    if (window.Settings?.isOpen?.()) window.Settings.redraw()
     // Once laid out for it (its edge may have just changed too).
     setTimeout(() => {
       const r = island.parentElement.getBoundingClientRect()
@@ -3850,9 +3854,10 @@
     root.style.setProperty('--page-cut-x', `${winPx ? over(r.width, winPx[0]) : 0}px`)
     root.style.setProperty('--page-cut-y', `${winPx ? over(r.height, winPx[1]) : 0}px`)
   }
-  window.pet.onStrip(({ thick, win } = {}) => {
+  window.pet.onStrip(({ thick, win, sf } = {}) => {
     if (!(thick > 0)) return
     stripThick = thick
+    if (Number.isFinite(sf) && sf > 0) stripScale = sf
     if (Array.isArray(win) && win[0] > 0 && win[1] > 0) winPx = win
     setStrip()
   })
@@ -3860,6 +3865,8 @@
     if (!stripThick) return
     document.documentElement.style.setProperty('--strip-h', `${stripThick / (devicePixelRatio || 1)}px`)
     fitPage()
+    if (window.Settings?.isOpen?.()) window.Settings.redraw()
+    sendSolid()
   })
 
   const micaBox = el('div')
@@ -4670,12 +4677,17 @@
     if (!isOn()) return
     const extra = window.Picker?.solids() || []
     const on = !!editLayout
-    const rects = [...(editLayout ? [editBar] : []), ...extra]
+    // Settings are a large interactive surface, often much bigger than the
+    // capsule. Keep the native window catching the mouse over them even if
+    // WebView2 misses an enter/leave while its click-through mode changes.
+    // Put this first because Rust caps the list at eight rectangles.
+    const settings = window.Settings?.isOpen?.() ? window.Settings.layer : null
+    const rects = [...(settings ? [settings] : []), ...(editLayout ? [editBar] : []), ...extra]
       .filter(n => n.isConnected)
       .map(n => n.getBoundingClientRect())
       .filter(r => r.width && r.height)
       .map(r => [Math.floor(r.left) - 2, Math.floor(r.top) - 2, Math.ceil(r.width) + 4, Math.ceil(r.height) + 4])
-    const sent = JSON.stringify([on, rects])
+    const sent = JSON.stringify([on, rects, devicePixelRatio || 1])
     if (sent === solidSent) return
     solidSent = sent
     window.pet.editing(on, rects)
@@ -5958,7 +5970,11 @@
   // panel.js tells the island when its prompt changes.
   // The most the settings may be high: above the taskbar, its room (the
   // window never moves for them); elsewhere, none said (the screen's).
-  const settingsMax = () => (home() === 'taskbar' ? (isSide() ? innerHeight - 2 * TASKBAR_GAP - TASKBAR_SHADE : TASKBAR_ROOM - TASKBAR_GAP - TASKBAR_SHADE) : null)
+  // TASKBAR_ROOM is in the native monitor's logical px. WebView CSS px use
+  // devicePixelRatio, which can differ from that monitor scale (Windows text
+  // scaling): convert the room before sizing the settings page or its head
+  // and tabs can land above the native window and be clipped.
+  const settingsMax = () => (home() === 'taskbar' ? (isSide() ? innerHeight - 2 * TASKBAR_GAP - TASKBAR_SHADE : (TASKBAR_ROOM - TASKBAR_GAP - TASKBAR_SHADE) * stripScale / (devicePixelRatio || 1)) : null)
 
   // The taskbar's layout, for the settings: its presets, which one it is, editing it on the strip.
   // From her menu: editing it (添加小工具…: with the picker open, { picker }),

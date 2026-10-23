@@ -55,7 +55,10 @@
     answer: (id, choice) => send('pet_answer', { id, choice }),
     dismiss: id => send('pet_dismiss', { id }),
     keyboard: needs => send('pet_keyboard', { needs: needs === true }),
-    panel: measured => send('pet_panel', { measured: measured || null }),
+    // Room sizes are measured in page CSS px. WebView2's DPR can differ from
+    // the monitor scale reported to Rust (Windows text scaling), so include
+    // it when the native window converts that room to physical pixels.
+    panel: measured => send('pet_panel', { measured: measured ? { ...measured, dpr: devicePixelRatio || 1 } : null }),
     hover: isOver => {
       // The real pointer has the page now, or has left it: start over.
       inside = []
@@ -80,7 +83,7 @@
     // panel, the toasts; [[x, y, w, h]], page px, editing or not): the
     // window keeps the mouse there whatever enter and leave say (island.rs
     // set_editing, #53).
-    editing: (on, rects) => send('island_editing', { on: on === true, rects: Array.isArray(rects) ? rects : [] }),
+    editing: (on, rects) => send('island_editing', { on: on === true, rects: Array.isArray(rects) ? rects : [], pageSf: devicePixelRatio || 1 }),
     // Her seat on the taskbar, where the page has laid her island out (logical px from its left).
     seat: x => send('island_seat', { x: Number(x) || 0 }),
     // A blur of what is behind her island, under it (backplate.rs): where

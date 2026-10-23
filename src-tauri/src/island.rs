@@ -67,6 +67,10 @@ pub struct Island {
     pos: (i32, i32),
     size: (i32, i32),
     sf: f64,
+    // WebView CSS px to physical cursor px. This can differ from the
+    // monitor's scale factor when Windows text scaling changes WebView2's
+    // devicePixelRatio without changing the native window's DPI.
+    page_sf: f64,
     // Extra room the page asked for.
     room: Option<(f64, f64)>,
     created: bool,
@@ -106,7 +110,7 @@ pub struct Island {
     seat_at: Option<f64>,
     // The strip, its edge and the window as the page was last told of them
     // (tell_strip).
-    strip_told: Option<((i32, i32, i32, i32), Edge, (i32, i32), (i32, i32))>,
+    strip_told: Option<((i32, i32, i32, i32), Edge, (i32, i32), (i32, i32), f64)>,
     // At the top of the screen, up out of the way of a window under it.
     stow: Stow,
     // The taskbar's layout being edited (island.js editTaskbar): her menu
@@ -187,6 +191,10 @@ struct Stow {
 impl Island {
     fn sf(&self) -> f64 {
         if self.sf > 0.0 { self.sf } else { 1.0 }
+    }
+
+    fn page_sf(&self) -> f64 {
+        valid_scale(Some(self.page_sf)).unwrap_or_else(|| self.sf())
     }
 
     // Physical. The taskbar is as long as its strip (its display, or what
@@ -366,7 +374,7 @@ pub fn tell_strip(sh: &Shared, again: bool) {
     };
     let Some(b) = bar else { return };
     let thick = thickness(edge, b);
-    let now = Some((b, edge, pos, size));
+    let now = Some((b, edge, pos, size, sf));
     if now == told && !again {
         return;
     }
@@ -379,7 +387,7 @@ pub fn tell_strip(sh: &Shared, again: bool) {
     ));
     // With the window's size: the page may be a little bigger (island.js
     // fitPage, zhoupengjie/Wakuwaku#19).
-    let _ = sh.app.emit_to("island", "taskbar:strip", json!({ "thick": thick, "win": [size.0, size.1] }));
+    let _ = sh.app.emit_to("island", "taskbar:strip", json!({ "thick": thick, "win": [size.0, size.1], "sf": sf }));
 }
 
 // One at a time: two at once took the taskbar twice (two tray threads, one
@@ -1125,9 +1133,9 @@ pub fn poll(sh: &Shared, cursor: (i32, i32)) -> u64 {
         if !isl.shown {
             (isl.ct.force(Mode::Pass), None, 500, None, false)
         } else {
-            let (pos, size, sf, held) = (isl.pos, isl.size, isl.sf(), isl.holding);
+            let (pos, size, sf, page_sf, held) = (isl.pos, isl.size, isl.sf(), isl.page_sf(), isl.holding);
             let solid = std::mem::take(&mut isl.solid);
-            let seen = isl.ct.look(cursor, pos, size, sf, held, passive && !held, &solid);
+            let seen = isl.ct.look(cursor, pos, size, sf, page_sf, held, passive && !held, &solid);
             isl.solid = solid;
             if isl.ct.calmed() {
                 sh.log(&format!("island: mouse mode bouncing, calmed: cursor {cursor:?}, window {pos:?} {size:?}, scale {sf}"));
@@ -1196,11 +1204,20 @@ pub fn set_seat(sh: &Shared, at: f64) {
 // The room a shape needs, as the page measured it.
 pub fn set_room(sh: &Shared, measured: &Value) {
     let room = match (measured["width"].as_f64(), measured["height"].as_f64()) {
-        (Some(w), Some(h)) if w > 0.0 && h > 0.0 => Some((w.ceil(), h.ceil())),
+        (Some(w), Some(h)) if w > 0.0 && h > 0.0 => {
+            let isl = sh.island.lock().unwrap();
+            let page_sf = valid_scale(measured["dpr"].as_f64()).unwrap_or_else(|| isl.page_sf());
+            let ratio = page_sf / isl.sf();
+            Some(((w * ratio).ceil(), (h * ratio).ceil()))
+        }
         _ => None,
     };
     sh.island.lock().unwrap().room = room;
     place(sh);
+}
+
+fn valid_scale(scale: Option<f64>) -> Option<f64> {
+    scale.filter(|v| v.is_finite() && *v >= 0.5 && *v <= 8.0)
 }
 
 // The button is held on her in her home (a pull, or carrying her out).
@@ -1211,11 +1228,14 @@ pub fn set_room(sh: &Shared, measured: &Value) {
 // are open, editing or not, on the taskbar and at the top of the screen
 // alike; none, the mouse as ever. Logged as each starts and ends only: the
 // rects come again as they change (the picker opened, a toast gone).
-pub fn set_editing(sh: &Shared, on: bool, rects: Vec<[f64; 4]>) {
+pub fn set_editing(sh: &Shared, on: bool, rects: Vec<[f64; 4]>, page_sf: Option<f64>) {
     let rects: Vec<[f64; 4]> = rects.into_iter().filter(|r| r.iter().all(|v| v.is_finite()) && r[2] > 0.0 && r[3] > 0.0).take(8).collect();
     let solid = !rects.is_empty();
     let (was, had) = {
         let mut isl = sh.island.lock().unwrap();
+        if let Some(page_sf) = valid_scale(page_sf) {
+            isl.page_sf = page_sf;
+        }
         let had = !std::mem::replace(&mut isl.solid, rects).is_empty();
         (std::mem::replace(&mut isl.editing, on), had)
     };
