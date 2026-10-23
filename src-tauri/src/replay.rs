@@ -146,6 +146,7 @@ fn pretty(v: Option<&Value>) -> String {
 
 #[test]
 fn agents_sessions_replayed() {
+    let _asks = crate::events_tests::reasonix_asks_held();
     let bless = std::env::var("REPLAY_BLESS").as_deref() == Ok("1");
     let mut names: Vec<String> = std::fs::read_dir(folder())
         .unwrap()

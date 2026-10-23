@@ -4,6 +4,16 @@
 // Code's are events.rs's; Antigravity's and DeepSeek Harness's are with
 // their log lines (events_agy.rs, events_dsh.rs).
 
+// Held by each test that reads Reasonix's events (the reasonix module here,
+// replay.rs): agent-core keeps when each session last asked in one table for
+// the whole program (reasonix.rs ASKED), each ask dropping those 30 s older
+// than its own time, so a test asking at the time now would drop what one at
+// a fixture's time had just asked, if they ran side by side.
+pub(crate) fn reasonix_asks_held() -> std::sync::MutexGuard<'static, ()> {
+    static HELD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    HELD.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 // Codex's hook events: agent-core reads them (codex.rs to_event), events.rs
 // tells them in her words. Here, what she makes of them.
 mod codex {
@@ -356,6 +366,7 @@ mod reasonix {
 
     #[test]
     fn reasonix_events_become_messages() {
+        let _asks = super::reasonix_asks_held();
         let m = to_message(&event("SessionStart", json!({ "source": "startup" }))).unwrap();
         assert_eq!(m, json!({ "mood": "idle", "react": "wave", "say": { "key": "say.hello" }, "agent": "reasonix", "session": "rx-7f3a", "project": "rx" }));
         let m = to_message(&event("UserPromptSubmit", json!({ "prompt": "Create a file named note.txt containing hi", "turn": 1 }))).unwrap();
@@ -407,6 +418,7 @@ mod reasonix {
 
     #[test]
     fn the_person_s_words_past_reasonix_s_own_blocks() {
+        let _asks = super::reasonix_asks_held();
         // As Reasonix 2.44 composes it (trimmed): its blocks, then the person's words.
         // (agent-core's reasonix.rs has the rest of how they are found.)
         let prompt = "<current-date>\nToday's date is 2026-10-18 (Sunday); the local time zone is UTC+02:00.\n</current-date>\n\n<available-skills>\n# Skills\n- explore [🧬 subagent] — Explore…\n</available-skills>\n\nList the files in this folder and reply in one short sentence.";
@@ -416,6 +428,7 @@ mod reasonix {
 
     #[test]
     fn a_failure_is_told_once_and_a_stop_by_the_person_is_no_failure() {
+        let _asks = super::reasonix_asks_held();
         // A failed turn: StopFailure, then its Stop hooks again with the error.
         let m = to_message(&event("StopFailure", json!({ "error": "context deadline exceeded", "turn": 2 }))).unwrap();
         assert_eq!(m["mood"], "error");
@@ -433,6 +446,7 @@ mod reasonix {
 
     #[test]
     fn subagents_work_for_their_session() {
+        let _asks = super::reasonix_asks_held();
         // A subagent's step: the session's, within a turn of it.
         let m = to_message(&event("PreToolUse", json!({ "sessionId": "rx-7f3a:subagent:call_7", "toolName": "grep", "toolArgs": { "pattern": "TODO" } }))).unwrap();
         assert_eq!((m["session"].as_str(), m["within"].as_bool(), m["mood"].as_str()), (Some("rx-7f3a"), Some(true), Some("working")));
@@ -452,6 +466,7 @@ mod reasonix {
 
     #[test]
     fn an_approval_is_told_once_with_what_waits() {
+        let _asks = super::reasonix_asks_held();
         let ask = |name: &str, more: Value, now: u64| to_message_at(&event(name, more), now);
         let session = json!({ "sessionId": "rx-ask-1" });
         let mut pr = session.clone();
@@ -485,6 +500,7 @@ mod reasonix {
 
     #[test]
     fn reasonix_events_that_change_nothing() {
+        let _asks = super::reasonix_asks_held();
         // The person stopping a tool is no failure of it.
         assert!(to_message(&event("PostToolUseFailure", json!({ "toolName": "bash", "isInterrupt": true }))).is_none());
         for name in ["SubagentStart", "SubagentStop", "PostLLMCall", "PreCompact", "Nope"] {
