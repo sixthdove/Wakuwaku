@@ -163,24 +163,12 @@ pub struct Shared {
     // Nobody at the keyboard or mouse for a while (check_quiet).
     quiet: AtomicBool,
     greeted: AtomicBool,
-    // When the last Codex event came (ms), 0 never: Codex runs its hooks
-    // only once the person trusts them.
-    pub codex_seen: std::sync::atomic::AtomicU64,
-    // The same for Antigravity's, and for omp's (its extension is loaded
-    // only by an omp started after it was written).
-    pub agy_seen: std::sync::atomic::AtomicU64,
-    // And OpenCode's, from her plugin in it.
-    pub opencode_seen: std::sync::atomic::AtomicU64,
-    pub omp_seen: std::sync::atomic::AtomicU64,
-    // And ZCode's.
-    pub zcode_seen: std::sync::atomic::AtomicU64,
-    // And DeepSeek Harness's.
-    pub dsh_seen: std::sync::atomic::AtomicU64,
-    // And Reasonix's.
-    pub reasonix_seen: std::sync::atomic::AtomicU64,
-    // When the last Claude Code event came (ms), 0 never: the settings tell
-    // connected from installed, waiting for a session (settings.js).
-    pub claude_seen: std::sync::atomic::AtomicU64,
+    // When each agent's last event came (ms), 0 never, by its place in
+    // connection::ALL (connection::slot): the settings tell connected from
+    // installed, waiting for a session (agents.js). Codex runs its hooks only
+    // once the person trusts them; omp loads its extension only as it
+    // starts after it was written.
+    pub seen: [std::sync::atomic::AtomicU64; 8],
     is_logging: bool,
     // Our windows' handles: never counted as another app full screen.
     own: Mutex<Vec<isize>>,
@@ -1648,14 +1636,7 @@ fn main() {
             settings::settings_login,
             settings::settings_win_look,
             settings::settings_wallpaper,
-            settings::settings_hooks,
-            settings::settings_codex_hooks,
-            settings::settings_agy_hooks,
-            settings::settings_opencode,
-            settings::settings_omp_hooks,
-            settings::settings_zcode_hooks,
-            settings::settings_dsh_hooks,
-            settings::settings_reasonix_hooks,
+            settings::settings_agent,
             settings::settings_cpu_sensors,
             bars::bar_ready,
             desk::desk_ready,
@@ -1786,14 +1767,7 @@ fn main() {
                 by_fullscreen: AtomicBool::new(false),
                 quiet: AtomicBool::new(false),
                 greeted: AtomicBool::new(false),
-                codex_seen: std::sync::atomic::AtomicU64::new(0),
-                agy_seen: std::sync::atomic::AtomicU64::new(0),
-                opencode_seen: std::sync::atomic::AtomicU64::new(0),
-                omp_seen: std::sync::atomic::AtomicU64::new(0),
-                zcode_seen: std::sync::atomic::AtomicU64::new(0),
-                dsh_seen: std::sync::atomic::AtomicU64::new(0),
-                reasonix_seen: std::sync::atomic::AtomicU64::new(0),
-                claude_seen: std::sync::atomic::AtomicU64::new(0),
+                seen: Default::default(),
                 own: Mutex::new(Vec::new()),
                 prev_focus: Mutex::new(0),
                 push_pending: AtomicBool::new(false),

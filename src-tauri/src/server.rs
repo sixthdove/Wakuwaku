@@ -379,16 +379,7 @@ fn handle(sh: &Arc<Shared>, mut req: Request, is_debug: bool, hooks: &SyncSender
             let agent = agent_of(req.url());
             // One that is nothing to her is answered at once.
             let Some(event) = read_event(agent, event) else { return reply(req, 200, json!({})) };
-            let seen = match agent {
-                Some("codex") => &sh.codex_seen,
-                Some("agy") => &sh.agy_seen,
-                Some("opencode") => &sh.opencode_seen,
-                Some("omp") => &sh.omp_seen,
-                Some("zcode") => &sh.zcode_seen,
-                Some("reasonix") => &sh.reasonix_seen,
-                Some("dsh") => &sh.dsh_seen,
-                _ => &sh.claude_seen,
-            };
+            let seen = &sh.seen[crate::connection::slot(Agent::from_tag(agent))];
             // Her DSH plugin's word on loading is no session's doing.
             if !(agent == Some("dsh") && events_dsh::is_loaded(&event)) {
                 seen.store(now_ms(), std::sync::atomic::Ordering::SeqCst);

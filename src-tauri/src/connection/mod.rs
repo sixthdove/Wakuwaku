@@ -128,6 +128,21 @@ pub fn tools_here() -> Vec<&'static str> {
 // Agent page has its own, agents.js).
 pub const ALL: [Agent; 8] = [Agent::Claude, Agent::Codex, Agent::Agy, Agent::Opencode, Agent::Omp, Agent::Zcode, Agent::Dsh, Agent::Reasonix];
 
+// Its place in ALL: what is kept for each of them goes by it (main.rs seen).
+pub fn slot(agent: Agent) -> usize {
+    ALL.iter().position(|&a| a == agent).expect("every agent is in ALL")
+}
+
+// Its id, as the pages and her port name it (agent-core's tag; Claude
+// Code's, which has none, "claude"), and the agent by it.
+pub fn id(agent: Agent) -> &'static str {
+    agent.tag().unwrap_or("claude")
+}
+
+pub fn by_id(id: &str) -> Option<Agent> {
+    ALL.into_iter().find(|&agent| self::id(agent) == id)
+}
+
 // Its name, as the island says it.
 pub fn name(agent: Agent) -> &'static str {
     match agent {
@@ -153,6 +168,21 @@ pub fn here(agent: Agent) -> bool {
         Agent::Zcode => zcode_here(),
         Agent::Dsh => dsh_here(),
         Agent::Reasonix => reasonix_here(),
+    }
+}
+
+// The file ours is written into: omp's in its first agent folder (none
+// when it has none), DeepSeek Harness's its home-level patch file.
+pub fn file(agent: Agent) -> Option<PathBuf> {
+    match agent {
+        Agent::Claude => Some(claude_settings_file()),
+        Agent::Codex => Some(codex_hooks_file()),
+        Agent::Agy => Some(agy_hooks_file()),
+        Agent::Opencode => Some(opencode_plugin_file()),
+        Agent::Omp => omp_files().into_iter().next(),
+        Agent::Zcode => Some(zcode_config_file()),
+        Agent::Dsh => Some(dsh_patch_file()),
+        Agent::Reasonix => Some(reasonix_settings_file()),
     }
 }
 
@@ -248,6 +278,12 @@ mod tests {
         assert_eq!(ALL.len(), every.len());
         let names: std::collections::HashSet<&str> = ALL.into_iter().map(name).collect();
         assert_eq!(names.len(), ALL.len());
+        for (at, agent) in ALL.into_iter().enumerate() {
+            assert_eq!(slot(agent), at);
+            assert_eq!(by_id(id(agent)), Some(agent));
+        }
+        assert_eq!(by_id("claude"), Some(Agent::Claude));
+        assert_eq!(by_id("gemini"), None);
     }
 
     // What counts as ours being there, here and on the page (agents.js, each
@@ -262,7 +298,8 @@ mod tests {
         for part in page.split("      id: '").skip(1) {
             let id = &part[..part.find('\'').unwrap()];
             let list = part.split("      in: [").nth(1).and_then(|rest| rest.split(']').next()).unwrap_or_else(|| panic!("{id}'s in"));
-            ins.push((Agent::from_tag(Some(id)), list.split(',').map(|s| s.trim().trim_matches('\'').to_string()).filter(|s| !s.is_empty()).collect()));
+            let agent = by_id(id).unwrap_or_else(|| panic!("{id}: an id settings_agent knows"));
+            ins.push((agent, list.split(',').map(|s| s.trim().trim_matches('\'').to_string()).filter(|s| !s.is_empty()).collect()));
         }
         assert_eq!(ins.len(), ALL.len(), "the page's table has them all");
         let mut every: Vec<String> = ins.iter().flat_map(|(_, list)| list.clone()).collect();

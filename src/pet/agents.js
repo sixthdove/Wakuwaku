@@ -3,8 +3,9 @@
 // what to know about it; and from the settings' snapshot, how each stands.
 // The Agent page draws from it, the welcome on General, General's status
 // line and the Mail page's picker too, so a new agent is a row here (and its
-// words in i18n.js) besides its connector (connection.rs, its events_*.rs,
-// its snapshot block in settings.rs and its call in bridge.js). Loaded by
+// words in i18n.js) besides its connector (connection/<id>.rs, a place in
+// connection/mod.rs's ALL and its matches, its events_*.rs, its snapshot
+// block in settings.rs). Loaded by
 // the page before settings.js, and required by the tests.
 //
 // What she can do, five things, each yes, part or no, with the words that
@@ -36,13 +37,12 @@
   // over the snapshot, as it was first.
   const block = key => snap => {
     const b = snap[key] || {}
-    return { status: b[key === 'opencode' ? 'plugin' : 'hooks'], file: b.file || '', shown: b.fileShown || b.file || '', backup: !!b.backup, seen: !!b.seen, version: b.version || (snap.agentVersions || {})[key] || '', trusted: b.trusted ?? null }
+    return { status: b.hooks, file: b.file || '', shown: b.fileShown || b.file || '', backup: !!b.backup, seen: !!b.seen, version: b.version || (snap.agentVersions || {})[key] || '', trusted: b.trusted ?? null }
   }
 
   // The table, in the order they are shown.
   //   name    as the island and the pages name it
   //   via     how she connects: hooks, plugin, extension, bridge
-  //   call    the bridge's call that writes or removes it (bridge.js settings)
   //   site    where to get it (settings.rs settings_open_site, "agent:<id>")
   //   read    its part of the snapshot
   //   in      the statuses that mean ours is there (connected, or to repair)
@@ -60,7 +60,6 @@
       id: 'claude',
       name: 'Claude Code',
       via: 'hooks',
-      call: 'hooks',
       site: 'agent:claude',
       read: snap => ({
         // Through the plugin, settings.json's hooks, both, or neither.
@@ -88,7 +87,6 @@
       id: 'codex',
       name: 'Codex',
       via: 'hooks',
-      call: 'codexHooks',
       site: 'agent:codex',
       read: block('codex'),
       in: ['ok', 'stale', 'upgradable', 'partial'],
@@ -113,7 +111,6 @@
       id: 'agy',
       name: 'Antigravity',
       via: 'hooks',
-      call: 'agyHooks',
       site: 'agent:agy',
       read: block('agy'),
       in: ['ok', 'stale'],
@@ -132,7 +129,6 @@
       id: 'opencode',
       name: 'OpenCode',
       via: 'plugin',
-      call: 'opencode',
       site: 'agent:opencode',
       read: block('opencode'),
       in: ['ok', 'stale'],
@@ -152,7 +148,6 @@
       // Its project's name, beside its command's.
       aka: 'oh-my-pi',
       via: 'extension',
-      call: 'ompHooks',
       site: 'agent:omp',
       // Its extension in each profile's agent folder too: the first one's
       // path, and how many more.
@@ -172,7 +167,6 @@
       id: 'zcode',
       name: 'ZCode',
       via: 'hooks',
-      call: 'zcodeHooks',
       site: 'agent:zcode',
       read: block('zcode'),
       in: ['ok', 'stale', 'partial'],
@@ -190,7 +184,6 @@
       id: 'dsh',
       name: 'DeepSeek Harness',
       via: 'plugin',
-      call: 'dshHooks',
       site: 'agent:dsh',
       // Her plugin's file in DSH's folder, besides the patch file; whether
       // DSH loaded it (connection.rs dsh_view: load), which counts as seen;
@@ -262,7 +255,6 @@
       id: 'reasonix',
       name: 'Reasonix',
       via: 'hooks',
-      call: 'reasonixHooks',
       site: 'agent:reasonix',
       // Its line too: 2.x, 1.x (the same hooks), or the Node 0.x, which she
       // does not write to (unsupported).

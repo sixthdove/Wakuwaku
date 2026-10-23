@@ -285,19 +285,12 @@
       winLook: ({ light, accent } = {}) => invoke('settings_win_look', { light: typeof light === 'boolean' ? light : null, accent: typeof accent === 'string' ? accent : null }),
       // The desktop's picture: picked (picture, folder), a wallpaper pack's folder by its id (pack), laid (position), its turns (every, shuffle), the next now.
       wallpaper: (what, value) => invoke('settings_wallpaper', { what: String(what), value: value == null ? null : String(value) }),
-      hooks: action => invoke('settings_hooks', { action }),
-      codexHooks: action => invoke('settings_codex_hooks', { action }),
-      agyHooks: action => invoke('settings_agy_hooks', { action }),
-      // Our plugin in OpenCode's plugin folder: install, remove.
-      opencode: action => invoke('settings_opencode', { action }),
-      // omp's extension, in each of its agent folders: 'install', 'remove'.
-      ompHooks: action => invoke('settings_omp_hooks', { action }),
-      zcodeHooks: action => invoke('settings_zcode_hooks', { action }),
-      dshHooks: action => invoke('settings_dsh_hooks', { action }),
-      reasonixHooks: action => invoke('settings_reasonix_hooks', { action }),
+      // One agent's (agents.js id) files: 'install', 'remove'; Claude Code's
+      // 'install-http'; DeepSeek Harness's 'install:npmmirror'.
+      agent: (id, action) => invoke('settings_agent', { agent: id, action }),
       // DeepSeek Harness's way: 'plugin' or 'bridge', switched (the other
       // taken away); registry 'npmmirror' for the bridge's packages from there.
-      dshVia: (via, registry) => invoke('settings_dsh_hooks', { action: `via:${via}${registry ? `:${registry}` : ''}` }),
+      dshVia: (via, registry) => invoke('settings_agent', { agent: 'dsh', action: `via:${via}${registry ? `:${registry}` : ''}` }),
       // The CPU temperature/power helper (#18 part B): 'install',
       // 'installPawnIO' (download PawnIO first), 'remove'. Each shows one UAC.
       cpuSensors: action => invoke('settings_cpu_sensors', { action }),
