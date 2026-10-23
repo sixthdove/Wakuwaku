@@ -1273,6 +1273,106 @@ mod imp {
             .map(|(_, _, t)| if t == IF_WIFI { "wifi" } else { "wired" })
     }
 
+    // The Wi-Fi's signal as Windows' own taskbar shows it: its bars, 0 to 5,
+    // as Windows' UI counts them (Windows.Networking.Connectivity's
+    // ConnectionProfile.GetSignalBars), of the profile Windows goes out by;
+    // under a tunnel (net's way_out: a proxy's TUN, a VPN's), of a Wi-Fi
+    // connected under it. Hers was always full (all its arcs) whatever
+    // Windows' showed. None: no Wi-Fi with a signal, or not to be asked.
+    // Asked of WinRT by hand, as the property store above is of COM, on a
+    // thread with COM (taskbar.rs keys_loop's, multithreaded).
+    #[link(name = "runtimeobject")]
+    extern "system" {
+        fn WindowsCreateString(source: *const u16, length: u32, string: *mut *mut c_void) -> i32;
+        fn WindowsDeleteString(string: *mut c_void) -> i32;
+        fn RoGetActivationFactory(class: *mut c_void, iid: *const Guid, factory: *mut *mut c_void) -> i32;
+    }
+
+    const IID_NETWORK_INFORMATION_STATICS: Guid = Guid(0x5074_F851, 0x950D, 0x4165, [0x9C, 0x15, 0x36, 0x56, 0x19, 0x48, 0x1E, 0xEA]);
+    const IID_CONNECTION_PROFILE2: Guid = Guid(0xE204_5145, 0x4C9F, 0x400C, [0x91, 0x50, 0x7E, 0xC7, 0xD6, 0xE2, 0x88, 0x8A]);
+
+    // A WinRT object, released when dropped; its methods by their place in
+    // its table (after IInspectable's six), as Windows' metadata has them.
+    struct Rt(*mut c_void);
+
+    impl Rt {
+        // SAFETY (all): the object is live (ours till dropped), and each
+        // place is asked with its own signature, as the interface it is
+        // (an out-parameter of ours, an HRESULT back).
+        fn method<F: Copy>(&self, at: usize) -> F {
+            unsafe { std::mem::transmute_copy(&*(*(self.0 as *const *const usize)).add(at)) }
+        }
+        fn object(&self, at: usize) -> Option<Rt> {
+            let mut out = std::ptr::null_mut();
+            let hr = self.method::<extern "system" fn(*mut c_void, *mut *mut c_void) -> i32>(at)(self.0, &mut out);
+            (hr >= 0 && !out.is_null()).then_some(Rt(out))
+        }
+        fn item(&self, at: usize, index: u32) -> Option<Rt> {
+            let mut out = std::ptr::null_mut();
+            let hr = self.method::<extern "system" fn(*mut c_void, u32, *mut *mut c_void) -> i32>(at)(self.0, index, &mut out);
+            (hr >= 0 && !out.is_null()).then_some(Rt(out))
+        }
+        fn value<T: Default>(&self, at: usize) -> Option<T> {
+            let mut out = T::default();
+            (self.method::<extern "system" fn(*mut c_void, *mut T) -> i32>(at)(self.0, &mut out) >= 0).then_some(out)
+        }
+        fn cast(&self, iid: &Guid) -> Option<Rt> {
+            let mut out = std::ptr::null_mut();
+            let hr = self.method::<extern "system" fn(*mut c_void, *const Guid, *mut *mut c_void) -> i32>(0)(self.0, iid, &mut out);
+            (hr >= 0 && !out.is_null()).then_some(Rt(out))
+        }
+    }
+
+    impl Drop for Rt {
+        fn drop(&mut self) {
+            self.method::<extern "system" fn(*mut c_void) -> u32>(2)(self.0);
+        }
+    }
+
+    pub fn wifi_bars() -> Option<u8> {
+        let name: Vec<u16> = "Windows.Networking.Connectivity.NetworkInformation".encode_utf16().collect();
+        let mut class = std::ptr::null_mut();
+        let mut statics = std::ptr::null_mut();
+        // SAFETY: the class's name, ours, made into a string and let go of
+        // once its factory is had; the factory ours to release (Rt).
+        let hr = unsafe {
+            if WindowsCreateString(name.as_ptr(), name.len() as u32, &mut class) < 0 {
+                return None;
+            }
+            let hr = RoGetActivationFactory(class, &IID_NETWORK_INFORMATION_STATICS, &mut statics);
+            WindowsDeleteString(class);
+            hr
+        };
+        if hr < 0 || statics.is_null() {
+            return None;
+        }
+        let statics = Rt(statics);
+        // INetworkInformationStatics: GetConnectionProfiles (6),
+        // GetInternetConnectionProfile (7); IVectorView: GetAt (6), get_Size (7).
+        if let Some(bars) = statics.object(7).and_then(|way_out| bars_of(&way_out, false)) {
+            return Some(bars);
+        }
+        let all = statics.object(6)?;
+        (0..all.value::<u32>(7)?).filter_map(|i| all.item(6, i)).find_map(|p| bars_of(&p, true))
+    }
+
+    // A profile's bars, if it is a Wi-Fi's with a signal (one connected at
+    // all, if asked: of all the profiles Windows keeps, the one under the
+    // tunnel). IConnectionProfile: GetNetworkConnectivityLevel (7, none 0);
+    // IConnectionProfile2: get_IsWlanConnectionProfile (7), GetSignalBars
+    // (11, an IReference<UINT8>, none for a profile without bars);
+    // IReference: get_Value (6).
+    fn bars_of(profile: &Rt, connected: bool) -> Option<u8> {
+        if connected && profile.value::<i32>(7)? == 0 {
+            return None;
+        }
+        let wlan = profile.cast(&IID_CONNECTION_PROFILE2)?;
+        if wlan.value::<u8>(7)? == 0 {
+            return None;
+        }
+        wlan.object(11)?.value::<u8>(6)
+    }
+
     #[cfg(test)]
     mod net_tests {
         use super::*;
@@ -1380,6 +1480,18 @@ mod imp {
             // Its type unknown (gone between the two asks): looked under too.
             assert_eq!(way_out(None, || Some("wifi")), "wifi");
         }
+
+        // Asked of Windows as it is here (WinRT, by hand): no Wi-Fi with a
+        // signal, or its bars, 0 to 5, and the same asked again; nothing
+        // left over to crash on as the objects are let go of.
+        #[test]
+        fn the_wifi_bars_as_windows_has_them() {
+            let _com = crate::audio::Com::new();
+            let bars = wifi_bars();
+            println!("wifi bars here: {bars:?} (net: {})", net());
+            assert!(bars.is_none_or(|b| b <= 5));
+            assert_eq!(wifi_bars().is_some(), bars.is_some());
+        }
     }
 
     // What is using the microphone, the camera and the location now, each a
@@ -1468,6 +1580,9 @@ mod imp {
     }
     pub fn net() -> &'static str {
         "other"
+    }
+    pub fn wifi_bars() -> Option<u8> {
+        None
     }
     pub fn is_shell_flyout(_hwnd: isize) -> bool {
         false
@@ -1571,7 +1686,7 @@ mod imp {
     }
 }
 
-pub use imp::{alive, app_id, app_name, process_app_id, close, cover, covered, is_topmost, destroy_icon, file_icon, front, icon_of, in_use, ime_native, is_ours, is_desktop, is_search, is_shell_flyout, is_start, is_task_window, keys_cheap, keys_held, launch, launch_as_admin, list, net, dwm_flush, no_transitions, plain_program_icon, press, press_all, raise_own, raise_top, shift_down, title, toggle_native, under_desktop, window_menu, with_com, end_task, launch_with, launch_as_admin_with};
+pub use imp::{alive, app_id, app_name, process_app_id, close, cover, covered, is_topmost, destroy_icon, file_icon, front, icon_of, in_use, ime_native, is_ours, is_desktop, is_search, is_shell_flyout, is_start, is_task_window, keys_cheap, keys_held, launch, launch_as_admin, list, net, wifi_bars, dwm_flush, no_transitions, plain_program_icon, press, press_all, raise_own, raise_top, shift_down, title, toggle_native, under_desktop, window_menu, with_com, end_task, launch_with, launch_as_admin_with};
 
 #[cfg(test)]
 mod tests {

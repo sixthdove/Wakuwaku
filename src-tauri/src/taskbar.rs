@@ -622,8 +622,8 @@ mod imp {
     }
 
     // The keyboard (tasks::keys) and the volume (audio.rs) looked at four
-    // times a second; the network's way out and the battery (the quick
-    // settings' button) and what is using the microphone, camera or
+    // times a second; the network's way out (and the Wi-Fi's bars) and the
+    // battery (the quick settings' button) and what is using the microphone, camera or
     // location (tasks::in_use) every two; sent when any of it changes.
     // The language and Caps Lock (answered in this process) four times a
     // second; the IME's mode (asked of its window) and the volume (asked of
@@ -640,13 +640,17 @@ mod imp {
         let mut speakers = crate::audio::Reader::new();
         let mut sent = Value::Null;
         let using = || Value::Object(tasks::in_use().into_iter().map(|(what, names)| (what.to_string(), json!(names))).collect());
+        // The Wi-Fi's bars only while it is the way out (tasks::wifi_bars).
+        let bars = |net: &str| if net == "wifi" { tasks::wifi_bars() } else { None };
         let (mut net, mut used, mut battery) = (tasks::net(), using(), crate::widgets::battery_state());
+        let mut wifi = bars(net);
         let (mut native, mut volume, mut front, mut shift_was) = (None, None, 0isize, false);
         let mut looks = 0u32;
         while !TASKS_STOP.load(Ordering::SeqCst) {
             looks += 1;
             if looks % 8 == 0 {
                 net = tasks::net();
+                wifi = bars(net);
                 used = using();
                 battery = crate::widgets::battery_state();
                 crate::inputs::set_size(icon_px(&sh));
@@ -665,7 +669,7 @@ mod imp {
                 volume = speakers.read().map(|(level, muted)| json!([level, muted]));
             }
             send_ime_icons(&sh, false);
-            let now = json!({ "lang": keys.lang, "native": native, "caps": keys.caps, "ime": crate::inputs::now(), "net": net, "use": used, "volume": volume, "battery": battery });
+            let now = json!({ "lang": keys.lang, "native": native, "caps": keys.caps, "ime": crate::inputs::now(), "net": net, "bars": wifi, "use": used, "volume": volume, "battery": battery });
             if now != sent {
                 let _ = sh.app.emit_to("island", "taskbar:keys", now.clone());
                 *SENT_KEYS.lock().unwrap() = now.clone();

@@ -1568,6 +1568,14 @@
   quickBox.dataset.bar = 'quick'
   const NET = { wired: '', wifi: '', other: '', none: '' }
   const netMark = el('span', 'fi net')
+  // The Wi-Fi as Windows 11 draws it, as the volume is: all its arcs faint,
+  // those its signal reaches solid over them (keys.bars, tasks.rs
+  // wifi_bars: Windows' own 0 to 5 bars, to its four: the dot alone, one
+  // arc, two, all); all of them solid while not known. It was always all.
+  const WIFI = ['', '', '', '']
+  const netBack = el('span', 'back')
+  const netFront = el('span', 'front')
+  netMark.append(netBack, netFront)
   // The volume as Windows draws it: the speaker's three waves faint, those up
   // to the volume solid over them; struck through, muted.
   const volMark = el('span', 'fi vol')
@@ -1636,8 +1644,11 @@
     },
     { passive: false },
   )
-  function showNet(kind) {
-    netMark.textContent = NET[kind] || NET.other
+  function showNet(kind, bars) {
+    const level = kind === 'wifi' && Number.isInteger(bars) ? Math.min(Math.max(bars, 1), 4) : 0
+    netFront.textContent = level ? WIFI[level - 1] : NET[kind] || NET.other
+    netBack.textContent = level ? NET.wifi : ''
+    netBack.hidden = !level
   }
   showNet('other')
   function showVolume(v) {
@@ -3735,7 +3746,7 @@
     showIme(keys)
     capsMark.classList.toggle('on', !!keys?.caps)
     capsMark.title = keys?.caps ? 'Caps Lock' : ''
-    showNet(keys?.net)
+    showNet(keys?.net, keys?.bars)
     showPrivacy(keys?.use)
     showVolume(keys?.volume)
     showBattery(keys?.battery)

@@ -1499,13 +1499,20 @@ body.home-taskbar {
   color: #1b1b1b;
 }
 
-/* The volume: all three waves faint, those up to it over them solid. */
-#bar-rest .tquick .vol {
+/* The volume: all three waves faint, those up to it over them solid; the
+   Wi-Fi as it, its arcs as far as its signal reaches (island.js showNet). */
+#bar-rest .tquick :is(.vol, .net) {
   position: relative;
 }
 
-#bar-rest .tquick .vol .back {
+#bar-rest .tquick :is(.vol, .net) .back {
   opacity: 0.35;
+}
+
+#bar-rest .tquick .net .back:not([hidden]) + .front {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 /* Muted: the faint waves gone but their room kept (the struck-through
