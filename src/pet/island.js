@@ -398,9 +398,12 @@
   const isClear = () => isOn() && home() === 'taskbar' && config.taskbarMaterial === 'clear'
   const clearWhen = () => (['solid', 'always'].includes(config.taskbarClearWhen) ? config.taskbarClearWhen : 'mica')
   const isFilled = () => isClear() && clearWhen() !== 'always' && taskWindows.some(a => (a.windows || []).some(w => w.max && !w.min))
-  // How light the desktop under the clear strip is (mica.js lightness):
-  // true, light enough for dark words; null, not known (yet).
-  let backdropLight = null
+  // How light the desktop under the clear strip is, along it (mica.js
+  // lightness): what each part's words go by (inkParts); null, not known
+  // (yet). backdropLight: the strip's as a whole, by its mean, true light
+  // enough for dark words.
+  let backdrop = null
+  const backdropLight = () => (backdrop ? Mica.wantsDarkInk(backdrop.mean) : null)
   // The taskbar light, as Windows' own is in its light mode (taskbar.rs):
   // the strip's ground, what opens from it, her island, the settings.
   const isLight = () => isOn() && home() === 'taskbar' && look.mode === 'light'
@@ -409,7 +412,9 @@
   // wants (backdropLight), as text over iOS's glass goes by what is behind
   // it, not by the system's mode (dark words on a dark wallpaper, haloed
   // white, did not read); else, or while that is not known, as Windows'.
-  const isStripLight = () => Mica.stripInkLight({ light: isLight(), clear: isClear(), filled: isFilled(), backdrop: backdropLight })
+  // The strip as a whole: what lies on it outside its parts; each part by
+  // what is under it alone (partLight, ink-light).
+  const isStripLight = () => Mica.stripInkLight({ light: isLight(), clear: isClear(), filled: isFilled(), backdrop: backdropLight() })
   // Her end a capsule of its own in the strip (black, or light in Windows'
   // light mode), wherever the strip is not black itself: on the Mica, clear,
   // or light.
@@ -1829,8 +1834,11 @@
   function drawEntries() {
     const turn = Math.floor(Date.now() / ENTRY_TURN_MS)
     const detailed = isDetailed()
-    const ctx = barCtx()
+    const strip = barCtx()
     for (const node of entryNodes.values()) {
+      // In its part's words (inkParts), dark or light by what is under it;
+      // the strip's until it has been placed.
+      const ctx = { ...strip, light: node._inked ? node.classList.contains('ink-light') : strip.light }
       const e = node._entry
       const name = Widgets.nameOf(lang, e, allWidgets, detailed)
       node.dataset.label = name
@@ -2162,6 +2170,7 @@
     alignApps()
     placeSlot()
     snapStart()
+    inkParts()
     // Editing: picker.js's popover over its widget, where it is now.
     if (editLayout) window.Picker?.relaid()
   }
@@ -2223,6 +2232,7 @@
     if (glideOn?.isConnected) glideTo(glideOn, true)
     placeSlot()
     snapStart()
+    inkParts()
     if (editLayout) window.Picker?.relaid()
     if (wgFor) drawWidgetPop()
     requestAnimationFrame(sendTrayRects)
@@ -2276,6 +2286,7 @@
       glide.classList.add('squash')
     }
     glide.classList.add('on')
+    glide.classList.toggle('ink-light', inkOf(node))
     glideOn = node
   }
 
@@ -3890,6 +3901,7 @@
     else mica.clear()
     drawIslandLook()
     measureBackdrop()
+    inkParts()
     // The strip's words turned light or dark (a window maximized over the
     // clear strip fills it in, back to Windows' mode): what is drawn with
     // their colour (stripHue, the widgets' cards) drawn again.
@@ -3901,6 +3913,41 @@
   }
   let stripWasLight = null
 
+  // Each of the strip's parts its own words (style.css ink-light), and
+  // Windows' accent in their shade (--strip-accent), by the desktop right
+  // under it on the clear strip (mica.js inkOn): the clock over a dark
+  // corner of a picture light in the middle keeps light words, the
+  // programs' buttons over the light middle dark ones. Elsewhere, or while
+  // it is not known, all as the strip's (isStripLight). Done again once
+  // they are laid out (fillTaskbar), the middle run has slid (alignApps)
+  // or the picture is known; a widget's face is drawn in its part's
+  // (drawEntries), so it is drawn again when that turns. The glide over a
+  // part as it is.
+  const stripParts = () => [...barRest.querySelectorAll(':scope > .tzone > [data-part]'), deskEdge]
+  function partLight(node) {
+    if (!backdrop || !isClear() || isFilled()) return isStripLight()
+    const strip = island.parentElement.getBoundingClientRect()
+    const r = node.getBoundingClientRect()
+    const [from, to] = isSide() ? [r.top - strip.top, r.bottom - strip.top] : [r.left - strip.left, r.right - strip.left]
+    return Mica.stripInkLight({ light: isLight(), clear: true, filled: false, backdrop: Mica.inkOn(backdrop, from, to) })
+  }
+  const inkOf = node => (node.closest('[data-part]') || node).classList.contains('ink-light')
+  function inkParts() {
+    if (!taskbarBuilt) return
+    let turned = false
+    for (const node of stripParts()) {
+      const light = partLight(node)
+      if (!node._inked || node.classList.contains('ink-light') !== light) {
+        node.classList.toggle('ink-light', light)
+        node._inked = true
+        turned = true
+      }
+      setAccent('--strip-accent', Mica.accentShade(look.accent, light), node)
+    }
+    if (glideOn) glide.classList.toggle('ink-light', inkOf(glideOn))
+    if (turned) drawEntries()
+  }
+
   // The desktop under the clear strip looked at again when the picture or
   // the strip's size changes; drawn anew once it is known.
   let backdropKey = ''
@@ -3911,12 +3958,13 @@
     const key = JSON.stringify([paper, width, height])
     if (!paper || key === backdropKey) return
     backdropKey = key
-    Mica.lightness(paper, width, height).then(y => {
+    Mica.lightness(paper, width, height, isSide()).then(profile => {
       if (key !== backdropKey) return
-      const light = y === null ? null : Mica.wantsDarkInk(y)
-      console.log(`taskbar: the desktop under the clear strip ${y === null ? 'not read' : `${y.toFixed(3)} light, its words ${light ? 'dark' : 'light'}`}`)
-      if (light === backdropLight) return
-      backdropLight = light
+      if (profile) {
+        const ys = profile.ys
+        console.log(`taskbar: the desktop under the clear strip ${profile.mean.toFixed(3)} light (${Math.min(...ys).toFixed(3)} to ${Math.max(...ys).toFixed(3)} along it), its words ${Mica.wantsDarkInk(profile.mean) ? 'dark' : 'light'} as a whole`)
+      } else console.log('taskbar: the desktop under the clear strip not read')
+      backdrop = profile
       drawMica()
     })
   }
@@ -4014,11 +4062,11 @@
   // settings and what opens from the strip; --strip-accent by the strip's
   // own words (drawMica), for what is drawn on it: the line under the window
   // in front, a program's count, the privacy marks, where a dragged button
-  // lands. Their own blue until it comes. Not --accent: that is her mood's
-  // colour (pet.js).
-  function setAccent(name, colour) {
-    if (colour) document.documentElement.style.setProperty(name, colour)
-    else document.documentElement.style.removeProperty(name)
+  // lands; on each part, by its own (inkParts). Their own blue until it
+  // comes. Not --accent: that is her mood's colour (pet.js).
+  function setAccent(name, colour, on = document.documentElement) {
+    if (colour) on.style.setProperty(name, colour)
+    else on.style.removeProperty(name)
   }
 
   window.pet.onLook(l => {

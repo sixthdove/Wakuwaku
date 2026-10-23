@@ -1006,7 +1006,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.tb-ink-light #bar-rest,
+#bar-rest .ink-light,
 .isl-light #island {
   --cell-ink: #1b1b1b;
   --cell-high: #c25400;
@@ -1495,7 +1495,7 @@ body.home-taskbar {
   color: #fff;
 }
 
-.tb-ink-light #bar-rest .fi {
+#bar-rest .fi:is(.ink-light, .ink-light *) {
   color: #1b1b1b;
 }
 
@@ -1566,11 +1566,11 @@ body.home-taskbar {
   color: #d92c2c;
 }
 
-.tb-ink-light #bar-rest .tquick .bat[data-tint='green'] .fill {
+#bar-rest .tquick:is(.ink-light, .ink-light *) .bat[data-tint='green'] .fill {
   color: #107c10;
 }
 
-.tb-ink-light #bar-rest .tquick .bat[data-tint='red'] .fill {
+#bar-rest .tquick:is(.ink-light, .ink-light *) .bat[data-tint='red'] .fill {
   color: #c50f1f;
 }
 
@@ -1584,7 +1584,7 @@ body.home-taskbar {
   color: #fff;
 }
 
-.tb-ink-light #bar-rest .tquick .bat .pct {
+#bar-rest .tquick:is(.ink-light, .ink-light *) .bat .pct {
   color: #1b1b1b;
 }
 
@@ -1608,7 +1608,7 @@ body.home-taskbar {
   cursor: pointer;
 }
 
-.tb-ink-light #bar-rest .tpriv .fi {
+#bar-rest .tpriv:is(.ink-light, .ink-light *) .fi {
   color: var(--strip-accent, #0067c0);
 }
 
@@ -1616,7 +1616,7 @@ body.home-taskbar {
   background: rgba(255, 255, 255, 0.11);
 }
 
-.tb-ink-light #bar-rest .tpriv .fi:hover {
+#bar-rest .tpriv:is(.ink-light, .ink-light *) .fi:hover {
   background: rgba(255, 255, 255, 0.5);
 }
 
@@ -1957,7 +1957,7 @@ body.home-taskbar {
   box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.7) !important;
 }
 
-.tb-ink-light #bar-rest .kfocus {
+#bar-rest .kfocus:is(.ink-light, .ink-light *) {
   outline-color: rgba(0, 0, 0, 0.9);
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.7) !important;
 }
@@ -2237,11 +2237,13 @@ body.home-taskbar {
    it, island.js isCapsule; its settings too). The programs draw
    their tray icons for the light taskbar themselves. Under the pointer
    and in front: a white wash, as on Windows' own. What is drawn on the
-   strip itself (its words, icons, washes) goes by tb-ink-light: as
-   tb-light, but on the clear strip as the desktop under it wants
-   (island.js isStripLight), so dark words on a light picture in Windows'
-   dark mode and light ones on a dark picture in its light mode, while what
-   opens from it stays as Windows' mode (#bar-rest's popups, below). */
+   strip itself (its words, icons, washes) goes by its part's ink-light
+   (each [data-part], island.js inkParts): as tb-light, but on the clear
+   strip as the desktop right under that part wants, so dark words on a
+   light picture in Windows' dark mode and light ones on a dark picture in
+   its light mode, and the clock on a dark corner light while the programs
+   on a light middle are dark; what opens from it stays as Windows' mode
+   (#bar-rest's popups, below). */
 .tb-light #island-row {
   background: #eeeeee;
   box-shadow: inset var(--hair-x, 0) var(--hair-y, 1px) 0 rgba(0, 0, 0, 0.08);
@@ -2255,15 +2257,15 @@ body.home-taskbar {
   box-shadow: inset var(--hair-x, 0) var(--hair-y, 1px) 0 rgba(0, 0, 0, 0.06);
 }
 
-.tb-ink-light #bar-rest,
-.tb-ink-light #bar-rest .win,
-.tb-ink-light #bar-rest .mon.rows,
-.tb-ink-light #bar-rest .tclock b,
-.tb-ink-light #bar-rest .kbd .ime {
+#bar-rest .ink-light,
+#bar-rest .win:is(.ink-light, .ink-light *),
+#bar-rest .mon.rows:is(.ink-light, .ink-light *),
+#bar-rest .tclock:is(.ink-light, .ink-light *) b,
+#bar-rest .kbd:is(.ink-light, .ink-light *) .ime {
   color: #1b1b1b;
 }
 
-.tb-ink-light #bar-rest .tclock i {
+#bar-rest .tclock:is(.ink-light, .ink-light *) i {
   color: #5d5d5d;
 }
 
@@ -2273,41 +2275,41 @@ body.home-taskbar {
   color: #5d5d5d;
 }
 
-.tb-ink-light #bar-rest .win.min,
-.tb-ink-light #bar-rest .kbd .ime.unknown {
+#bar-rest .win.min:is(.ink-light, .ink-light *),
+#bar-rest .kbd:is(.ink-light, .ink-light *) .ime.unknown {
   color: #8a8a8a;
 }
 
-.tb-ink-light #bar-rest .start:hover,
-.tb-ink-light #bar-rest .tout .ticon:hover,
-.tb-ink-light #bar-rest .tquick:hover,
-.tb-ink-light #bar-rest .tclock:hover,
-.tb-ink-light #bar-rest .win:hover,
-.tb-ink-light #bar-rest .kbd .ime:hover,
-.tb-ink-light #bar-rest .tchev:hover {
+#bar-rest .start:hover:is(.ink-light, .ink-light *),
+#bar-rest .tout:is(.ink-light, .ink-light *) .ticon:hover,
+#bar-rest .tquick:hover:is(.ink-light, .ink-light *),
+#bar-rest .tclock:hover:is(.ink-light, .ink-light *),
+#bar-rest .win:hover:is(.ink-light, .ink-light *),
+#bar-rest .kbd:is(.ink-light, .ink-light *) .ime:hover,
+#bar-rest .tchev:hover:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.5);
 }
 
-.tb-ink-light #bar-rest .win.front {
+#bar-rest .win.front:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.78);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
-.tb-ink-light #bar-rest .win::after {
+#bar-rest .win:is(.ink-light, .ink-light *)::after {
   background: #868686;
 }
 
-.tb-ink-light #bar-rest .win.front::after {
+#bar-rest .win.front:is(.ink-light, .ink-light *)::after {
   background: var(--strip-accent, #0067c0);
 }
 
-.tb-ink-light #bar-rest .win .letter,
-.tb-ink-light #bar-rest .win .count {
+#bar-rest .win:is(.ink-light, .ink-light *) .letter,
+#bar-rest .win:is(.ink-light, .ink-light *) .count {
   background: #d6d6d6;
   color: #1b1b1b;
 }
 
-.tb-ink-light #bar-rest.icons .win .count {
+#bar-rest.icons .win:is(.ink-light, .ink-light *) .count {
   background: var(--strip-accent, #0067c0);
   color: #fff;
   box-shadow: 0 0 0 1.5px #f3f3f3;
@@ -2341,13 +2343,13 @@ body.home-taskbar {
   background: rgba(0, 0, 0, 0.04);
 }
 
-.tb-ink-light #bar-rest .tdesk:hover {
+#bar-rest .tdesk:hover:is(.ink-light, .ink-light *) {
   border-left-color: rgba(0, 0, 0, 0.3);
 }
 
 /* What opens from the strip (the windows' list, the tray's flyout, a
    widget's card, a stack, a menu) is as Windows' mode, its ground, words
-   and cells, whichever way the strip's own words (tb-ink-light) went: what
+   and cells, whichever way the strip's own words (ink-light) went: what
    it would take from #bar-rest put back. */
 #bar-rest :is(.wpop, .tfly, .wgpop, .wstk, .wmenu) {
   --cell-ink: initial;
@@ -2521,8 +2523,8 @@ body:not(.tb-light) #bar-rest :is(.wpop, .tfly) .kfocus {
    markMono): turned over to read, white to black on the light taskbar,
    black to white on the dark: on the strip as its words are, in the
    tray's flyout as Windows' mode. */
-.tb-ink-light #bar-rest .tout .ticon[data-mono='light'] img,
-body:not(.tb-ink-light) #bar-rest .tout .ticon[data-mono='dark'] img,
+#bar-rest .tout:is(.ink-light, .ink-light *) .ticon[data-mono='light'] img,
+#bar-rest .tout:not(.ink-light, .ink-light *) .ticon[data-mono='dark'] img,
 .tb-light #bar-rest .tfly .ticon[data-mono='light'] img,
 body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   filter: invert(1);
@@ -2541,11 +2543,11 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   stop-color: #0c9eff;
 }
 
-.tb-ink-light #bar-rest .start .s0 {
+#bar-rest .start:is(.ink-light, .ink-light *) .s0 {
   stop-color: #4bcffe;
 }
 
-.tb-ink-light #bar-rest .start .s1 {
+#bar-rest .start:is(.ink-light, .ink-light *) .s1 {
   stop-color: #0179d4;
 }
 
@@ -2573,7 +2575,7 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   background: rgba(255, 255, 255, 0.17);
 }
 
-.tb-ink-light #bar-rest .start.open {
+#bar-rest .start.open:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.78);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
@@ -2621,7 +2623,7 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   }
 }
 
-.tb-ink-light.home-taskbar #bar-rest .hdrop {
+.home-taskbar #bar-rest .hdrop:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.55);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
@@ -2705,8 +2707,9 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
 }
 
 /* Clear: the words already as light or as dark as the desktop under them
-   wants (island.js isLight, by backdropLight), so only a faint shadow, as
-   over iOS's glass, to lift them off a busy picture: white words a soft
+   wants (island.js partLight: each part by what is under it alone), so
+   only a faint shadow, as over iOS's glass, to lift them off a busy
+   picture: white words a soft
    dark one under them, dark words a soft light one round them (the heavy
    ring before blurred them: Windows' light mode's dark words, ringed white,
    on a dark wallpaper). The icons drawn as pictures (the tray's, the monitor's)
@@ -2719,7 +2722,7 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
     0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-.tb-ink-light.tb-clear:not(.tb-filled) #bar-rest {
+.tb-clear:not(.tb-filled) #bar-rest .ink-light {
   --halo: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55));
   text-shadow:
     0 0 1px rgba(255, 255, 255, 0.6),
@@ -2730,8 +2733,8 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   filter: var(--halo);
 }
 
-.tb-ink-light.tb-clear:not(.tb-filled) #bar-rest .tout .ticon[data-mono='light'] img,
-.tb-clear:not(.tb-ink-light):not(.tb-filled) #bar-rest .tout .ticon[data-mono='dark'] img {
+.tb-clear:not(.tb-filled) #bar-rest .tout:is(.ink-light, .ink-light *) .ticon[data-mono='light'] img,
+.tb-clear:not(.tb-filled) #bar-rest .tout:not(.ink-light, .ink-light *) .ticon[data-mono='dark'] img {
   filter: invert(1) var(--halo);
 }
 
@@ -2740,7 +2743,7 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   color: #e5e5ea;
 }
 
-.tb-ink-light.tb-clear:not(.tb-filled) #bar-rest .tclock i {
+.tb-clear:not(.tb-filled) #bar-rest .tclock:is(.ink-light, .ink-light *) i {
   color: #2b2b2b;
 }
 
@@ -3064,7 +3067,7 @@ body.isl-right.home-taskbar #island[data-view='settings'] {
   font-size: 11px;
 }
 
-.tb-ink-light.tb-editing #bar-rest [data-part]:empty:not(.tslot)::before {
+.tb-editing #bar-rest [data-part]:empty:not(.tslot):is(.ink-light, .ink-light *)::before {
   color: rgba(0, 0, 0, 0.55);
 }
 
@@ -3313,24 +3316,24 @@ body.isl-right.home-taskbar #island[data-view='settings'] {
   background: rgba(255, 255, 255, 0.22);
 }
 
-.tb-ink-light #bar-rest .tw .twv,
-.tb-ink-light #bar-rest .tw .twg,
-.tb-ink-light #bar-rest .tw .wgl {
+#bar-rest .tw:is(.ink-light, .ink-light *) .twv,
+#bar-rest .tw:is(.ink-light, .ink-light *) .twg,
+#bar-rest .tw:is(.ink-light, .ink-light *) .wgl {
   color: #1b1b1b;
 }
 
-.tb-ink-light #bar-rest .tw .twt i,
-.tb-ink-light #bar-rest .tw.empty .twv {
+#bar-rest .tw:is(.ink-light, .ink-light *) .twt i,
+#bar-rest .tw.empty:is(.ink-light, .ink-light *) .twv {
   color: #5d5d5d;
 }
 
-.tb-ink-light #bar-rest .tw-widget:hover,
-.tb-ink-light #bar-rest .tw-plugin:hover,
-.tb-ink-light #bar-rest .tw-group:hover {
+#bar-rest .tw-widget:hover:is(.ink-light, .ink-light *),
+#bar-rest .tw-plugin:hover:is(.ink-light, .ink-light *),
+#bar-rest .tw-group:hover:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.5);
 }
 
-.tb-ink-light #bar-rest .tw-sep {
+#bar-rest .tw-sep:is(.ink-light, .ink-light *) {
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -3339,7 +3342,7 @@ body.isl-right.home-taskbar #island[data-view='settings'] {
   color: #e5e5ea;
 }
 
-.tb-ink-light.tb-clear:not(.tb-filled) #bar-rest .tw .twt i {
+.tb-clear:not(.tb-filled) #bar-rest .tw:is(.ink-light, .ink-light *) .twt i {
   color: #2b2b2b;
 }
 
@@ -4090,7 +4093,7 @@ html.handoff-wait body.home-taskbar #island-row {
   border-top-color: rgba(255, 255, 255, 0.35);
 }
 
-.tb-ink-light.tb-side #bar-rest .tdesk:hover {
+.tb-side #bar-rest .tdesk:hover:is(.ink-light, .ink-light *) {
   border-top-color: rgba(0, 0, 0, 0.3);
 }
 
@@ -4771,14 +4774,14 @@ body.has-news #island[data-view='compact'] .news-dot {
   --wg-amber: #b25e00;
 }
 
-/* The widgets on the strip itself as its words are (tb-ink-light), what
+/* The widgets on the strip itself as its words are (ink-light), what
    opens from them as Windows' mode (above). */
 #bar-rest .tw {
   --wg-track: rgba(255, 255, 255, 0.12);
   --wg-amber: #ffb340;
 }
 
-.tb-ink-light #bar-rest .tw {
+#bar-rest .tw:is(.ink-light, .ink-light *) {
   --wg-track: rgba(0, 0, 0, 0.09);
   --wg-amber: #b25e00;
 }
@@ -4788,7 +4791,7 @@ body.has-news #island[data-view='compact'] .news-dot {
   vertical-align: middle;
 }
 
-.tb-ink-light #bar-rest .tw .still-her.badge,
+#bar-rest .tw:is(.ink-light, .ink-light *) .still-her.badge,
 .tb-light #bar-rest :is(.wgpop, .wstk, .wmenu) .still-her.badge {
   background-color: #e8e8e8;
 }
@@ -4918,7 +4921,7 @@ body.has-news #island[data-view='compact'] .news-dot {
   background: rgba(255, 255, 255, 0.11);
 }
 
-.tb-ink-light #bar-rest .tw-stack.open {
+#bar-rest .tw-stack.open:is(.ink-light, .ink-light *) {
   background: rgba(255, 255, 255, 0.5);
 }
 

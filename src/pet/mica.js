@@ -165,12 +165,13 @@
 
   // How light the desktop is right under the strip, 0 (black) to 1 (white):
   // the picture where it lies there, unblurred, its relative luminance (as
-  // WCAG takes it, from linear light) averaged. The clear strip's words go
-  // by it (island.js backdrop), as text over iOS's glass goes by what is
-  // behind it, not by the system's mode. null: not to be told (no paper, or
-  // a picture whose pixels cannot be read).
+  // WCAG takes it, from linear light), along the strip (profileOf: a side
+  // bar's down it). The clear strip's words go by it (island.js backdrop),
+  // each part by what is under it (inkOn), as text over iOS's glass goes by
+  // what is behind it, not by the system's mode. null: not to be told (no
+  // paper, or a picture whose pixels cannot be read).
   const LIGHT_SCALE = 0.1
-  async function lightness(paper, width, height) {
+  async function lightness(paper, width, height, side = false) {
     if (!paper) return null
     let img = null
     if (paper.url) {
@@ -210,21 +211,58 @@
     } catch {
       return null
     }
+    return profileOf(d, W, H, side)
+  }
+
+  // The picture's pixels (RGBA, W by H) as the strip's lightness along it:
+  // each column's (a side bar's, each row's) luminance averaged across it,
+  // a column every step px of the strip; mean, all of it.
+  function profileOf(d, W, H, side = false) {
     const lin = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
-    let sum = 0
-    for (let p = 0; p < d.length; p += 4) sum += 0.2126 * lin(d[p] / 255) + 0.7152 * lin(d[p + 1] / 255) + 0.0722 * lin(d[p + 2] / 255)
-    return sum / (d.length / 4)
+    const n = side ? H : W
+    const ys = new Array(n).fill(0)
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const p = 4 * (y * W + x)
+        ys[side ? y : x] += 0.2126 * lin(d[p] / 255) + 0.7152 * lin(d[p + 1] / 255) + 0.0722 * lin(d[p + 2] / 255)
+      }
+    const across = side ? W : H
+    for (let i = 0; i < n; i++) ys[i] /= across
+    return { step: 1 / LIGHT_SCALE, ys, mean: ys.reduce((a, y) => a + y, 0) / n }
   }
 
   // Light enough for dark words: where black reads better on it than white
   // does (their contrast ratios even at about 0.18).
   const wantsDarkInk = y => (y + 0.05) / 0.05 > 1.05 / (y + 0.05)
 
-  // The strip's own words dark (island.js isStripLight, style.css
-  // tb-ink-light): on the clear strip with the desktop showing through
-  // (not filled in), as the desktop under them wants (backdrop: wantsDarkInk,
-  // null while not known); else as Windows' mode (light). Only them: the
-  // settings, what opens from the strip and her island go by Windows' mode.
+  // Dark words for what lies from..to along the strip (its px), by what is
+  // under it alone: the ink that reads better where it reads worst, black
+  // on its darkest column against white on its lightest. A part over a
+  // dark corner of a picture light elsewhere (the clock and the tray on a
+  // deep blue, the strip's middle a light brown) keeps light words, where
+  // the whole strip's mean gave them dark ones. Nothing under it
+  // (off the strip, or not known): null.
+  function inkOn(profile, from, to) {
+    if (!profile?.ys?.length || from === to) return null
+    const { step, ys } = profile
+    const a = Math.max(0, Math.floor(Math.min(from, to) / step))
+    const b = Math.min(ys.length, Math.ceil(Math.max(from, to) / step))
+    if (b <= a) return null
+    let lo = Infinity
+    let hi = -Infinity
+    for (let i = a; i < b; i++) {
+      lo = Math.min(lo, ys[i])
+      hi = Math.max(hi, ys[i])
+    }
+    return (lo + 0.05) / 0.05 > 1.05 / (hi + 0.05)
+  }
+
+  // The strip's own words dark (island.js isStripLight, inkParts; style.css
+  // tb-ink-light, ink-light): on the clear strip with the desktop showing
+  // through (not filled in), as the desktop under them wants (backdrop:
+  // wantsDarkInk or inkOn, null while not known); else as Windows' mode
+  // (light). Only them: the settings, what opens from the strip and her
+  // island go by Windows' mode.
   const stripInkLight = ({ light, clear, filled, backdrop }) => (clear && !filled && backdrop != null ? backdrop : !!light)
 
   // Windows' accent as its own taskbar draws with it (taskbar.rs accent):
@@ -280,7 +318,7 @@
     }
   }
 
-  const api = { place, draw, mount, glassPaper, lightness, wantsDarkInk, stripInkLight, accentShade }
+  const api = { place, draw, mount, glassPaper, lightness, profileOf, wantsDarkInk, inkOn, stripInkLight, accentShade }
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api

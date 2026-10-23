@@ -68,6 +68,50 @@ test("only the clear strip's own words go by the desktop under them", () => {
   assert.equal(Mica.stripInkLight({ light: false, clear: false, filled: false, backdrop: true }), false)
 })
 
+test("the desktop's lightness along the strip, column by column", () => {
+  // Three columns by two rows: black, white, mid grey (#808080, 0.216).
+  const px = [0, 0, 0, 255, 255, 255, 128, 128, 128]
+  const d = new Uint8ClampedArray([...px, ...px].flatMap((v, i) => (i % 3 === 2 ? [v, 255] : [v])))
+  const along = Mica.profileOf(d, 3, 2)
+  assert.equal(along.step, 10)
+  assert.deepEqual(
+    along.ys.map(y => +y.toFixed(3)),
+    [0, 1, 0.216],
+  )
+  assert.equal(+along.mean.toFixed(3), 0.405)
+  // A side bar's down it: its rows, each the same.
+  const down = Mica.profileOf(d, 3, 2, true)
+  assert.deepEqual(
+    down.ys.map(y => +y.toFixed(3)),
+    [0.405, 0.405],
+  )
+})
+
+// The report's wallpaper (a deep blue, a light brown across the middle) as
+// it lies under a 2560 px strip: dark at both ends, light in the middle, its
+// mean (0.211) over the line, so the whole strip's words went dark and the
+// clock and the tray on the deep blue at its right end were lost.
+test("each part's words by the desktop under it alone", () => {
+  const ys = [0.047, 0.21, 0.316, 0.231, 0.24, 0.45, 0.45, 0.074, 0.054, 0.035]
+  const along = { step: 256, ys, mean: ys.reduce((a, y) => a + y, 0) / ys.length }
+  assert.equal(Mica.wantsDarkInk(along.mean), true)
+  // The clock and the tray at the right end: light words.
+  assert.equal(Mica.inkOn(along, 2200, 2560), false)
+  // The programs' buttons in the middle: dark ones.
+  assert.equal(Mica.inkOn(along, 1100, 1500), true)
+  // Across a dark column and a light one: the ink that reads better on
+  // the one it reads worse on (white on 0.45 at 2.1:1, black on 0.074 at
+  // 2.5:1).
+  assert.equal(Mica.inkOn(along, 1700, 1900), true)
+  // Order does not matter; nothing under it, or nothing known: none.
+  assert.equal(Mica.inkOn(along, 2560, 2200), false)
+  assert.equal(Mica.inkOn(along, 3000, 3100), null)
+  assert.equal(Mica.inkOn(along, 500, 500), null)
+  assert.equal(Mica.inkOn(null, 0, 100), null)
+  // One column alone: as wantsDarkInk.
+  for (const y of [0.1, 0.17, 0.19, 0.5]) assert.equal(Mica.inkOn({ step: 10, ys: [y] }, 0, 10), Mica.wantsDarkInk(y))
+})
+
 test("Windows' accent in the shade its taskbar takes for the words beside it", () => {
   const accent = { light: '#4cc2ff', dark: '#0067c0' }
   // Light words (the dark strip, or a deep plum wallpaper under the clear
@@ -119,10 +163,11 @@ test("the strip's words' class reaches nothing but the strip", () => {
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .split('}')
       .map(block => block.split('{')[0])
-      .flatMap(head => head.split(','))
+      // At the commas between selectors, not those in :is( ) or :not( ).
+      .flatMap(head => head.split(/,(?![^(]*\))/))
       .map(s => s.trim())
       .filter(Boolean)
-  const inked = ['style.css', 'picker.css', 'settings.css'].flatMap(f => selectors(css(f)).filter(s => s.includes('tb-ink-light')).map(s => [f, s]))
+  const inked = ['style.css', 'picker.css', 'settings.css'].flatMap(f => selectors(css(f)).filter(s => s.includes('ink-light')).map(s => [f, s]))
   assert.ok(inked.length > 20)
   for (const [file, s] of inked) {
     assert.match(s, /#bar-rest/, `${file}: ${s}`)
@@ -130,10 +175,22 @@ test("the strip's words' class reaches nothing but the strip", () => {
   }
   // The settings follow Windows' mode alone.
   assert.ok(selectors(css('settings.css')).some(s => s.startsWith('.tb-light #island-settings')))
-  // The strip's own words and its clear halo go by the new class.
+  // The strip's own words and its clear halo go by each part's class.
   const style = selectors(css('style.css'))
-  assert.ok(style.includes('.tb-ink-light #bar-rest'))
-  assert.ok(style.includes('.tb-ink-light.tb-clear:not(.tb-filled) #bar-rest'))
+  assert.ok(style.includes('#bar-rest .ink-light'))
+  assert.ok(style.includes('.tb-clear:not(.tb-filled) #bar-rest .ink-light'))
+  assert.ok(style.includes('#bar-rest .tclock:is(.ink-light, .ink-light *) i'))
   assert.ok(!style.includes('.tb-light #bar-rest .tclock i'))
   assert.ok(style.includes('.tb-light #bar-rest .wpop'))
+})
+
+// Each part dark or light by what is under it alone (island.js inkParts):
+// nothing on the strip goes by the whole strip's ink any more but the
+// placeholder of a part being dragged, which lies between them.
+test("the strip's parts take their words from their own class", () => {
+  const fs = require('node:fs')
+  const path = require('node:path')
+  const css = file => fs.readFileSync(path.join(__dirname, '..', 'src', 'pet', file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  assert.doesNotMatch(css('style.css'), /tb-ink-light/)
+  assert.deepEqual(css('picker.css').match(/[^}]*tb-ink-light[^{]*/g).map(s => s.trim()), ['.tb-ink-light #bar-rest .pk-ph.pk-no'])
 })
