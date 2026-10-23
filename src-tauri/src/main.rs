@@ -478,7 +478,7 @@ impl Shared {
     // An agent's event (from its hook, or POST /state) into her sessions,
     // with where its session runs when that was looked up (server.rs); false
     // when it is nothing to a session she shows.
-    pub fn apply_event(&self, ev: &agent_core::event::AgentEvent, chain: Option<jump::Chain>) -> bool {
+    pub fn apply_event(&self, ev: &agent_core::event::AgentEvent, chain: Option<state::Chain>) -> bool {
         use agent_core::event::Agent;
         let out = self.pet.lock().unwrap().apply(ev, chain, now_ms(), self.hold());
         let Some(out) = out else { return false };

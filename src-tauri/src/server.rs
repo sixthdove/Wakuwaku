@@ -222,7 +222,7 @@ fn read_json(req: &mut Request) -> Option<Value> {
 // hook and the runners under it are gone. Its chain after (chain_of_caller).
 enum Caller {
     // The chain its hook command brought.
-    Brought(jump::Chain),
+    Brought(crate::state::Chain),
     // The process it came from (DSH's: the app's outermost).
     Process(u32),
 }
@@ -241,7 +241,7 @@ fn caller_of(sh: &Shared, req: &Request, event: &Value, agent: Option<&str>) -> 
     Some(Caller::Process(if agent == Some("dsh") { jump::outermost_of(client, "DeepSeek Harness.exe") } else { client }))
 }
 
-fn chain_of_caller(caller: Caller, event: &Value, agent: Option<&str>) -> Option<jump::Chain> {
+fn chain_of_caller(caller: Caller, event: &Value, agent: Option<&str>) -> Option<crate::state::Chain> {
     let chain = match caller {
         Caller::Brought(chain) => chain,
         Caller::Process(client) if agent == Some("opencode") => {

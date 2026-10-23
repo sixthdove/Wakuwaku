@@ -24,7 +24,13 @@ use serde_json::{json, Map, Value};
 use agent_core::event::{AgentEvent, Kind};
 use agent_core::registry::{Session, SessionRegistry, Status, FORGET_MS};
 
-use crate::{events, jump};
+use crate::events;
+
+// The processes a session runs in, its own first and those above it, each
+// a pid with when it started (a number Windows has handed to another
+// process since is not taken for it): what going to its window goes by
+// (jump.rs).
+pub type Chain = Vec<(u32, u64)>;
 
 // A session at rest, out of sight after this many minutes with nothing new
 // from it, unless set otherwise (idleHideMin; 0 never).
@@ -100,7 +106,7 @@ struct Look {
     task: String,
     // When the last call ended, or the turn began: thinking since then.
     thought_at: Option<u64>,
-    chain: jump::Chain,
+    chain: Chain,
     // When its ending was seen or its held time ran out (how long it has
     // been quiet), and out of sight as last looked at (is_shown).
     seen_at: Option<u64>,
@@ -244,7 +250,7 @@ impl Pet {
     // looked up (server.rs chain_of_caller); None when it is nothing to a
     // session she shows (a subagent's with no turn of its session's under
     // way).
-    pub fn apply(&mut self, ev: &AgentEvent, chain: Option<jump::Chain>, now: u64, hold: Hold) -> Option<Outcome> {
+    pub fn apply(&mut self, ev: &AgentEvent, chain: Option<Chain>, now: u64, hold: Hold) -> Option<Outcome> {
         let id = ev.session.as_str();
         let was = self.mood_by_id(id);
         let before = self.sessions.get(id).map(|s| (s.since, s.at));
@@ -453,7 +459,7 @@ impl Pet {
 
     // Where to go for a session: its chain, and the words its window's
     // title may hold (its name, its project).
-    pub fn jump_target(&self, id: &str) -> Option<(jump::Chain, Vec<String>)> {
+    pub fn jump_target(&self, id: &str) -> Option<(Chain, Vec<String>)> {
         let look = self.looks.get(id).filter(|look| !look.chain.is_empty())?;
         let project = self.sessions.get(id).and_then(|s| s.project.clone()).unwrap_or_default();
         Some((look.chain.clone(), vec![look.title.clone(), look.task.clone(), project]))

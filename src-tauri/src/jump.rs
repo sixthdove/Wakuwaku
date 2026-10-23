@@ -26,7 +26,7 @@
 // app open it (claude://code/continue?session=local_…), found by its id in
 // the app's own records of its sessions.
 
-pub type Chain = Vec<(u32, u64)>;
+use crate::state::Chain;
 
 // Where Codex's hook command puts its chain in the event it hands on.
 pub const CODEX_CHAIN: &str = "wakuwaku_chain";

@@ -1072,7 +1072,7 @@ mod imp {
     // gone out of sight (state.rs is_shown) marks none, its window's button
     // there as ever.
     fn mark_sessions(sh: &Shared) {
-        let targets: Vec<(String, String, jump::Chain, Vec<String>)> = {
+        let targets: Vec<(String, String, crate::state::Chain, Vec<String>)> = {
             let pet = sh.pet.lock().unwrap();
             let list = pet.list();
             list.as_array()
@@ -1099,7 +1099,7 @@ mod imp {
         looked.retain(|id, _| targets.iter().any(|t| t.0 == *id));
         let retry = Duration::from_secs(if sh.is_quiet() { 60 } else { 15 });
         let mut marks: HashMap<isize, Vec<Value>> = HashMap::new();
-        let mut asks: Vec<(jump::Chain, Vec<String>)> = Vec::new();
+        let mut asks: Vec<(crate::state::Chain, Vec<String>)> = Vec::new();
         let mut asked: Vec<(String, String)> = Vec::new();
         for (id, mood, chain, hints) in targets {
             if let Some(&(hwnd, pid, at)) = found.get(&id) {
