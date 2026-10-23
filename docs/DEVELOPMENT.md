@@ -29,7 +29,7 @@ src/                      页面，Tauri 直接把整个文件夹打进 exe（ta
     aim.js                从程序按钮往上去它的窗口列表：列表开着时在别的按钮上待多久才换成它的（按 Windows 自己的任务栏实测）、往列表去的路上划过的按钮不算（安全三角形）（主屏和副屏的任务栏共用）
     flow.js               流光提醒：哪种事件怎么提醒（展开、流光、只留小点），光环的转法和明暗（时间和角度），连着来时怎么接，每种事件的颜色；不碰页面，测试直接调
     style.css, settings.css
-  shared/i18n.js          中英文（页面用；Rust 那边的几句在 src-tauri/src/i18n.rs）
+  shared/i18n.js          中英文，唯一写词的地方：页面直接用；程序自己说的那些（托盘菜单、通知、对话框）由 src-tauri/build.rs 在编译时读出来给 i18n.rs，只取程序代码里点名的 key
 src-tauri/
   src/
     main.rs               入口：--wakuwaku-ensure-running、--wakuwaku-codex-hook、单实例、各部分共享的 Shared、页面能调的命令

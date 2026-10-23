@@ -97,14 +97,14 @@
 
       // Menus and tray
       'menu.pet': '宠物',
-      'menu.noPets': '还没有，去设置里下载',
+      'menu.noPets': '还没有宠物',
       'menu.size': '大小',
       'menu.small': '小',
       'menu.medium': '中',
       'menu.large': '大',
       'menu.walk': '空闲时走动',
       'menu.look': '眼睛跟着鼠标',
-      'menu.home': '回到右下角',
+      'menu.home': '她的家',
       'menu.dnd': '勿扰',
       'menu.show': '显示宠物',
       'menu.hide': '隐藏宠物',
@@ -166,9 +166,9 @@
       'settings.welcome': '欢迎！先下载一只宠物，再安装 hooks，就可以开始了。',
       'settings.done': '完成',
       'settings.error': '出错了：{message}',
-      'menu.island': '灵动岛模式',
+      'menu.island': '灵动岛',
       'menu.letOut': '放她出来',
-      'menu.callBack': '叫她回岛里',
+      'menu.callBack': '叫她回家',
       'home.tabNow': '现在',
       'home.tabPets': '宠物',
       'home.tabLook': '外观',
@@ -1635,6 +1635,59 @@
       'ag.cap.approve.reasonix': '批准还在 Reasonix 里，岛上只显示它在等你批准什么',
       'ag.cap.choose.reasonix': '它问你问题时岛上显示「有问题问你」，要在 Reasonix 里答',
       'ag.cap.stats.reasonix': '算进「今天」的轮数和时长（批准不经过她）；token 还不算',
+
+      // The program's own words: the tray's menu and its tip, Windows' menus
+      // on the taskbar, her notices, dialogs and notifications (src-tauri's
+      // build.rs reads them for i18n.rs, as it reads any key the program names)
+      'menu.backToCorner': '回到右下角',
+      'menu.taskbar': '任务栏（代替 Windows 的）',
+      'menu.winSettings': 'Windows 设置',
+      'menu.controlPanel': '控制面板',
+      'menu.taskManager': '任务管理器',
+      'menu.editTaskbar': '编辑任务栏布局',
+      'menu.endEdit': '退出编辑',
+      // The widget picker and her capsule's panel (picker.js, capsule-panel.js).
+      'menu.addWidgets': '添加小工具…',
+      'menu.editCapsule': '编辑胶囊',
+      'menu.deviceManager': '设备管理器',
+      // Shift and a right press on a program's button with several windows (tasks.rs window_menu), in Windows' words.
+      'taskbar.restoreAll': '还原所有窗口',
+      'taskbar.minimizeAll': '最小化所有窗口',
+      // Windows' own menus on the volume, the network and the clock, in
+      // its words (tray.rs part_menu), and its clock's tip (clock.rs).
+      'menu.soundFix': '声音问题疑难解答',
+      'menu.mixer': '打开音量合成器',
+      'menu.sound': '声音设置',
+      'menu.netFix': '诊断网络问题',
+      'menu.network': '网络和 Internet 设置',
+      'menu.dateTime': '调整日期和时间',
+      'menu.notifySettings': '通知设置',
+      'clock.local': '本地时间',
+      // Another program fighting her over Windows' taskbar (taskbar.rs give_up, #69).
+      'taskbar.tug': '别的程序在管任务栏',
+      'taskbar.tugTap': '已切到灵动岛，点一下去外观设置',
+      'update.out': '有新版本 v{version}',
+      'update.tap': '点一下去更新',
+      // An update whose new version was stopped or taken away as it started (updates.rs).
+      'update.blocked': 'v{version} 没装上，多半是杀毒软件拦下了',
+      'update.blockedTap': '点一下看怎么办',
+      'crash.out': '她上次意外退出了，要发崩溃报告吗？',
+      'crash.tap': '点一下看看',
+      'crash.box': 'Wakuwaku 最近连续崩溃了 {n} 次。\n\n要从现在起自动发送崩溃报告吗？报告会公开发到 GitHub 或 Gitee 的 issue 里，用户名、路径、其他程序的名字和窗口标题、邮箱这类内容会先去掉。\n\n以后可以在 设置 → 通用 → 崩溃报告 里关掉。',
+      'wallpaper.pickPicture': '选择壁纸图片',
+      'wallpaper.pickFolder': '选择一个文件夹，里面的图片轮流做壁纸',
+      'wallpaper.pictures': '图片',
+      // A plugin installed from a file (addons.rs addon_pick_zip).
+      'addons.pickZip': '选择插件的 .zip',
+      'addons.zips': '插件包',
+      'codex.waiting': '等你在 Wakuwaku 上确认…',
+      'mail.new': '新邮件 · {what}',
+      'mail.talkDone': '{agent} 看完了：{what}',
+      'mail.talkReplied': '{agent} 回答了：{what}',
+      'mail.handFailed': '{agent} 没看成：{what}',
+      // Antigravity's turn over with no words from it (agent.rs).
+      'mail.agyRefused': '它要运行的命令被拒绝了，没有回答',
+      'mail.agySilent': '它没有回答',
     },
 
     en: {
@@ -1727,14 +1780,14 @@
       'deny.message': 'The user denied this on the desktop pet.',
 
       'menu.pet': 'Pet',
-      'menu.noPets': 'None yet. Get one in Settings',
+      'menu.noPets': 'No pets yet',
       'menu.size': 'Size',
       'menu.small': 'Small',
       'menu.medium': 'Medium',
       'menu.large': 'Large',
       'menu.walk': 'Walk around when idle',
       'menu.look': 'Follow the mouse',
-      'menu.home': 'Back to the corner',
+      'menu.home': 'Her home',
       'menu.dnd': 'Do not disturb',
       'menu.show': 'Show pet',
       'menu.hide': 'Hide pet',
@@ -1795,9 +1848,9 @@
       'settings.welcome': 'Welcome! Download a pet, then install the hooks, and you are set.',
       'settings.done': 'Done',
       'settings.error': 'Something went wrong: {message}',
-      'menu.island': 'Island mode',
+      'menu.island': 'The island',
       'menu.letOut': 'Let her out',
-      'menu.callBack': 'Call her back in',
+      'menu.callBack': 'Call her back home',
       'home.tabNow': 'Now',
       'home.tabPets': 'Pets',
       'home.tabLook': 'Look',
@@ -3260,6 +3313,59 @@
       'ag.cap.approve.reasonix': 'Approvals stay in Reasonix; the island only shows what it waits for you to approve',
       'ag.cap.choose.reasonix': 'When it asks you, the island says it has a question for you; answer in Reasonix',
       'ag.cap.stats.reasonix': "Counted in Today's turns and time (its approvals don't pass through her); not its tokens yet",
+
+      // The program's own words: the tray's menu and its tip, Windows' menus
+      // on the taskbar, her notices, dialogs and notifications (src-tauri's
+      // build.rs reads them for i18n.rs, as it reads any key the program names)
+      'menu.backToCorner': 'Back to the corner',
+      'menu.taskbar': "The taskbar (in place of Windows')",
+      'menu.winSettings': 'Windows Settings',
+      'menu.controlPanel': 'Control Panel',
+      'menu.taskManager': 'Task Manager',
+      'menu.editTaskbar': 'Edit the taskbar layout',
+      'menu.endEdit': 'Stop editing the taskbar',
+      // The widget picker and her capsule's panel (picker.js, capsule-panel.js).
+      'menu.addWidgets': 'Add widgets…',
+      'menu.editCapsule': 'Edit capsule',
+      'menu.deviceManager': 'Device Manager',
+      // Shift and a right press on a program's button with several windows (tasks.rs window_menu), in Windows' words.
+      'taskbar.restoreAll': 'Restore all windows',
+      'taskbar.minimizeAll': 'Minimize all windows',
+      // Windows' own menus on the volume, the network and the clock, in
+      // its words (tray.rs part_menu), and its clock's tip (clock.rs).
+      'menu.soundFix': 'Troubleshoot sound problems',
+      'menu.mixer': 'Open volume mixer',
+      'menu.sound': 'Sound settings',
+      'menu.netFix': 'Diagnose network problems',
+      'menu.network': 'Network and Internet settings',
+      'menu.dateTime': 'Adjust date and time',
+      'menu.notifySettings': 'Notifications settings',
+      'clock.local': 'Local time',
+      // Another program fighting her over Windows' taskbar (taskbar.rs give_up, #69).
+      'taskbar.tug': 'Another app runs the taskbar',
+      'taskbar.tugTap': 'Switched to the island · tap for Appearance',
+      'update.out': 'A new version: v{version}',
+      'update.tap': 'Tap to update',
+      // An update whose new version was stopped or taken away as it started (updates.rs).
+      'update.blocked': 'v{version} was stopped, likely by an antivirus',
+      'update.blockedTap': 'Tap to see what to do',
+      'crash.out': 'She quit unexpectedly. Send a crash report?',
+      'crash.tap': 'Tap to see',
+      'crash.box': "Wakuwaku has crashed {n} times in a row.\n\nSend crash reports automatically from now on? They are posted publicly as issues on GitHub or Gitee, with user names, paths, other programs' names and window titles, mail addresses and the like taken out first.\n\nYou can turn this off in Settings → General → Crash reports.",
+      'wallpaper.pickPicture': 'Pick a picture for the desktop',
+      'wallpaper.pickFolder': 'Pick a folder whose pictures take turns on the desktop',
+      'wallpaper.pictures': 'Pictures',
+      // A plugin installed from a file (addons.rs addon_pick_zip).
+      'addons.pickZip': "Pick a plugin's .zip",
+      'addons.zips': 'Plugin packages',
+      'codex.waiting': 'Waiting for your answer on Wakuwaku…',
+      'mail.new': 'New mail · {what}',
+      'mail.talkDone': '{agent} read it: {what}',
+      'mail.talkReplied': '{agent} answered: {what}',
+      'mail.handFailed': '{agent} could not read it: {what}',
+      // Antigravity's turn over with no words from it (agent.rs).
+      'mail.agyRefused': 'the command it wanted to run was refused, and it gave no answer',
+      'mail.agySilent': 'it gave no answer',
     },
   }
 
