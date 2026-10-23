@@ -3822,7 +3822,8 @@
   // inner edge is the work area's, where maximized windows stop (a hairline
   // gap at 175%: zhoupengjie/Wakuwaku#2). 48 until told.
   let stripThick = 0
-  let stripScale = 1
+  // The monitor's scale as taskbar:strip says it (sf); 0 until told.
+  let stripScale = 0
   function setStrip() {
     if (!stripThick) return
     document.documentElement.style.setProperty('--strip-h', `${stripThick / (devicePixelRatio || 1)}px`)
@@ -6032,8 +6033,10 @@
   // TASKBAR_ROOM is in the native monitor's logical px. WebView CSS px use
   // devicePixelRatio, which can differ from that monitor scale (Windows text
   // scaling): convert the room before sizing the settings page or its head
-  // and tabs can land above the native window and be clipped.
-  const settingsMax = () => (home() === 'taskbar' ? (isSide() ? innerHeight - 2 * TASKBAR_GAP - TASKBAR_SHADE : (TASKBAR_ROOM - TASKBAR_GAP - TASKBAR_SHADE) * stripScale / (devicePixelRatio || 1)) : null)
+  // and tabs can land above the native window and be clipped. Until the
+  // scale is told (before the first taskbar:strip; the preview never sends
+  // one), the two are taken as the same.
+  const settingsMax = () => (home() === 'taskbar' ? (isSide() ? innerHeight - 2 * TASKBAR_GAP - TASKBAR_SHADE : (TASKBAR_ROOM - TASKBAR_GAP - TASKBAR_SHADE) * (stripScale ? stripScale / (devicePixelRatio || 1) : 1)) : null)
 
   // The taskbar's layout, for the settings: its presets, which one it is, editing it on the strip.
   // From her menu: editing it (添加小工具…: with the picker open, { picker }),
