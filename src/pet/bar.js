@@ -62,14 +62,25 @@
     start.innerHTML = `<svg viewBox="0 0 ${box} ${box}" style="width:${box / dpr}px;height:${box / dpr}px"><defs><linearGradient id="start-blue" gradientUnits="userSpaceOnUse" x1="${at}" y1="${at}" x2="${end}" y2="${end}"><stop class="s0" offset="0"/><stop class="s1" offset="1"/></linearGradient></defs><g fill="url(#start-blue)">${rect(at, at)}${rect(far, at)}${rect(at, far)}${rect(far, far)}</g></svg>`
   }
 
+  // As the main taskbar's (island.js tickClock): with the seconds while
+  // Windows' own clock shows them, then anew at each second's start, else
+  // every five seconds; called again when drawn, which sets the pace anew.
+  let clockTick = 0
   function tickClock() {
+    clearTimeout(clockTick)
+    const seconds = state.look?.seconds === true
+    clockTick = setTimeout(tickClock, seconds ? 1000 - (Date.now() % 1000) : 5000)
     const d = new Date()
     const zh = state.lang === 'zh' ? 'zh-CN' : undefined
-    const time = d.toLocaleTimeString(zh, { hour: '2-digit', minute: '2-digit' })
+    const time = d.toLocaleTimeString(zh, { hour: '2-digit', minute: '2-digit', second: seconds ? '2-digit' : undefined })
     const date = d.toLocaleDateString(zh, isSide() ? { month: 'numeric', day: 'numeric' } : { year: 'numeric', month: 'numeric', day: 'numeric' })
     if (clock.dataset.at !== time + date) {
       clock.dataset.at = time + date
       clock.replaceChildren(el('b', '', time), el('i', '', date))
+    }
+    const minute = `${date} ${d.getHours()}:${d.getMinutes()}`
+    if (clock.dataset.tipAt !== minute) {
+      clock.dataset.tipAt = minute
       tipClock()
     }
   }
@@ -412,7 +423,7 @@
     )
   }
 
-  setInterval(tickClock, 5000)
+  tickClock()
   addEventListener('resize', () => {
     startScale = 0
     drawStart()

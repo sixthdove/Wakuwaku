@@ -1584,7 +1584,17 @@ mod imp {
     pub fn end_task_on() -> bool {
         use winreg::enums::HKEY_CURRENT_USER;
         let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings");
-        super::end_task_set(key.ok().and_then(|k| k.get_value::<u32, _>("TaskbarEndTask").ok()))
+        super::set_on(key.ok().and_then(|k| k.get_value::<u32, _>("TaskbarEndTask").ok()))
+    }
+
+    // Windows' seconds in the taskbar's clock (Settings → Personalization →
+    // Taskbar → Taskbar behaviors → Show seconds in system tray clock), as
+    // its settings page keeps it: Explorer\Advanced\ShowSecondsInSystemClock,
+    // a number. Off unless set.
+    fn seconds_on() -> bool {
+        use winreg::enums::HKEY_CURRENT_USER;
+        let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
+        super::set_on(key.ok().and_then(|k| k.get_value::<u32, _>("ShowSecondsInSystemClock").ok()))
     }
 
     // From outside (settings.rs, the wallpaper changed by her own settings:
@@ -1613,6 +1623,8 @@ mod imp {
             "flashes": flash_count(),
             // Whether a program's menu offers End task (island.js drawPop).
             "endTask": end_task_on(),
+            // Whether the clock shows the seconds (island.js tickClock, bar.js).
+            "seconds": seconds_on(),
         });
         let mut sent = LOOK.lock().unwrap();
         if *sent != look {
@@ -2943,9 +2955,10 @@ mod imp {
 
 pub use imp::{end_task_on, explorer_room, give_back, handing_back, is_up, set_edge, look_for_other, look_now, look_value, note, resend, strip_moved, strip_picture, take, waiting, wake, windows_now, work_area_bottom, work_area_rect};
 
-// Windows' End task setting's number (end_task_on): on once set, but for 0.
+// A number Windows keeps for a setting of its own (end_task_on, seconds_on):
+// on once set, but for 0.
 #[cfg_attr(not(windows), allow(dead_code))]
-fn end_task_set(value: Option<u32>) -> bool {
+fn set_on(value: Option<u32>) -> bool {
     value.is_some_and(|v| v != 0)
 }
 
@@ -3015,13 +3028,13 @@ fn resize(src: &[u8], sw: usize, sh: usize, dw: usize, dh: usize) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{end_task_set, resize};
+    use super::{resize, set_on};
 
     #[test]
-    fn end_task_only_once_turned_on() {
-        assert!(!end_task_set(None));
-        assert!(!end_task_set(Some(0)));
-        assert!(end_task_set(Some(1)));
+    fn a_setting_only_once_turned_on() {
+        assert!(!set_on(None));
+        assert!(!set_on(Some(0)));
+        assert!(set_on(Some(1)));
     }
 
     #[test]

@@ -491,7 +491,7 @@
     return { url: world.wallpaper, position: 'fill', color: '#1b2533', mon: [0, 0, w, h], screen: [0, 0, w, h], sf: 1 }
   }
 
-  const look = () => ({ mode: world.mode, accent: world.accent, endTask: false, flashes: 7 })
+  const look = () => ({ mode: world.mode, accent: world.accent, endTask: false, flashes: 7, seconds: world.seconds === true })
 
   // Her taskbar on another display (bars.rs bar:state): Start, the windows,
   // the clock; her capsule at its start while a prompt waits.

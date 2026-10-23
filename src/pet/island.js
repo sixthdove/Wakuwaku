@@ -4082,7 +4082,9 @@
   }
 
   window.pet.onLook(l => {
-    look = { mode: l?.mode === 'light' ? 'light' : 'dark', accent: l?.accent || null, endTask: l?.endTask === true }
+    const seconds = look.seconds
+    look = { mode: l?.mode === 'light' ? 'light' : 'dark', accent: l?.accent || null, endTask: l?.endTask === true, seconds: l?.seconds === true }
+    if (look.seconds !== seconds) clockLoop()
     // How many times a button flashes for attention (style.css .flash).
     if (l?.flashes !== undefined) barRest.style.setProperty('--flashes', l.flashes === 0 ? 'infinite' : String(l.flashes))
     setAccent('--win-accent', Mica.accentShade(look.accent, look.mode === 'light'))
@@ -4105,18 +4107,34 @@
     }
   })
 
-  // The time and the date, as Windows' taskbar has them.
+  // The time and the date, as Windows' taskbar has them: with the seconds
+  // while Windows' own clock shows them (taskbar.rs seconds_on), the time
+  // anew at each second's start then, else every five seconds. Its digits
+  // as wide as each other (style.css .tclock), so the tray beside it keeps
+  // still as they change.
+  let clockTick = 0
   function tickClock() {
     const d = new Date()
-    const time = d.toLocaleTimeString(lang === 'zh' ? 'zh-CN' : undefined, { hour: '2-digit', minute: '2-digit' })
+    const time = d.toLocaleTimeString(lang === 'zh' ? 'zh-CN' : undefined, { hour: '2-digit', minute: '2-digit', second: look.seconds ? '2-digit' : undefined })
     const date = d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : undefined, isSide() ? { month: 'numeric', day: 'numeric' } : { year: 'numeric', month: 'numeric', day: 'numeric' })
     if (clockBox.dataset.at !== time + date) {
       clockBox.dataset.at = time + date
       clockBox.replaceChildren(el('b', '', time), el('i', '', date))
+    }
+    clockBox.classList.toggle('secs', look.seconds === true)
+    // The tip each minute, not each second.
+    const minute = `${date} ${d.getHours()}:${d.getMinutes()}`
+    if (clockBox.dataset.tipAt !== minute) {
+      clockBox.dataset.tipAt = minute
       tipClock()
     }
   }
-  setInterval(() => isOn() && home() === 'taskbar' && tickClock(), 5000)
+  function clockLoop() {
+    clearTimeout(clockTick)
+    if (isOn() && home() === 'taskbar') tickClock()
+    clockTick = setTimeout(clockLoop, look.seconds ? 1000 - (Date.now() % 1000) : 5000)
+  }
+  clockLoop()
   // Its tip as Windows' own (zhoupengjie/Wakuwaku#36, clock.rs): the date in
   // full with its weekday, in the person's own format, and Windows'
   // additional clocks; read anew each minute and as the pointer comes.

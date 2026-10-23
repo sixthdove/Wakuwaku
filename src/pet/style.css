@@ -4086,6 +4086,11 @@ html.handoff-wait body.home-taskbar #island-row {
   font-size: 12px;
 }
 
+/* With the seconds (island.js tickClock) a size smaller, to fit across it. */
+.tb-side #bar-rest .tclock.secs {
+  font-size: 11px;
+}
+
 /* Show the desktop: a sliver along the bar's foot, its line on its top. */
 .tb-side #bar-rest .tdesk {
   align-self: stretch;
