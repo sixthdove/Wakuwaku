@@ -1110,6 +1110,21 @@ impl Registry {
         }
     }
 
+    // What a running plugin may do: what its manifest asks for, as far as it
+    // was granted. Its asks are held to this (call), not to its manifest, so
+    // a manifest that came to ask for more gets nothing more until the person
+    // allows it (approve), whether or not it was stopped yet (sync, wanted).
+    fn allowed(&self, id: &str) -> Option<Perms> {
+        let m = &self.manifest(id)?.perms;
+        let g = self.granted(id);
+        Some(Perms {
+            net: m.net.iter().filter(|h| host_allowed(&g.net, h)).cloned().collect(),
+            agents: m.agents && g.agents,
+            hardware: m.hardware && g.hardware,
+            notify: m.notify && g.notify,
+        })
+    }
+
     // What the manifest's time says: a manifest changed (a plugin edited in
     // place) starts its frame again.
     fn rev(&self, id: &str) -> String {
@@ -1281,7 +1296,7 @@ fn wanted(sh: &Shared) -> Value {
                     // it is not stopped, and its manifest asks for nothing
                     // beyond what was granted (else it waits: needsApproval).
                     (c["on"] == true && m.missing(c).is_none() && !stopped.contains(id) && r.needs_approval(id, m).is_empty())
-                        .then(|| json!({ "id": id, "version": m.version, "rev": r.rev(id), "main": m.main, "perms": m.perms.json(), "settings": m.values(c) }))
+                        .then(|| json!({ "id": id, "version": m.version, "rev": r.rev(id), "main": m.main, "perms": r.allowed(id).unwrap_or_default().json(), "settings": m.values(c) }))
                 })
                 .collect(),
         )
@@ -1462,6 +1477,8 @@ pub fn broken_view() -> Value {
     read(|r| Value::Array(r.found.iter().filter_map(|(id, f)| f.manifest.as_ref().err().map(|why| json!({ "folder": id, "reason": why }))).collect()))
 }
 
+// What its manifest asks for now: what approve grants. What it may do as it
+// runs is Registry::allowed.
 fn perms_of_id(id: &str) -> Option<Perms> {
     read(|r| r.manifest(id).map(|m| m.perms.clone()))
 }
@@ -2329,7 +2346,7 @@ fn call(sh: &Shared, id: &str, what: &str, a: &Value) -> Value {
     if !is_running(id) {
         return json!({ "error": format!("{id}: not running") });
     }
-    let perms = perms_of_id(id).unwrap_or_default();
+    let perms = read(|r| r.allowed(id)).unwrap_or_default();
     let got = match what {
         "stop" => stop(sh, id, s("why").unwrap_or(""), a["since"].as_u64(), a["times"].as_u64()),
         "widget" => widget(sh, id, s("sub"), &a["data"]),
@@ -3061,6 +3078,31 @@ mod tests {
         reg.found.insert("later".into(), Found { manifest: Ok(newer.clone()), stamp: None });
         assert_eq!((newer.wants.agents, newer.perms.agents, newer.runs()), (true, false, false));
         assert!(reg.needs_approval("later", &newer).is_empty());
+    }
+
+    // As it runs, what it may do is what it asks for as far as it was
+    // granted: a manifest that came to ask for more gets nothing more of her,
+    // stopped yet or not (call), and a grant of more gives no more than it asks.
+    #[test]
+    fn a_plugin_may_do_only_what_was_granted() {
+        let asks = |p: Value| with(|m| m["permissions"] = p).unwrap();
+        let mut reg = Registry::default();
+        let mut put = |m: Manifest, granted: Value| {
+            reg.found.insert("rain-alert".into(), Found { manifest: Ok(m), stamp: None });
+            reg.records.insert("rain-alert".into(), json!({ "source": "file", "grantedPerms": granted }));
+            reg.allowed("rain-alert").unwrap()
+        };
+        let more = asks(json!({ "net": ["api.open-meteo.com", "evil.example.com"], "agents": true, "hardware": true, "notify": true }));
+        let p = put(more.clone(), json!({ "net": ["api.open-meteo.com"], "agents": false, "hardware": true, "notify": false }));
+        assert_eq!(p, Perms { net: vec!["api.open-meteo.com".into()], agents: false, hardware: true, notify: false });
+        let p = put(asks(json!({ "net": ["api.open-meteo.com"] })), json!({ "net": ["api.open-meteo.com", "other.com"], "agents": true, "hardware": true, "notify": true }));
+        assert_eq!(p, Perms { net: vec!["api.open-meteo.com".into()], ..Perms::default() });
+        // A wildcard granted: the names under it that it asks for.
+        let p = put(asks(json!({ "net": ["a.example.org", "*.b.example.org", "example.org"] })), json!({ "net": ["*.example.org"] }));
+        assert_eq!(p.net, ["a.example.org", "*.b.example.org"]);
+        // A grant that will not read: nothing.
+        assert_eq!(put(more, json!("all")), Perms::default());
+        assert!(reg.allowed("no-such").is_none());
     }
 
     #[test]
