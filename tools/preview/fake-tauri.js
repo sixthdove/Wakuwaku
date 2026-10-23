@@ -411,24 +411,20 @@
       asks: world.asks,
       isVisible: true,
       hidden: false,
-      connection: on ? 'hooks' : 'none',
-      pluginCommands: ['/plugin marketplace add zhoupengjie/Wakuwaku', '/plugin install wakuwaku@wakuwaku'],
-      hooks: on ? 'ok' : 'missing',
-      claudeSeen: on,
-      settingsFile: 'C:\\Users\\you\\.claude\\settings.json',
-      settingsShown: '~\\.claude\\settings.json',
-      settingsBackup: true,
-      claudeHere: true,
-      codex: { hooks: on ? 'ok' : 'missing', file: 'C:\\Users\\you\\.codex\\hooks.json', fileShown: '~\\.codex\\hooks.json', seen: on, version: '0.150.0', async: true },
-      agy: { hooks: 'absent' },
-      opencode: { plugin: 'absent' },
-      omp: { hooks: 'absent' },
-      zcode: { hooks: 'absent' },
-      // DeepSeek Harness as a shot's world has it (settings.rs dsh_block), else not here.
-      dsh: world.dsh || { hooks: 'absent' },
-      // Reasonix on this computer too (zhoupengjie/Wakuwaku#60): connected
-      // with the others, unless the world says how it stands (world.reasonix).
-      reasonix: { hooks: on ? 'ok' : 'missing', file: 'C:\\Users\\you\\AppData\\Roaming\\reasonix\\settings.json', fileShown: '~\\AppData\\Roaming\\reasonix\\settings.json', backup: true, seen: on, line: '2.x', ...(world.reasonix || {}) },
+      // Each agent's block, by its id (settings.rs AgentRow).
+      agents: {
+        claude: { hooks: on ? 'ok' : 'missing', connection: on ? 'hooks' : 'none', here: true, seen: on, file: 'C:\\Users\\you\\.claude\\settings.json', fileShown: '~\\.claude\\settings.json', backup: true, pluginCommands: ['/plugin marketplace add zhoupengjie/Wakuwaku', '/plugin install wakuwaku@wakuwaku'] },
+        codex: { hooks: on ? 'ok' : 'missing', file: 'C:\\Users\\you\\.codex\\hooks.json', fileShown: '~\\.codex\\hooks.json', seen: on, version: '0.150.0', async: true },
+        agy: { hooks: 'absent' },
+        opencode: { hooks: 'absent' },
+        omp: { hooks: 'absent' },
+        zcode: { hooks: 'absent' },
+        // DeepSeek Harness as a shot's world has it (settings.rs agent_row), else not here.
+        dsh: world.dsh || { hooks: 'absent' },
+        // Reasonix on this computer too (zhoupengjie/Wakuwaku#60): connected
+        // with the others, unless the world says how it stands (world.reasonix).
+        reasonix: { hooks: on ? 'ok' : 'missing', file: 'C:\\Users\\you\\AppData\\Roaming\\reasonix\\settings.json', fileShown: '~\\AppData\\Roaming\\reasonix\\settings.json', backup: true, seen: on, line: '2.x', ...(world.reasonix || {}) },
+      },
       agentVersions: { claude: '2.1.0', reasonix: world.reasonix?.version || '2.43.0', ...(world.dsh ? { dsh: world.dsh.dshVersion || '0.2.1-rc.2' } : {}) },
       displayCount: world.displayCount,
       loginAtStart: true,

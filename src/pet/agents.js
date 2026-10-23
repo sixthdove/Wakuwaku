@@ -33,10 +33,11 @@
   // whether an event came since she started; its version (Codex's in its
   // block, the others' where a file says it: agentVersions, connection.rs
   // versions); whether it trusts ours as they are (Codex's, from its own
-  // settings: true, false, null when not known). Claude Code's is spread
-  // over the snapshot, as it was first.
+  // settings: true, false, null when not known). Each under the snapshot's
+  // agents, by its id (settings.rs AgentRow).
+  const own = (snap, key) => (snap.agents || {})[key] || {}
   const block = key => snap => {
-    const b = snap[key] || {}
+    const b = own(snap, key)
     return { status: b.hooks, file: b.file || '', shown: b.fileShown || b.file || '', backup: !!b.backup, seen: !!b.seen, version: b.version || (snap.agentVersions || {})[key] || '', trusted: b.trusted ?? null }
   }
 
@@ -61,16 +62,17 @@
       name: 'Claude Code',
       via: 'hooks',
       site: 'agent:claude',
-      read: snap => ({
+      read: snap => {
         // Through the plugin, settings.json's hooks, both, or neither.
-        status: snap.connection === 'plugin' ? 'plugin' : snap.connection === 'both' ? 'both' : snap.hooks,
-        file: snap.settingsFile || '',
-        shown: snap.settingsShown || snap.settingsFile || '',
-        backup: !!snap.settingsBackup,
-        seen: !!snap.claudeSeen || snap.connection === 'plugin',
-        here: snap.claudeHere !== false || (!!snap.connection && snap.connection !== 'none'),
-        version: (snap.agentVersions || {}).claude || '',
-      }),
+        const b = block('claude')(snap)
+        const c = own(snap, 'claude').connection
+        return {
+          ...b,
+          status: c === 'plugin' || c === 'both' ? c : b.status,
+          seen: b.seen || c === 'plugin',
+          here: own(snap, 'claude').here !== false || (!!c && c !== 'none'),
+        }
+      },
       in: ['plugin', 'both', 'ok', 'httpOnly', 'stale', 'partial'],
       good: ['plugin', 'ok', 'httpOnly'],
       words: { both: 'home.connBoth', unreadable: 's.hooksUnreadable' },
@@ -151,7 +153,7 @@
       site: 'agent:omp',
       // Its extension in each profile's agent folder too: the first one's
       // path, and how many more.
-      read: snap => ({ ...block('omp')(snap), more: snap.omp?.more || 0 }),
+      read: snap => ({ ...block('omp')(snap), more: own(snap, 'omp').more || 0 }),
       in: ['ok', 'stale', 'partial'],
       good: ['ok'],
       words: { stale: 's.ompStale', partial: 's.ompPartial', unreadable: 's.ompUnreadable' },
@@ -196,7 +198,7 @@
       // folder; packages: not in DSH's profiles; version: another DSH's).
       read: snap => {
         const b = block('dsh')(snap)
-        const d = snap.dsh || {}
+        const d = own(snap, 'dsh')
         const load = d.load || {}
         const way = d.way === 'bridge' ? 'bridge' : 'plugin'
         const bridgeWhy = { way: 'bridgeWay', hooks: 'bridgeHooks', packages: 'bridgePackages', version: 'bridgeVersion' }
@@ -258,7 +260,7 @@
       site: 'agent:reasonix',
       // Its line too: 2.x, 1.x (the same hooks), or the Node 0.x, which she
       // does not write to (unsupported).
-      read: snap => ({ ...block('reasonix')(snap), line: snap.reasonix?.line || '' }),
+      read: snap => ({ ...block('reasonix')(snap), line: own(snap, 'reasonix').line || '' }),
       in: ['ok', 'stale', 'partial'],
       good: ['ok'],
       words: { unsupported: 's.reasonixOld', unreadable: 's.reasonixUnreadable' },

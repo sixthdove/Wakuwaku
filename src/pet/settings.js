@@ -2845,7 +2845,7 @@
     const warn = []
     if (id === 'codex' && state === 'step') warn.push(T('ag.trust.codex'))
     if (id === 'codex' && r.status === 'upgradable') warn.push(T('s.codexUpgradeNote'))
-    if (id === 'codex' && r.here && snap.codex?.async === false) warn.push(T('s.codexOld', { version: r.version }))
+    if (id === 'codex' && r.here && snap.agents?.codex?.async === false) warn.push(T('s.codexOld', { version: r.version }))
     if (id === 'zcode' && r.status === 'off') warn.push(T('s.zcodeOffNote'))
     if (id === 'claude' && r.status === 'both') warn.push(T('ag.claude.both'))
     // DSH: the old bridge's rows; the plugin written but not loaded, and why.
@@ -2853,7 +2853,7 @@
     if (id === 'dsh' && r.status === 'notLoaded') warn.push(T(r.why === 'off' ? 's.dshNotLoadedOff' : 's.dshNotLoadedWhy'))
     // The hook bridge's: its packages missing or of another DSH (Repair
     // puts them in from npm), its rows or hook list another's.
-    if (id === 'dsh' && ['bridgePackages', 'bridgeVersion', 'bridgeHooks', 'bridgeWay'].includes(r.status)) warn.push(T(`s.dshBWhy.${r.status}`, { version: snap.dsh?.dshVersion || '' }))
+    if (id === 'dsh' && ['bridgePackages', 'bridgeVersion', 'bridgeHooks', 'bridgeWay'].includes(r.status)) warn.push(T(`s.dshBWhy.${r.status}`, { version: snap.agents?.dsh?.dshVersion || '' }))
     if (state === 'error') warn.push(T('ag.note.unreadable'))
     return warn.map(text => `<div class="ag-note warn">${esc(text)}</div>`).join('')
   }
@@ -2915,12 +2915,12 @@
   // Code installs and removes it, nothing of ours in its settings) and the
   // hooks written straight into settings.json (new sessions start her).
   function claudeWays() {
-    const commands = snap.pluginCommands || []
-    const plugged = snap.connection === 'plugin' || snap.connection === 'both'
+    const commands = snap.agents?.claude?.pluginCommands || []
+    const plugged = ['plugin', 'both'].includes(snap.agents?.claude?.connection)
     const plugin = `<div class="ag-way"><div class="ag-way-h"><b>${esc(T('home.plugin'))}</b><span class="grow"></span><span class="d">${esc(T(plugged ? 'home.pluginOn' : 'ag.claude.pluginOff'))}</span></div>
       <div class="d">${esc(T(plugged ? 'ag.claude.pluginRemove' : 'home.pluginWhy'))}</div>
       ${plugged ? '' : `${commands.map(c => `<div class="wc-cmd mono">${esc(c)}</div>`).join('')}<div class="ag-btns"><button class="pbtn sm" data-copy="${esc(commands.join('\n'))}" data-label="${esc(T('wc.copyBoth'))}">${esc(T('wc.copyBoth'))}</button><span class="d">${esc(T('home.pluginStart'))}</span></div>`}</div>`
-    const status = snap.hooks
+    const status = snap.agents?.claude?.hooks
     const word = { ok: 'settings.hooksOk', missing: 'settings.hooksMissing', stale: 'settings.hooksStale', partial: 'settings.hooksPartial', httpOnly: 'settings.hooksHttpOnly', unreadable: 's.hooksUnreadable' }[status] || 'settings.hooksMissing'
     const busy = connecting === 'claude'
     // Not written while the plugin is on: every event would come twice.
@@ -2952,7 +2952,7 @@
   // How one connects, in one word for all (the plugin or the hooks for Claude Code, as connected).
   function viaOf(id) {
     if (id !== 'claude') return T(`ag.via.${Agents.byId(id).via}`)
-    const c = snap.connection
+    const c = snap.agents?.claude?.connection
     return c === 'plugin' ? T('ag.via.plugin') : c === 'hooks' ? T('ag.via.hooks') : c === 'both' ? `${T('ag.via.plugin')} + ${T('ag.via.hooks')}` : T('ag.via.claudeNone')
   }
 
@@ -3156,7 +3156,7 @@
     if (tool === 'dsh' && kind.startsWith('bridge')) {
       const said = String(error || '').replace(/^.*?\]:\s*/, '')
       const mirror = kind === 'bridgeRegistry' ? `<div class="ag-btns"><button class="pbtn sm" data-dsh-mirror ${connecting ? 'disabled' : ''}>${esc(T('ag.dsh.mirror'))}</button></div>` : ''
-      return `<div class="wc-err"><div><b>${esc(T('s.dshBridgeFailed'))}</b></div><div>${esc(T(`s.dshBK.${kind}`, { version: snap.dsh?.dshVersion || '' }))}</div>${said ? `<div class="mono">${esc(said)}</div>` : ''}${mirror}</div>`
+      return `<div class="wc-err"><div><b>${esc(T('s.dshBridgeFailed'))}</b></div><div>${esc(T(`s.dshBK.${kind}`, { version: snap.agents?.dsh?.dshVersion || '' }))}</div>${said ? `<div class="mono">${esc(said)}</div>` : ''}${mirror}</div>`
     }
     const way = `${T(`wc.way.${kind}`)}${T(tool === 'claude' ? 'wc.wayPlugin' : 'wc.wayEnd')}`
     const file = Agents.read(snap, tool).shown
@@ -3197,7 +3197,7 @@
     const safeKeys = many ? ['wc.safeMany', 'wc.safe2', 'wc.safe3'] : tools[0] === 'opencode' ? ['wc.safe.opencode', 'wc.safeOc2', 'wc.safeOc3'] : tools[0] === 'omp' ? ['wc.safe.omp', 'wc.safe3'] : [`wc.safe.${tools[0]}`, 'wc.safe2', 'wc.safe3']
     const safe = safeKeys.map(k => `<div><span class="fi">\uE73E</span><span>${T(k)}</span></div>`).join('')
     // Claude Code's plugin, while it is here and not written.
-    const commands = snap.pluginCommands || []
+    const commands = snap.agents?.claude?.pluginCommands || []
     const plugBody = pluginOpen
       ? `<div class="wc-plugbody"><div class="d">${esc(T('wc.plugHow'))}</div>${commands.map(c => `<div class="wc-cmd mono">${esc(c)}</div>`).join('')}
           <div class="wc-copy"><button class="pbtn" data-copy="${esc(commands.join('\n'))}" data-label="${esc(T('wc.copyBoth'))}">${esc(T('wc.copyBoth'))}</button><span class="d">${esc(T('wc.plugWake'))}</span></div></div>`

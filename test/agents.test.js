@@ -13,14 +13,11 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 // computer and not connected, unless changed.
 function snapshot(change = {}) {
   const block = (status, extra = {}) => ({ hooks: status, file: 'C:\\Users\\me\\x', fileShown: '~\\x', backup: false, seen: false, ...extra })
-  return {
-    connection: 'none',
-    hooks: 'missing',
-    claudeSeen: false,
-    claudeHere: true,
-    settingsFile: 'C:\\Users\\me\\.claude\\settings.json',
-    settingsShown: '~\\.claude\\settings.json',
-    settingsBackup: false,
+  // Claude Code's given as before, by itself (connection, hooks,
+  // claudeSeen, claudeHere), the others' by their ids: all into agents.
+  const { connection = 'none', hooks = 'missing', claudeSeen = false, claudeHere = true, ...rest } = change
+  const agents = {
+    claude: block(hooks, { connection, here: claudeHere, seen: claudeSeen, file: 'C:\\Users\\me\\.claude\\settings.json', fileShown: '~\\.claude\\settings.json', pluginCommands: [] }),
     codex: block('missing', { version: '0.150.0', async: true }),
     agy: block('missing'),
     opencode: { hooks: 'missing', file: 'C:\\Users\\me\\.config\\opencode\\plugins\\wakuwaku.js', fileShown: '~\\.config\\opencode\\plugins\\wakuwaku.js', seen: false },
@@ -28,10 +25,19 @@ function snapshot(change = {}) {
     zcode: block('missing'),
     dsh: block('missing', { why: '', listShown: '~\\.dsh\\wakuwaku\\wakuwaku.js' }),
     reasonix: block('missing', { line: '2.x' }),
+  }
+  for (const id of Object.keys(agents)) {
+    if (id in rest) {
+      agents[id] = rest[id]
+      delete rest[id]
+    }
+  }
+  return {
+    agents,
     mailAgents: { claude: true, codex: true, agy: false },
     agentVersions: { claude: '2.1.296', zcode: '3.15.3', dsh: '0.2.0-rc.2', reasonix: '2.3.0', opencode: null, omp: null },
     sessions: [],
-    ...change,
+    ...rest,
   }
 }
 const absent = { codex: { hooks: 'absent' }, agy: { hooks: 'absent' }, opencode: { hooks: 'absent' }, omp: { hooks: 'absent' }, zcode: { hooks: 'absent' }, dsh: { hooks: 'absent' }, reasonix: { hooks: 'absent' } }

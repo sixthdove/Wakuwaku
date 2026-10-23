@@ -4,6 +4,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use agent_core::event::Agent;
+use serde::Serialize;
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, WebviewWindow};
 
@@ -31,36 +32,82 @@ fn seen_at(sh: &Shared, agent: Agent) -> u64 {
     sh.seen[connection::slot(agent)].load(Ordering::SeqCst)
 }
 
-// An agent's block of the snapshot, what each has: how ours stands
-// (connection::status, unless its own say), the file it is written into
-// and the same as read (~ for the home folder), whether a copy of that was
-// kept, whether any event of it came since she started; then its own.
-fn agent_block(sh: &Shared, agent: Agent, own: Value) -> Value {
-    let file = connection::file(agent);
-    let mut block = json!({
-        "file": file.as_ref().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default(),
-        "fileShown": file.as_ref().map(|f| connection::shown_path(f)).unwrap_or_default(),
-        "backup": file.as_ref().is_some_and(|f| connection::backup_of(f).exists()),
-        "seen": seen_at(sh, agent) > 0,
-    });
-    if own.get("hooks").is_none() {
-        block["hooks"] = json!(connection::status(agent, sh.port));
-    }
-    if let (Some(block), Value::Object(own)) = (block.as_object_mut(), own) {
-        block.extend(own);
-    }
-    block
+// An agent's block of the snapshot (agents.js block): how ours stands
+// (connection::status; DeepSeek Harness's as dsh_view tells it), the file
+// it is written into and the same as read (~ for the home folder), whether
+// a copy of that was kept, whether any event of it came since she started;
+// and what is its alone.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentRow {
+    hooks: String,
+    file: String,
+    file_shown: String,
+    backup: bool,
+    seen: bool,
+    #[serde(flatten)]
+    own: Own,
 }
 
-// DeepSeek Harness's own: connection/dsh.rs dsh_view (hooks, why, load),
-// the plugin's file as read (the Agent page shows it beside the patch
-// file), and the hook bridge's hook list, in her data folder (the other
-// way's).
-fn dsh_block(sh: &Shared) -> Value {
-    let mut own = connection::dsh_view(sh.port, &sh.setting("dshVia"), seen_at(sh, Agent::Dsh));
-    own["listShown"] = json!(connection::shown_path(&connection::dsh_plugin_file()));
-    own["hooksShown"] = json!(connection::shown_path(&connection::dsh_hooks_file()));
-    agent_block(sh, Agent::Dsh, own)
+#[derive(Serialize)]
+#[serde(untagged)]
+enum Own {
+    // Claude Code's: through its plugin, settings.json's hooks, both or
+    // neither (connection::connection); whether it is on this computer at
+    // all (its folder: the welcome offers the ones that are); the commands
+    // that put the plugin in.
+    #[serde(rename_all = "camelCase")]
+    Claude { connection: &'static str, here: bool, plugin_commands: [&'static str; 2] },
+    // Codex's: whether it trusts ours as they are (null: not known), its
+    // version, and whether it runs hooks in the background (0.148 on).
+    Codex {
+        trusted: Option<bool>,
+        version: Option<String>,
+        #[serde(rename = "async")]
+        runs_async: bool,
+    },
+    // omp's: how many agent folders of its profiles besides the first ours
+    // is in too.
+    Omp { more: usize },
+    // Reasonix's line: "0.x" (unsupported), "1.x", "2.x"; none where nothing
+    // says.
+    Reasonix { line: Option<String> },
+    // DeepSeek Harness's: connection/dsh.rs dsh_view's (its way, why, how it
+    // loads), the plugin's file as read (shown beside the patch file) and the
+    // hook bridge's list, in her data folder (the other way's).
+    Dsh(Map<String, Value>),
+    Nothing {},
+}
+
+fn agent_row(sh: &Shared, agent: Agent) -> AgentRow {
+    let mut hooks = None;
+    let own = match agent {
+        Agent::Claude => Own::Claude { connection: connection::connection(sh.port), here: connection::claude_here(), plugin_commands: connection::PLUGIN_COMMANDS },
+        Agent::Codex => Own::Codex {
+            trusted: connection::codex_trusted(),
+            version: connection::codex_version().map(|(a, b, c)| format!("{a}.{b}.{c}")),
+            runs_async: connection::codex_runs_async(),
+        },
+        Agent::Omp => Own::Omp { more: connection::omp_files().len().saturating_sub(1) },
+        Agent::Reasonix => Own::Reasonix { line: connection::reasonix_line().map(|major| format!("{major}.x")) },
+        Agent::Dsh => {
+            let Value::Object(mut view) = connection::dsh_view(sh.port, &sh.setting("dshVia"), seen_at(sh, agent)) else { unreachable!("dsh_view is an object") };
+            hooks = view.remove("hooks").and_then(|h| h.as_str().map(String::from));
+            view.insert("listShown".into(), json!(connection::shown_path(&connection::dsh_plugin_file())));
+            view.insert("hooksShown".into(), json!(connection::shown_path(&connection::dsh_hooks_file())));
+            Own::Dsh(view)
+        }
+        Agent::Agy | Agent::Opencode | Agent::Zcode => Own::Nothing {},
+    };
+    let file = connection::file(agent);
+    AgentRow {
+        hooks: hooks.unwrap_or_else(|| connection::status(agent, sh.port).to_string()),
+        file: file.as_ref().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default(),
+        file_shown: file.as_ref().map(|f| connection::shown_path(f)).unwrap_or_default(),
+        backup: file.as_ref().is_some_and(|f| connection::backup_of(f).exists()),
+        seen: seen_at(sh, agent) > 0,
+        own,
+    }
 }
 
 // Everything the settings show.
@@ -77,8 +124,7 @@ pub fn snapshot(sh: &Shared) -> Value {
         (pet.get(now_ms()), pet.list())
     };
     let (win_light, win_accent) = crate::wallpaper::look();
-    // Whether any is connected, as the island tells it (connection.rs).
-    let conn = connection::connection(sh.port);
+    // Whether any is connected, as the island tells it (connection/mod.rs).
     if connection::note_connected(connection::any_connected(sh.port)) {
         sh.redraw();
     }
@@ -96,38 +142,8 @@ pub fn snapshot(sh: &Shared) -> Value {
         "asks": sh.asks.lock().unwrap().views(),
         "isVisible": sh.is_visible(),
         "hidden": sh.hidden.load(Ordering::SeqCst),
-        "connection": conn,
-        "pluginCommands": connection::PLUGIN_COMMANDS,
-        "hooks": connection::hooks_status(sh.port),
-        // Whether any Claude Code event came since she started: installed,
-        // and a session seen (connected), or still waiting for one.
-        "claudeSeen": seen_at(sh, Agent::Claude) > 0,
-        "settingsFile": connection::claude_settings_file().to_string_lossy(),
-        // The same as read (~ for the home folder), whether a copy of it was
-        // kept (none: there was no file before), and whether Claude Code is
-        // on this computer at all (its folder): the welcome offers the ones
-        // that are.
-        "settingsShown": connection::shown_path(&connection::claude_settings_file()),
-        "settingsBackup": connection::backup_of(&connection::claude_settings_file()).exists(),
-        "claudeHere": connection::claude_here(),
-        // Each agent's block (agent_block): Codex's with whether Codex
-        // trusts ours as they are (null: not known) and its version (one
-        // before 0.148 gets no background hooks); omp's with how many agent
-        // folders of its profiles besides the first it is in too; DeepSeek
-        // Harness's with how its plugin or bridge stands and loads
-        // (dsh_block); Reasonix's with its line ("0.x", "1.x", "2.x", or
-        // none where nothing says: 0.x is unsupported).
-        "codex": agent_block(sh, Agent::Codex, json!({
-            "trusted": connection::codex_trusted(),
-            "version": connection::codex_version().map(|(a, b, c)| format!("{a}.{b}.{c}")),
-            "async": connection::codex_runs_async(),
-        })),
-        "agy": agent_block(sh, Agent::Agy, json!({})),
-        "opencode": agent_block(sh, Agent::Opencode, json!({})),
-        "omp": agent_block(sh, Agent::Omp, json!({ "more": connection::omp_files().len().saturating_sub(1) })),
-        "zcode": agent_block(sh, Agent::Zcode, json!({})),
-        "dsh": dsh_block(sh),
-        "reasonix": agent_block(sh, Agent::Reasonix, json!({ "line": connection::reasonix_line().map(|major| format!("{major}.x")) })),
+        // Each agent's block (agent_row), by its id.
+        "agents": connection::ALL.into_iter().map(|agent| (connection::id(agent).to_string(), json!(agent_row(sh, agent)))).collect::<Map<String, Value>>(),
         // The agents' versions where a file of theirs says (connection.rs
         // versions; Codex's is its block's): the Agent page shows them.
         "agentVersions": connection::versions(),
@@ -1059,6 +1075,32 @@ fn is_address(a: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+
+    // An agent's block as agents.js reads it: what each has, and its own
+    // beside that (Codex's async by that name, Claude Code's commands as
+    // pluginCommands, DeepSeek Harness's view as it is); nothing more for
+    // the others.
+    #[test]
+    fn an_agents_block_as_the_page_reads_it() {
+        use super::{AgentRow, Own};
+        let row = |own| json!(AgentRow { hooks: "ok".into(), file: "C:\\a".into(), file_shown: "~\\a".into(), backup: true, seen: false, own });
+        let each = json!({ "hooks": "ok", "file": "C:\\a", "fileShown": "~\\a", "backup": true, "seen": false });
+        let with = |own: serde_json::Value| {
+            let mut all = each.clone();
+            all.as_object_mut().unwrap().extend(own.as_object().unwrap().clone());
+            all
+        };
+        assert_eq!(row(Own::Nothing {}), each);
+        assert_eq!(row(Own::Codex { trusted: None, version: Some("0.150.0".into()), runs_async: true }), with(json!({ "trusted": null, "version": "0.150.0", "async": true })));
+        assert_eq!(
+            row(Own::Claude { connection: "plugin", here: true, plugin_commands: ["a", "b"] }),
+            with(json!({ "connection": "plugin", "here": true, "pluginCommands": ["a", "b"] }))
+        );
+        assert_eq!(row(Own::Omp { more: 2 }), with(json!({ "more": 2 })));
+        assert_eq!(row(Own::Reasonix { line: None }), with(json!({ "line": null })));
+        let view = json!({ "way": "plugin", "load": { "state": "loaded" } });
+        assert_eq!(row(Own::Dsh(view.as_object().unwrap().clone())), with(view));
+    }
 
     #[test]
     fn google_pages_open_for_the_address() {
