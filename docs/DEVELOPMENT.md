@@ -54,8 +54,8 @@ src-tauri/
     pointer.rs            两个窗口共用的点击穿透
     screen.rs             各个显示器的工作区
     asks.rs               确认请求：交还 DeepSeek Harness 自己窗口后，那个会话改成等你去 DSH 里答（handed_event，一个 AgentEvent，也发给 /v1 的订阅者）；确认请求本身（显示什么、每个选择回给各家 hook 什么、什么时候算在别处答过、排队和超时）在 agent-core 的 asks.rs，拒绝时说的话由她传进去
-    connection.rs         插件、settings.json 里的 hooks、Codex 的 hooks.json、Antigravity 的 hooks.json、OpenCode 的插件文件、omp 的扩展、ZCode 的 config.json、DeepSeek Harness 的插件和补丁文件（安装 / 移除 / 状态，插件有没有被加载）、Reasonix 的全局 settings.json（安装 / 移除 / 状态）、各 agent 文件里写着的版本、开机自启
-    logon.rs              开机自启的计划任务（任务栏和岛都有，Task Scheduler 的 COM）、这次登录是什么时候
+    connection/           每家 agent 一个文件，装、移除、看状态：claude.rs（插件、settings.json 里的 hooks）、codex.rs（hooks.json、信任）、agy.rs（hooks.json）、opencode.rs（插件文件）、omp.rs（扩展）、zcode.rs（config.json）、dsh.rs（插件和补丁文件，插件有没有被加载；DSH 自己的 hook 桥）、reasonix.rs（全局 settings.json）；file.rs 是它们共用的读写和备份，versions.rs 是各 agent 文件里写着的版本，mod.rs 是它们共有的（连上没有、写失败的原因）
+    logon.rs              开机自启：Run 的值和计划任务（任务栏和岛都有，Task Scheduler 的 COM）、这次登录是什么时候
     lhm.rs, lhm_setup.rs  监控的 LibreHardwareMonitor 来源：读它的网页服务器；用户点了时下载，以管理员身份装进 Program Files、配置、启动它，它自己的开机任务
     fetch.rs              codex-pets.net：解析地址、下载宠物、图库
     fullscreen.rs         别的程序是否全屏（user32）
@@ -88,7 +88,7 @@ src-tauri/
                           agent-core、agent-hub 不在这里：在它们自己的仓库 github.com/zhoupengjie/agent-hub，Cargo.toml 按 tag 依赖（见「agent-core 和 agent-hub」）
 integrations/claude-code/ Claude Code 插件 wakuwaku（只有 HTTP hooks）
 integrations/opencode/    OpenCode 2 的插件 wakuwaku.js（打进 exe，安装时写上端口放进 OpenCode 的插件文件夹）
-integrations/omp/         omp 的扩展 wakuwaku.ts（connection.rs 填上端口、程序路径后写进 omp 的 agent 文件夹）
+integrations/omp/         omp 的扩展 wakuwaku.ts（connection/omp.rs 填上端口、程序路径后写进 omp 的 agent 文件夹）
 .claude-plugin/           插件市场入口 marketplace.json（位置是 Claude Code 规定的）
 scripts/make-icons.js     画图标（node + ImageMagick），输出提交在 src-tauri/icons
 scripts/build-release.ps1 编译发布用的 exe，不带本机路径（见「构建和运行」）；scripts/gitee-release.ps1 把发布复制到 Gitee
@@ -162,7 +162,7 @@ pwsh scripts/build-release.ps1 [-Out <文件夹>]   # 发布用的 exe：wakuwak
 
 除 `SessionStart` 外的事件都是 HTTP hook（`type: "http"`，POST 到 `/hook?from=wakuwaku`），不开进程；`/hook` 一般立刻回 `{}`，只有 `PermissionRequest` 会挂起，等面板上的回答。**Claude Code 不对 `SessionStart` 运行 HTTP hook**，所以写入 settings.json 的方式给它配了一条后台命令（`async: true`）：程序本身加 `--wakuwaku-ensure-running`。它从 stdin 读事件，端口上有 wakuwaku 应答就把事件转过去（打招呼、登记会话），没有就以独立进程启动一份宠物，然后马上退出。**启动时脱离 hook 的作业**（`detach.rs` 的 `spawn`；`DETACHED_PROCESS`，不继承任何句柄）。hook 是在 agent 的作业里运行的，Claude 桌面版这类应用的作业在应用退出时会结束里面所有进程，而且不让脱离：从桌面版的会话里拉起的她，连同任务栏守护进程，在桌面版更新时被一起结束，Windows 的任务栏一直藏着，直到她再次启动（用户 2026-10-13）。所以：不在作业里就直接 `CreateProcess`；作业允许脱离（`QueryInformationJobObject` 查自己的作业，有 `JOB_OBJECT_LIMIT_BREAKAWAY_OK` 或 `SILENT_BREAKAWAY_OK`）就加 `CREATE_BREAKAWAY_FROM_JOB`；只有作业不放行时才以资源管理器为父进程（`PROC_THREAD_ATTRIBUTE_PARENT_PROCESS` 设成桌面窗口所在的进程），和在桌面上双击打开一样落在资源管理器的作业里（资源管理器本身不在任何作业里）。借别的进程当父进程也是恶意程序藏来历的手法（ATT&CK T1134.004），杀软专门盯着：卡巴斯基免费版的行为防护在更新借资源管理器当父进程启动新版的那一刻把新 exe 隔离了（#48），所以别处都不再这样做。资源管理器不在或不让时退回普通启动。她启动时也自查（`detach::should_leave`）：在某个作业里、父进程又不是资源管理器（旧版的 hook、终端、别的应用里启动），就照上面的办法重新启动自己，带上 `--wakuwaku-out-of-job` 防止反复，这一份退出；从源码运行时不做，更新或重启拉起的（带 `--after-update`：前一个启动时已经自查过，它的作业就是她的）也不做。更新后启动新版、崩溃后重启（`updates.rs` 的 `hand_over`）、任务栏守护进程（`shell.rs` 的 `spawn_guard`）按普通方式启动（`detach::start`：作业允许就脱离，否则留在她的作业里，这时已经是资源管理器的或者没有）；只有她还被别的程序的作业留着时（从源码在终端或某个应用里运行，`detach::held_elsewhere`：作业不放行、资源管理器又不在作业里），守护进程才借资源管理器当父进程，免得那个作业结束时把它一起带走。**用户主动退出后不启动**（#3、#57）：右键菜单（托盘或任务栏）的「退出」和 HTTP 的 `POST /quit` 都算主动退出，在数据文件夹写一个 `quit-by-choice` 标记（`data.rs` 的 `Quit::ByChoice`、`note_quit`；内容写明是哪种退出），能启动她的 hook 看到它就不启动（`starts.rs` 的 `starts_her`）：Claude Code 的 `SessionStart` 命令 `--wakuwaku-ensure-running`（Claude 桌面版 Code 标签页里的会话跑的也是它，在桌面版的作业里）、omp 扩展（同一个参数）、Codex、Antigravity、ZCode 的 `SessionStart`；不然退出后马上又会被拉起来（`resume`、`/clear`、自动压缩也会触发 `SessionStart`）。别的活动本来就启动不了她：Claude Code 除 `SessionStart` 外都是 HTTP hook，插件里也只有 HTTP hook；子 agent 不触发 `SessionStart`；Codex、Antigravity、ZCode 的命令 hook 只在 `SessionStart` 时启动；DeepSeek Harness 的从不启动（在它的沙箱里）；OpenCode 的插件只发 HTTP。被标记挡下时 hook 在 `recent.log` 记一行（`hook: Codex SessionStart (startup), under pwsh.exe ← codex.exe: her not up, and not started: quit by choice (POST /quit): …`）。`POST /quit?wake=1`（或 `wake=true`）是「退出，但会话可以再叫醒她」：不写标记，已有的也删掉；更新和崩溃后重启的交接（`updates.rs` 的 `hand_over`，新的已经起来了）也这样退出。同时来两次退出时第一次说了算（第二次什么都不做），只是主动退出总会写上标记。她每次真正启动（手动打开、开机自启、更新后重启、崩溃后被拉起）都会清掉它（`main()` 拿到端口后 `clear_quit`），所以换新版本的脚本 `/quit` 后等旧进程退出、马上启动新 exe 照常工作。崩溃、被强行结束不留标记，会话照旧把她拉起来。开机自启（登录任务、Run 值）不看标记：那是用户自己打开的设置（README 里也这么说）。任务栏守护进程从不启动她。**日志里记一行谁启动了她**：她拿到端口、记完 `up on port` 后紧跟一行 `started by: …`（`starts.rs` 的 `starter`）。hook 启动她时用 `--wakuwaku-by <说明>` 把自己是谁带给她：哪个 agent、哪个事件、事件里的 `source`（`startup`、`resume`、`clear`、`compact`）、Claude Code 的 `CLAUDE_CODE_ENTRYPOINT`（`cli`；桌面版 Code 标签页是 `claude-desktop`）、hook 上面最近的三个进程，比如 `a session's hook, Claude Code SessionStart (resume, claude-desktop), under claude.exe ← claude.exe`；omp 扩展在参数后面加 `omp <source>`。更新、重启也带上（`her update from v0.3.1 (pid …)`、`her restart, WebView2's browser gone (pid …)`，旧版启动的新版没有这个参数，写 `an update or a restart by an older version of hers`）；开机自启是 `her logon task` / `her Run value, at logon`；都没有时看她上面的进程：资源管理器是 `hand, from Explorer`，别的写 `a program: powershell.exe ← …`。为了离开作业重新启动自己时（`should_leave`），第一份把算好的说明带给第二份（第二份上面的进程已经不是原来那个），行尾加 `started again out of its job`；清掉了标记时行尾加 `; the mark of her last quit taken away (quit by choice (…): …)`。不认识的参数照常启动，所以旧版收到 `--wakuwaku-by` 也没关系。
 
-`connection.rs` 的 `status_of()` 判断我们的条目：`ok`、`httpOnly`（没有启动命令）、`missing`、`partial`（缺事件）、`stale`（端口不对、指向另一份程序，或者是旧版本）。识别"是我们的"靠 URL 里的 `from=wakuwaku`、参数里的 `--wakuwaku-ensure-running`。写之前把原文件备份到 `settings.json.wakuwaku.bak`（只备份一次）。
+`connection/claude.rs` 的 `status_of()` 判断我们的条目：`ok`、`httpOnly`（没有启动命令）、`missing`、`partial`（缺事件）、`stale`（端口不对、指向另一份程序，或者是旧版本）。识别"是我们的"靠 URL 里的 `from=wakuwaku`、参数里的 `--wakuwaku-ensure-running`。写之前把原文件备份到 `settings.json.wakuwaku.bak`（只备份一次）。
 
 单实例：谁占着端口谁是宠物。再启动一份时端口被占，这份会 POST `/come-home`（让她重新出现、回到右下角）然后退出。
 
@@ -172,11 +172,11 @@ HTTP 接口用的是 `src-tauri/vendor/tiny_http` 里打过补丁的 tiny_http 0
 
 Codex（CLI 0.114 起）的 hooks 和 Claude Code 很像，但**只有 command 类型，没有 HTTP**，所以每个事件都运行一次程序本身加 `--wakuwaku-codex-hook`（`main.rs` 的 `codex_hook()`）：从 stdin 读事件，POST 到 `/hook?from=wakuwaku&agent=codex`；只有 `PermissionRequest` 会把她的回答（`hookSpecificOutput`）打印到 stdout 给 Codex，别的事件什么都不打印（Codex 会把 hook 打印的纯文本当成给模型的话）。连不上她时，`SessionStart` 会以独立进程启动她。不管怎样都以 0 退出，Codex 不会显示 hook 失败。
 
-`connection.rs` 的 Codex 部分写 `~/.codex/hooks.json`（支持 `CODEX_HOME`；不碰 `config.toml`），备份到 `hooks.json.wakuwaku.bak`。2026-10 在 Codex CLI 0.146.1 / Windows 11 上实测：
+`connection/codex.rs` 写 `~/.codex/hooks.json`（支持 `CODEX_HOME`；不碰 `config.toml`），备份到 `hooks.json.wakuwaku.bak`。2026-10 在 Codex CLI 0.146.1 / Windows 11 上实测：
 
 - **Codex 用会话的 shell 运行 hook 命令，Windows 上是 PowerShell 7**（源码里的默认 `cmd /C` 只在没配置 shell 时用）。`"带空格的路径" 参数` 在 PowerShell 里是语法错误，要写 `& '路径' 参数`；路径不需要引号时直接写裸路径（`codex_command()`）。
 - Codex 跑 hook 用的是 `pwsh -NoProfile -Command`（`derive_exec_args`，不走 profile），实测启动约 0.28 秒；PowerShell 5.1 约 0.18 秒，cmd 约 0.02 秒，转发本身约 0.03 秒。hook 的 shell 跟着 Codex 会话的 shell 走，没法单独换。
-- 所以 Codex 要等的（同步）hook 只装必要的几个（`connection.rs` 的 `CODEX_HOOKS`）：`SessionStart`、`Stop`、`Interrupt`、`SessionEnd`、`PermissionRequest`。一轮的开始和每一步都在后台（`async: true`、不带 matcher 的 `UserPromptSubmit` / `PreToolUse` / `PostToolUse`）。每个同步 hook 让 Codex 等约 0.3 秒（pwsh 启动加转发，实测中位 301 ms），所以这样每轮少等约 0.3 秒，每次改文件（`apply_patch`）再少 0.3 秒，每个提问少 0.6 秒。
+- 所以 Codex 要等的（同步）hook 只装必要的几个（`connection/codex.rs` 的 `CODEX_HOOKS`）：`SessionStart`、`Stop`、`Interrupt`、`SessionEnd`、`PermissionRequest`。一轮的开始和每一步都在后台（`async: true`、不带 matcher 的 `UserPromptSubmit` / `PreToolUse` / `PostToolUse`）。每个同步 hook 让 Codex 等约 0.3 秒（pwsh 启动加转发，实测中位 301 ms），所以这样每轮少等约 0.3 秒，每次改文件（`apply_patch`）再少 0.3 秒，每个提问少 0.6 秒。
 - `Stop` 和 `Interrupt` 不能放后台：0.162.1 实测后台的 `Stop` 根本不运行（没有警告；`codex exec` 里让 `SessionEnd` 多等 2 秒也一样），后台的 `UserPromptSubmit` / `PreToolUse` / `PostToolUse` 都正常。`SessionStart` 留在前台，免得 `codex exec` 时它晚于一轮的开始到达，把干活中的会话改回空闲。
 - 不能跑后台 hook 的旧版本（见下一条）改装前台的 `UserPromptSubmit`、只对 `request_user_input` 的 `PreToolUse`、只对 `apply_patch|request_user_input` 的 `PostToolUse`（matcher 是正则）。
 - **async hook 从 Codex 0.148 开始才有**；0.146.1 实测会跳过它们（`skipping async hook …: async hooks are not supported yet`），而且是整条跳过，不会改成同步运行。所以安装时用 `codex --version` 判断（缓存一分钟），旧版本不装后台的那三条，改装上一条说的前台的三条；之后 Codex 升级了，或者是 0.3.3 及以前装的（那时一轮的开始还在前台），状态会变成 `upgradable`（只缺后台的；设置「通用」页的连接部分说"可以改用后台 hook"而不是"需要修复"），点「修复」换成后台的，`SessionStart`、`Stop` 等的内容和位置都不变，Codex 里只需信任 `UserPromptSubmit`、`PreToolUse`、`PostToolUse` 这三条（信任按 `hooks.json:<事件>:<组>:<序号>` 和内容的 hash 记在 `config.toml` 的 `[hooks.state]`，那两条后台的从第 1 组挪到了第 0 组，所以也要重新信任）。缺别的才是 `partial`。问不到版本（只有桌面版）时当作新版本。
@@ -701,7 +701,7 @@ mail/proxy.rs      代理：跟随系统 / 手动（HTTP CONNECT、SOCKS5，自�
 - **互不影响**：Mac 的东西只在 Mac 上跑，Windows 的只在 Windows 上跑。Rust 用 `cfg(target_os = "macos")` / `cfg(windows)`，Windows 专有的模块（`inputs.rs`、`backplate.rs`、`tasks.rs`、`taskbar.rs` 等）在别处有空实现；页面上 Mac 的行为只在收到 `island:top`、`island:peek`（只有 Mac 会发）或 `window.pet.mac` 为真时才有（`bridge.js`：`navigator.platform` 以 Mac 开头，Apple Silicon 上也是 `MacIntel`）。例如设置刚打开 0.5 秒内的失焦不算点外面、记录设置有没有被用过的监听，都只在 Mac 上；指针线程在 Windows 上每轮只读一次鼠标位置，和以前一样。只在 Windows 上成立的单元测试标 `cfg(windows)`。
 - **Mac 上还没有的**：任务栏这个家、点会话跳到窗口、系统通知、邮件（密码在 Windows 凭据管理器，还没接钥匙串）、监控插件、开机自启、打包和自动更新、跟随系统强调色和壁纸、WebView 崩溃监视和省电。她替你跑的插件不再用 PowerShell（`plugins.rs`），Mac 上也该能跑，但还没实测。
 
-## 开机自动启动（connection.rs 的 login、logon.rs）
+## 开机自动启动（logon.rs）
 
 zhoupengjie/Wakuwaku#44：exe 改名后 Run 还指着旧文件，开机什么也不启动，设置里显示成关；路径对的时候，Run 里的程序也要等资源管理器起来后一个个启动，那台笔记本上登录 3 分钟后她才起来。
 
@@ -709,7 +709,7 @@ zhoupengjie/Wakuwaku#44：exe 改名后 Run 还指着旧文件，开机什么也
 - **计划任务**（开机自启开着就有，家在任务栏还是岛都一样；以前只有任务栏模式有，岛只靠 Run，忙的登录里 Run 要排到很后面：用户电脑上 96 秒、110 秒，登录 52 秒就关机的那次根本没轮到她，测试虚拟机里登录时有 4 个程序在 HKLM 的 Run 里、CPU 忙，岛模式的她 176 秒才起来）：根文件夹里的 `Wakuwaku at logon-<SID>`（根文件夹是整台电脑共用的，所以带上用户的 SID），只在这个用户登录时触发（任何用户登录的触发器要管理员），这个用户自己的权限、不延迟，参数 `--wakuwaku-at-login task`；优先级 4（普通，任务默认的 7 低于普通，进程会一直是这个优先级）、用电池也启动、拔电源不停、不限运行时间（默认 3 天后结束）。用 Task Scheduler 的 COM（`ITaskService`，以 XML 注册、读回），不调 schtasks（它的 XML 输出是控制台代码页，路径里的字会丢）。Run 留作后备：两个都启动时，后到的那个发现端口占着就直接退出，不发 `/come-home`（不然她出门在桌面上时会被拉回家）。在任务计划程序里把任务（或它的触发器）禁用了，她就不去动它。
 - **启动时修**（`login::at_start`，只在默认端口、没设 `WAKUWAKU_USER_DATA` 时：测试的副本不碰真的开机自启）：Run 里有值但指向别的 exe（文件不在了、改了名字或挪了位置，或者是另一份她），改成现在这个 exe，记一行 `login: start at login pointed at … (gone); now …`；没有值就不动，用户关掉的不会被打开。从源码树运行时不把别的 exe 的值改成 `target\` 下的路径，只把指向自己、0.3.0 那种不带参数的写法补上参数。然后按「开着」建、改或删计划任务（`login: her logon task made / pointed at … / removed (start at login is off)`），和家在哪无关，切换家时不用动它。计划任务启动的她如果发现开机自启已经关了（Run 的值没了，或被任务管理器关了），删掉任务就退出。
 - **日志**：每次启动写一行 `started 3.2 s after logon, by her logon task`（Run 启动的是 `by the Run value`，手动、hook、更新启动的不写来源）；登录时间是 `WTSQuerySessionInformation(WTSSessionInfo)` 的 `LogonTime`，普通用户能读自己的会话。启动时有程序全屏，她的家等它走了才出来，看着像没启动，所以记一行是谁：`an app full screen as she starts: ‹Windows.UI.Core.CoreWindow› (LockApp.exe) … ; her home waits for it to go`。锁屏就是这样：Windows 为了装完更新自己登录、会话一开始就是锁着的，她起来后在锁屏后面等，解锁 0.2 秒后接管任务栏（用户电脑上，2026-10-13，那次日志里什么也没写）；测试虚拟机里锁屏后启动她，写的就是上面那行。
-- **测试**：纯判断在 `connection::tests::start_at_login_moves_with_her` 和 `logon::tests`；`cargo test -- --ignored start_at_login_kept_on_this_computer --nocapture` 在本机的注册表和任务计划程序里用测试名字（Run 的 `WakuwakuTest`、任务 `WakuwakuTest at logon-<SID>`）走一遍：失效路径被修、任务建好（打印 `schtasks /Query /V` 看到的样子）、在任务计划程序里被删了就再建、任务管理器关掉算关、开关关掉两处都删，最后全部清掉。
+- **测试**：纯判断在 `logon::tests`（`start_at_login_moves_with_her` 等）；`cargo test -- --ignored start_at_login_kept_on_this_computer --nocapture` 在本机的注册表和任务计划程序里用测试名字（Run 的 `WakuwakuTest`、任务 `WakuwakuTest at logon-<SID>`）走一遍：失效路径被修、任务建好（打印 `schtasks /Query /V` 看到的样子）、在任务计划程序里被删了就再建、任务管理器关掉算关、开关关掉两处都删，最后全部清掉。
 
 ## 软件更新（updates.rs）
 

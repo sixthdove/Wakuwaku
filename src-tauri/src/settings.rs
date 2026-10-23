@@ -6,7 +6,7 @@ use std::sync::Arc;
 use serde_json::{json, Map, Value};
 use tauri::{AppHandle, WebviewWindow};
 
-use crate::{connection, data, fetch, fullscreen, i18n, island, mail, now_ms, pet, plugins, set_display, set_out, shared, Shared};
+use crate::{connection, data, fetch, fullscreen, i18n, island, logon, mail, now_ms, pet, plugins, set_display, set_out, shared, Shared};
 
 const REPO: &str = "https://github.com/zhoupengjie/wakuwaku";
 // How to write a plugin (the Plugins page's 开发文档, under a .zip it cannot take).
@@ -162,7 +162,7 @@ pub fn snapshot(sh: &Shared) -> Value {
         // How many displays there are: her taskbar on all of them is offered
         // only with more than one (Look, taskbarDisplays).
         "displayCount": sh.screens().areas.len(),
-        "loginAtStart": connection::is_open_at_login(),
+        "loginAtStart": logon::is_open_at_login(),
         // Windows' own mode and accent colour (settings_win_look sets them).
         "winLook": { "light": win_light, "accent": crate::theme::current_accent().or(win_accent.map(|a| a.base)) },
         // The desktop's picture as it is (paper.rs).
@@ -815,7 +815,7 @@ pub async fn settings_wallpaper(app: AppHandle, what: String, value: Option<Stri
 #[tauri::command]
 pub async fn settings_login(app: AppHandle, on: bool) -> Value {
     let sh = shared(&app);
-    if let Err(err) = connection::set_open_at_login(on) {
+    if let Err(err) = logon::set_open_at_login(on) {
         sh.log(&format!("start at login: {err}"));
     }
     snapshot(&sh)

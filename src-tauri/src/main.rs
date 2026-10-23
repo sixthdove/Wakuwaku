@@ -17,8 +17,8 @@
 //   settings.rs    what the settings show and change
 //   pointer.rs     click-through, for both windows; screen.rs the work areas
 //   asks.rs        prompts answered on her or the island
-//   connection.rs  the plugin, hooks in settings.json and Codex's hooks.json, start at login
-//   logon.rs       her logon task (start at login, the taskbar home), the session's logon
+//   connection/    each agent's hooks, plugin or extension, written and read (one file each)
+//   logon.rs       start at login: the Run value and her logon task; the session's logon
 //   hw.rs          the monitor's built-in hardware readings (Windows' own: PDH, D3DKMT, the drives)
 //   lhm.rs         hardware sensors from LibreHardwareMonitor's web server (the monitor)
 //   lhm_setup.rs   LibreHardwareMonitor downloaded, set up and started, on the person's click
@@ -302,7 +302,7 @@ impl Shared {
         }
     }
 
-    // Whether she keeps start at login to where she is (connection.rs):
+    // Whether she keeps start at login to where she is (logon.rs):
     // on her own port, with her own data folder; a test's copy on another
     // port, or with a folder of its own, leaves it as it is.
     pub fn keeps_login(&self) -> bool {
@@ -311,17 +311,17 @@ impl Shared {
 
     // Start at login kept up as she starts, off the thread starting her
     // (logged too: how long after the logon she came up and what started
-    // her, `by`: connection::started_by).
+    // her, `by`: logon::started_by).
     pub fn keep_login(self: &Arc<Self>, by: Option<&'static str>) {
         let sh = self.clone();
         spawn_named("login", move || {
             if let Some(since) = logon::since_logon() {
-                sh.log(&format!("started {} after logon{}", logon::how_long(since), connection::said_by(by)));
+                sh.log(&format!("started {} after logon{}", logon::how_long(since), logon::said_by(by)));
             }
             if !sh.keeps_login() {
                 return;
             }
-            for line in connection::login_at_start() {
+            for line in logon::login_at_start() {
                 sh.log(&format!("login: {line}"));
             }
         });
@@ -1539,11 +1539,11 @@ fn main() {
         return reasonix_hook(port, args.get(at + 1).map_or("", String::as_str));
     }
 
-    // Started at login (connection.rs): by her logon task, or by the Run value.
+    // Started at login (logon.rs): by her logon task, or by the Run value.
     // The task's, with start at login turned off since (the Run value taken
     // away, or turned off in Task Manager), takes the task away and goes.
-    let at_login = connection::started_by(&args);
-    if at_login == Some(connection::BY_TASK) && connection::login_task_unwanted() {
+    let at_login = logon::started_by(&args);
+    if at_login == Some(logon::BY_TASK) && logon::login_task_unwanted() {
         eprintln!("wakuwaku: started by her logon task, but start at login is off: the task is taken away");
         return;
     }

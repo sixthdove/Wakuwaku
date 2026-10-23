@@ -1,5 +1,5 @@
 // Her start as the user logs on, through Windows' Task Scheduler (beside
-// the Run value: connection.rs, start at login), and when this session's
+// the Run value: start at login, below), and when this session's
 // logon was (her start logs how long after it she came up,
 // zhoupengjie/Wakuwaku#44).
 //
@@ -485,6 +485,373 @@ mod imp {
 
 pub use imp::{register, remove, run, since_logon, user_sid, xml};
 
+// --- Start at login: this program, from where it is now -------------------------------
+//
+// The switch is the Run value (HKCU ...\CurrentVersion\Run, Wakuwaku): this
+// program with AT_LOGIN_FLAG and "run". Task Manager's Startup apps list it
+// and may turn it off there (StartupApproved\Run, by the same name), which
+// is off here too. With it a logon task (logon.rs, with "task"), whatever
+// her home: Windows starts the Run items one by one once Explorer is up,
+// late and held back (three minutes after a logon on the user's laptop,
+// zhoupengjie/Wakuwaku#44), while the task starts her as the user logs on.
+// The Run value stays for when the task does not run; whichever of the two
+// comes second finds her up and leaves without a word (any other start
+// brings her back into sight).
+//
+// Kept to where she is: as she starts on her own port (not a test's copy on
+// another, nor one with a data folder of its own), a Run value naming
+// another exe (gone: renamed or moved by hand, a download kept under its
+// own name; or another copy of her) is written anew for this one, and the
+// task made, repaired or removed to match. Never turned on where it was off.
+// Run from the source tree (cargo, its target folder), she writes no build's
+// path over another exe's; her own value she keeps up.
+
+pub const AT_LOGIN_FLAG: &str = "--wakuwaku-at-login";
+pub const BY_TASK: &str = "task";
+const BY_RUN: &str = "run";
+
+// Started at login: by her logon task (task) or the Run value (run); none
+// when started any other way.
+pub fn started_by(args: &[String]) -> Option<&'static str> {
+    let at = args.iter().position(|a| a == AT_LOGIN_FLAG)?;
+    Some(if args.get(at + 1).map(String::as_str) == Some(BY_TASK) { BY_TASK } else { BY_RUN })
+}
+
+// That, for her log: ", by her logon task", ", by the Run value", or nothing.
+pub fn said_by(by: Option<&str>) -> &'static str {
+    match by {
+        Some(BY_TASK) => ", by her logon task",
+        Some(_) => ", by the Run value",
+        None => "",
+    }
+}
+
+// Start at login's decisions, plain (tested below; acted on, on Windows alone).
+#[cfg_attr(not(windows), allow(dead_code))]
+mod rules {
+    use super::{AT_LOGIN_FLAG, BY_RUN, BY_TASK};
+    use crate::connection::same_path;
+    use crate::logon::TaskSeen;
+
+    // The Run value for this program, and what its logon task gives it.
+    pub fn run_command(exe: &str) -> String {
+        format!("\"{exe}\" {AT_LOGIN_FLAG} {BY_RUN}")
+    }
+
+    pub fn task_args() -> String {
+        format!("{AT_LOGIN_FLAG} {BY_TASK}")
+    }
+
+    // The program a command line starts: its first word, in quotes or not
+    // (a path with spaces and no quotes, up to its .exe).
+    pub fn program_of(command: &str) -> &str {
+        let command = command.trim();
+        if let Some(rest) = command.strip_prefix('"') {
+            return rest.split('"').next().unwrap_or("");
+        }
+        match command.to_ascii_lowercase().find(".exe") {
+            Some(at) => &command[..at + 4],
+            None => command.split_whitespace().next().unwrap_or(""),
+        }
+    }
+
+    // Start at login as it stands: off (no Run value, or turned off in Task
+    // Manager), on for this program, or on for another exe.
+    #[derive(Debug, PartialEq, Clone, Copy)]
+    pub enum Login {
+        Off,
+        Mine,
+        Theirs,
+    }
+
+    pub fn login_of(value: Option<&str>, turned_off: bool, exe: &str) -> Login {
+        match value {
+            None => Login::Off,
+            Some(_) if turned_off => Login::Off,
+            Some(v) if same_path(program_of(v)) == same_path(exe) => Login::Mine,
+            Some(_) => Login::Theirs,
+        }
+    }
+
+    // What her start does with the Run value: keeps it, or writes this
+    // program's in its place, and why (the exe it named is gone, it is
+    // another copy of her, or it is this one as an older version wrote it).
+    // No value stays none: start at login turned off stays off. Run from
+    // the source tree, she takes no other exe's.
+    #[derive(Debug, PartialEq)]
+    pub enum RunFix {
+        Keep,
+        Rewrite(&'static str),
+    }
+
+    pub fn run_fix(value: Option<&str>, exe: &str, from_source: bool, exists: impl Fn(&str) -> bool) -> RunFix {
+        let Some(value) = value else { return RunFix::Keep };
+        let was = program_of(value);
+        if same_path(was) == same_path(exe) {
+            return if same_path(value) == same_path(&run_command(exe)) { RunFix::Keep } else { RunFix::Rewrite("as an older version wrote it") };
+        }
+        if from_source {
+            return RunFix::Keep;
+        }
+        RunFix::Rewrite(if exists(was) { "another copy of her" } else { "gone" })
+    }
+
+    // What becomes of her logon task: there while start at login is hers,
+    // whatever her home, running this program; gone otherwise. It was the
+    // taskbar's alone at first, the island left to the Run value; but
+    // Explorer starts the Run values one by one after its own, each waited
+    // on, some half a minute in: on the user's PC hers came 96 and 110 s
+    // after the logon, and a session shut down 52 s in never got to it
+    // (2026-10-13, 10-15).
+    #[derive(Debug, PartialEq)]
+    pub enum TaskFix {
+        Keep,
+        Make,
+        Remove,
+    }
+
+    pub fn task_fix(login: Login, task: Option<&TaskSeen>, exe: &str) -> TaskFix {
+        match (login, task) {
+            // Another exe's start at login: not this one's to change.
+            (Login::Theirs, _) => TaskFix::Keep,
+            (Login::Off, Some(_)) => TaskFix::Remove,
+            (Login::Mine, None) => TaskFix::Make,
+            // Turned off in the Task Scheduler: left as the person left it.
+            (Login::Mine, Some(t)) if !t.enabled => TaskFix::Keep,
+            (Login::Mine, Some(t)) if same_path(&t.program) != same_path(exe) || t.args != task_args() => TaskFix::Make,
+            _ => TaskFix::Keep,
+        }
+    }
+}
+
+#[cfg(windows)]
+mod login {
+    use crate::connection::launch_command;
+    use super::rules::{login_of, run_command, run_fix, task_args, task_fix, Login, RunFix, TaskFix};
+    use crate::logon;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
+
+    const RUN: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+    // Task Manager's Startup apps: those turned off there, by name, their
+    // first byte odd (03; turned on again, 02).
+    const APPROVED: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+    const NAME: &str = "Wakuwaku";
+
+    fn value(name: &str) -> Option<String> {
+        RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(RUN, KEY_READ).and_then(|k| k.get_value::<String, _>(name)).ok()
+    }
+
+    fn turned_off(name: &str) -> bool {
+        RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags(APPROVED, KEY_READ)
+            .and_then(|k| k.get_raw_value(name))
+            .is_ok_and(|v| v.bytes.first().is_some_and(|b| b & 1 == 1))
+    }
+
+    fn write(name: &str, command: &str) -> Result<(), String> {
+        let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey_with_flags(RUN, KEY_READ | KEY_WRITE).map_err(|e| e.to_string())?;
+        key.set_value(name, &command.to_string()).map_err(|e| e.to_string())
+    }
+
+    fn delete(path: &str, name: &str) -> Result<(), String> {
+        let Ok(key) = RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(path, KEY_READ | KEY_WRITE) else { return Ok(()) };
+        match key.delete_value(name) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.to_string()),
+            _ => Ok(()),
+        }
+    }
+
+    fn login(name: &str, exe: &str) -> Login {
+        login_of(value(name).as_deref(), turned_off(name), exe)
+    }
+
+    // On for this program: a Run value naming it (written by an older
+    // version or moved here as she started, too), not turned off in Task
+    // Manager.
+    pub fn is_on() -> bool {
+        login(NAME, &launch_command()) == Login::Mine
+    }
+
+    // This user's logon task: the Run value's name, "at logon", their SID;
+    // and the SID.
+    fn task_of(name: &str) -> Result<(String, String), String> {
+        let sid = logon::user_sid().ok_or("no SID for this user")?;
+        Ok((format!("{name} at logon-{sid}"), sid))
+    }
+
+    // The logon task made, repaired or removed to match start at login;
+    // what was done, if anything.
+    fn sync_task(name: &str, exe: &str) -> Result<Option<String>, String> {
+        let login = login(name, exe);
+        if login == Login::Theirs {
+            return Ok(None);
+        }
+        let (task, sid) = task_of(name)?;
+        let seen = logon::xml(&task)?.map(|xml| logon::seen(&xml));
+        match task_fix(login, seen.as_ref(), exe) {
+            TaskFix::Keep => Ok(None),
+            TaskFix::Make => {
+                logon::register(&task, &logon::task_xml(&sid, exe, &task_args()))?;
+                Ok(Some(match seen {
+                    Some(was) => format!("her logon task pointed at {} {}; now {exe} {}", was.program, was.args, task_args()),
+                    None => format!("her logon task made: {task}"),
+                }))
+            }
+            TaskFix::Remove => {
+                logon::remove(&task)?;
+                Ok(Some("her logon task removed (start at login is off)".to_string()))
+            }
+        }
+    }
+
+    fn set_named(name: &str, exe: &str, on: bool) -> Result<(), String> {
+        if on {
+            write(name, &run_command(exe))?;
+            // Turned off in Task Manager before: on there too, as asked here.
+            delete(APPROVED, name)?;
+        } else {
+            delete(RUN, name)?;
+        }
+        sync_task(name, exe).map(drop).map_err(|e| format!("her logon task: {e}"))
+    }
+
+    // The switch: the Run value and the logon task, or neither.
+    pub fn set(on: bool) -> Result<(), String> {
+        set_named(NAME, &launch_command(), on)
+    }
+
+    fn at_start_named(name: &str, exe: &str, from_source: bool) -> Vec<String> {
+        let mut said = Vec::new();
+        let was = value(name);
+        if let RunFix::Rewrite(why) = run_fix(was.as_deref(), exe, from_source, |p| std::path::Path::new(p).is_file()) {
+            let now = run_command(exe);
+            let was = was.unwrap_or_default();
+            said.push(match write(name, &now) {
+                Ok(()) => format!("start at login pointed at {was} ({why}); now {now}"),
+                Err(e) => format!("start at login pointed at {was} ({why}); not written anew: {e}"),
+            });
+        }
+        match sync_task(name, exe) {
+            Ok(done) => said.extend(done),
+            Err(e) => said.push(format!("her logon task: {e}")),
+        }
+        said
+    }
+
+    // As she starts on her own port: the Run value moved to this program,
+    // the task to match; what was done, a line each.
+    pub fn at_start() -> Vec<String> {
+        at_start_named(NAME, &launch_command(), crate::data::from_source())
+    }
+
+    // Started by her logon task while start at login is off (the Run value
+    // taken away, or turned off in Task Manager): the task goes, and true
+    // (she goes too).
+    pub fn task_unwanted() -> bool {
+        if login(NAME, &launch_command()) != Login::Off {
+            return false;
+        }
+        if let Ok((task, _)) = task_of(NAME) {
+            let _ = logon::remove(&task);
+        }
+        true
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        // Against this computer's own registry and Task Scheduler, under a
+        // test's name (WakuwakuTest, its task WakuwakuTest at logon-<SID>),
+        // all of it taken away at the end: cargo test -- --ignored
+        // start_at_login_kept_on_this_computer --nocapture.
+        #[test]
+        #[ignore]
+        fn start_at_login_kept_on_this_computer() {
+            const TEST: &str = "WakuwakuTest";
+            let exe = launch_command();
+            let (task, _) = task_of(TEST).unwrap();
+            let was = r#""C:\nowhere\wakuwaku-v0.2.5-windows-x64.exe""#;
+            let windows_view = || {
+                let out = std::process::Command::new("schtasks").args(["/Query", "/TN", &task, "/V", "/FO", "LIST"]).output().unwrap();
+                println!("{}", String::from_utf8_lossy(&out.stdout));
+            };
+            let clean = || {
+                let _ = delete(RUN, TEST);
+                let _ = delete(APPROVED, TEST);
+                let _ = logon::remove(&task);
+            };
+            clean();
+
+            // Off: nothing made at the start.
+            assert!(at_start_named(TEST, &exe, false).is_empty());
+            assert_eq!(value(TEST), None);
+            assert_eq!(logon::xml(&task).unwrap(), None);
+
+            // A value for an exe gone: this one's, and the task made for it.
+            write(TEST, was).unwrap();
+            let said = at_start_named(TEST, &exe, false);
+            println!("{said:#?}");
+            assert!(said[0].contains("(gone)"), "{said:?}");
+            assert_eq!(value(TEST), Some(run_command(&exe)));
+            assert_eq!(login(TEST, &exe), Login::Mine);
+            let seen = logon::seen(&logon::xml(&task).unwrap().unwrap());
+            assert_eq!((seen.program.as_str(), seen.args.as_str(), seen.enabled), (exe.as_str(), task_args().as_str(), true));
+            windows_view();
+            // Again: nothing to do.
+            assert!(at_start_named(TEST, &exe, false).is_empty());
+
+            // From the source tree another exe's value stays as it is.
+            write(TEST, was).unwrap();
+            assert!(at_start_named(TEST, &exe, true).is_empty());
+            assert_eq!(value(TEST).as_deref(), Some(was));
+            write(TEST, &run_command(&exe)).unwrap();
+
+            // The task taken away in the Task Scheduler: made again.
+            logon::remove(&task).unwrap();
+            assert_eq!(sync_task(TEST, &exe).unwrap(), Some(format!("her logon task made: {task}")));
+
+            // Turned off in Task Manager: off here, the task gone; on again from the switch.
+            let off = winreg::RegValue { bytes: vec![3, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8].into(), vtype: winreg::enums::RegType::REG_BINARY };
+            RegKey::predef(HKEY_CURRENT_USER).create_subkey(APPROVED).unwrap().0.set_raw_value(TEST, &off).unwrap();
+            assert_eq!(login(TEST, &exe), Login::Off);
+            assert_eq!(at_start_named(TEST, &exe, false), vec!["her logon task removed (start at login is off)".to_string()]);
+            set_named(TEST, &exe, true).unwrap();
+            assert!(!turned_off(TEST));
+            assert_eq!(login(TEST, &exe), Login::Mine);
+            assert!(logon::xml(&task).unwrap().is_some());
+
+            // Off from the switch: both gone.
+            set_named(TEST, &exe, false).unwrap();
+            assert_eq!(value(TEST), None);
+            assert_eq!(logon::xml(&task).unwrap(), None);
+            clean();
+        }
+    }
+}
+
+#[cfg(not(windows))]
+mod login {
+    pub fn is_on() -> bool {
+        false
+    }
+
+    pub fn set(_on: bool) -> Result<(), String> {
+        Err("not on this system".into())
+    }
+
+    pub fn at_start() -> Vec<String> {
+        Vec::new()
+    }
+
+    pub fn task_unwanted() -> bool {
+        false
+    }
+}
+
+pub use login::{at_start as login_at_start, is_on as is_open_at_login, set as set_open_at_login, task_unwanted as login_task_unwanted};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -524,5 +891,71 @@ mod tests {
         println!("logged on {} ago", how_long(since));
         assert!(since > 0.0 && since < 400.0 * 24.0 * 3600.0, "{since}");
         assert!(user_sid().is_some_and(|sid| sid.starts_with("S-1-5-")));
+    }
+
+    #[test]
+    fn start_at_login_moves_with_her() {
+        use super::rules::*;
+        use crate::logon::TaskSeen;
+        let exe = r"D:\Program Files\Wakuwaku\wakuwaku.exe";
+        let ours = run_command(exe);
+        assert_eq!(ours, r#""D:\Program Files\Wakuwaku\wakuwaku.exe" --wakuwaku-at-login run"#);
+        let old = r#""D:\Program Files\Wakuwaku\wakuwaku-v0.2.5-windows-x64.exe""#;
+        let before = format!("\"{exe}\"");
+        let (gone, there) = (|_: &str| false, |_: &str| true);
+
+        // Off stays off, whatever she is.
+        assert_eq!(run_fix(None, exe, false, gone), RunFix::Keep);
+        // Renamed, moved, or another copy: this one's in its place; from a
+        // source tree no other exe's.
+        assert_eq!(run_fix(Some(old), exe, false, gone), RunFix::Rewrite("gone"));
+        assert_eq!(run_fix(Some(old), exe, false, there), RunFix::Rewrite("another copy of her"));
+        assert_eq!(run_fix(Some(old), exe, true, gone), RunFix::Keep);
+        // Hers: as this version writes it, or as 0.3.0 did (no flag), which
+        // even a source tree's run brings up to date.
+        assert_eq!(run_fix(Some(&ours), exe, false, there), RunFix::Keep);
+        assert_eq!(run_fix(Some(&before), exe, true, there), RunFix::Rewrite("as an older version wrote it"));
+        if cfg!(windows) {
+            assert_eq!(run_fix(Some(&ours.to_uppercase()), exe, false, there), RunFix::Keep);
+        }
+
+        // The program a value starts, quoted or not.
+        assert_eq!(program_of(&ours), exe);
+        assert_eq!(program_of(r"C:\Program Files\W\w.EXE --x"), r"C:\Program Files\W\w.EXE");
+        assert_eq!(program_of(r"C:\w\w --x"), r"C:\w\w");
+        assert_eq!(program_of(""), "");
+
+        // On: a value naming this program, in either form, not turned off in Task Manager.
+        assert_eq!(login_of(None, false, exe), Login::Off);
+        assert_eq!(login_of(Some(&ours), true, exe), Login::Off);
+        assert_eq!(login_of(Some(&ours), false, exe), Login::Mine);
+        assert_eq!(login_of(Some(&before), false, exe), Login::Mine);
+        assert_eq!(login_of(Some(old), false, exe), Login::Theirs);
+
+        // The logon task: there whenever start at login is hers (the island
+        // her home too), running this program; left alone when turned off
+        // in the Task Scheduler or another exe's.
+        let task = |program: &str, enabled| TaskSeen { program: program.into(), args: task_args(), enabled };
+        let elsewhere = r"D:\old\wakuwaku.exe";
+        assert_eq!(task_fix(Login::Mine, None, exe), TaskFix::Make);
+        assert_eq!(task_fix(Login::Mine, Some(&task(exe, true)), exe), TaskFix::Keep);
+        assert_eq!(task_fix(Login::Mine, Some(&task(elsewhere, true)), exe), TaskFix::Make);
+        assert_eq!(task_fix(Login::Mine, Some(&TaskSeen { args: String::new(), ..task(exe, true) }), exe), TaskFix::Make);
+        assert_eq!(task_fix(Login::Mine, Some(&task(elsewhere, false)), exe), TaskFix::Keep);
+        assert_eq!(task_fix(Login::Off, Some(&task(exe, false)), exe), TaskFix::Remove);
+        assert_eq!(task_fix(Login::Off, Some(&task(exe, true)), exe), TaskFix::Remove);
+        assert_eq!(task_fix(Login::Off, None, exe), TaskFix::Keep);
+        assert_eq!(task_fix(Login::Theirs, Some(&task(elsewhere, true)), exe), TaskFix::Keep);
+        assert_eq!(task_fix(Login::Theirs, None, exe), TaskFix::Keep);
+
+        // How she was started, as the two give it to her.
+        let args = |line: &str| line.split(' ').map(String::from).collect::<Vec<_>>();
+        assert_eq!(started_by(&args("wakuwaku.exe")), None);
+        assert_eq!(started_by(&args(&format!("wakuwaku.exe {}", &ours[ours.find(" --").unwrap() + 1..]))), Some("run"));
+        assert_eq!(started_by(&args(&format!("wakuwaku.exe {} --wakuwaku-out-of-job", task_args()))), Some("task"));
+        // And what her log says of it.
+        assert_eq!(said_by(started_by(&args(&format!("wakuwaku.exe {}", task_args())))), ", by her logon task");
+        assert_eq!(said_by(Some(BY_RUN)), ", by the Run value");
+        assert_eq!(said_by(None), "");
     }
 }
