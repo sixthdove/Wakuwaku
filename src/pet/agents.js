@@ -18,7 +18,8 @@
 //            her plugin; the others' questions only make her wait,
 //            "detail.asksQuestion")
 //   stats    counted in Today (main.rs count_today: every agent's turns and
-//            time), and its tokens (tokens.rs: Claude Code, Codex, Antigravity)
+//            time), and its tokens (tokens.rs: Claude Code, Codex, Antigravity,
+//            DeepSeek Harness)
 //   mail     can read a letter for the Mail page (mail/agent.rs: claude,
 //            codex, agy), when its command is found (snapshot mailAgents)
 ;(function (root) {
@@ -249,7 +250,7 @@
         status: ['yes', 'ag.cap.status.dsh'],
         approve: ['yes', 'ag.cap.approve.dsh'],
         choose: ['yes', 'ag.cap.choose.dsh'],
-        stats: ['yes', 'ag.cap.stats.turns'],
+        stats: ['yes', 'ag.cap.stats.tokens'],
         mail: ['no', 'ag.cap.mail.no'],
       },
     },

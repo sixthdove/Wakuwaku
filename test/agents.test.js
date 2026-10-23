@@ -111,7 +111,7 @@ test('what she can do is what the code does', () => {
   const counted = new Set([...fields.matchAll(/\n\s+(\w+): /g)].map(m => m[1]))
   const withTokens = Agents.TABLE.filter(a => ['ag.cap.stats.tokens', 'ag.cap.stats.agy'].includes(a.caps.stats[1])).map(a => a.id)
   assert.deepEqual(withTokens, Agents.TABLE.filter(a => counted.has(a.id)).map(a => a.id))
-  assert.deepEqual(withTokens, ['claude', 'codex', 'agy'])
+  assert.deepEqual(withTokens, ['claude', 'codex', 'agy', 'dsh'])
 })
 
 test('found here or not', () => {

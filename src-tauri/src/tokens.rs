@@ -1,5 +1,5 @@
-// Today's tokens, from what Claude Code, Codex and Antigravity write down as
-// they go:
+// Today's tokens, from what Claude Code, Codex, Antigravity and DeepSeek
+// Harness write down as they go:
 //   Claude Code  <config>/projects/**/*.jsonl: each reply's usage, counted
 //                once per message id (a reply is written once per part)
 //   Codex        <codex home>/sessions/**/*.jsonl: token_count events, each
@@ -13,8 +13,19 @@
 //                counted once per step. Undocumented, as agy 1.3.4 writes it
 //                (2026-10-14); the transcript_full.jsonl beside it, the one
 //                the hooks name, has the same steps with all their words.
+//   DSH          <DSH home>/sessions/<project>/<session>/session.v4.jsonl.zstd
+//                (agent-core dsh.rs session_log): JSONL in Zstandard frames,
+//                one appended for each batch of lines; each answer of the
+//                model (assistant/message) with its data.usage (inputTokens
+//                without the cache's, cacheReadTokens, cacheWriteTokens,
+//                outputTokens) and time (ms), counted once per message id.
+//                Undocumented, as the desktop app 0.2.1 and 0.2.0-rc.2 write
+//                it (2026-10-24): a session's sum is the tokenUsage totals
+//                of DSH's own projection cache, to the token. Its titles'
+//                calls are written down with no usage: not counted.
 // Only files written to today are read, each from where the last reading
-// stopped (and only whole lines). A new day starts from nothing.
+// stopped (and only whole lines, or whole frames). A new day starts from
+// nothing.
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -25,6 +36,10 @@ use serde_json::{json, Value};
 
 // Never more than this much of one file in one reading.
 const MAX_READ: u64 = 64 * 1024 * 1024;
+// A Zstandard frame's first bytes, and the most its header may ask the
+// decoder to hold (as agent-core's dsh.rs: DSH writes a few MB at most).
+const ZSTD_MAGIC: [u8; 4] = [0x28, 0xb5, 0x2f, 0xfd];
+const MAX_ZSTD_WINDOW: u64 = 16 * 1024 * 1024;
 
 #[derive(Default, Clone, Copy, PartialEq, Debug)]
 pub struct Count {
@@ -49,6 +64,8 @@ pub struct Tokens {
     // Antigravity's steps counted, per transcript.
     agy_steps: HashMap<PathBuf, HashSet<u64>>,
     agy: Count,
+    dsh_ids: HashSet<String>,
+    dsh: Count,
 }
 
 // "2026-10-09T07:25:43.995Z" in ms since 1970.
@@ -71,8 +88,8 @@ pub fn parse_time(s: &str) -> Option<u64> {
     u64::try_from(((days * 24 + hh) * 60 + mm) * 60_000 + ss * 1000 + ms).ok()
 }
 
-// The .jsonl files under a folder written to since a moment.
-fn written_since(dir: &Path, since: u64, depth: u32, out: &mut Vec<PathBuf>) {
+// The files under a folder whose names are a log's written to since a moment.
+fn written_since(dir: &Path, since: u64, depth: u32, is_log: fn(&str) -> bool, out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
         // What the listing itself says of each entry (on Windows its kind
@@ -81,15 +98,25 @@ fn written_since(dir: &Path, since: u64, depth: u32, out: &mut Vec<PathBuf>) {
         let path = entry.path();
         if kind.is_dir() {
             if depth > 0 {
-                written_since(&path, since, depth - 1, out);
+                written_since(&path, since, depth - 1, is_log, out);
             }
-        } else if path.extension().is_some_and(|e| e == "jsonl") {
+        } else if entry.file_name().to_str().is_some_and(is_log) {
             let modified = entry.metadata().ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map_or(0, |d| d.as_millis() as u64);
             if modified >= since {
                 out.push(path);
             }
         }
     }
+}
+
+fn is_jsonl(name: &str) -> bool {
+    name.ends_with(".jsonl")
+}
+
+// A DSH session's log, any generation's, compressed or not (not a .tmp
+// being written in its place).
+fn is_dsh_log(name: &str) -> bool {
+    name.starts_with("session.v") && (name.ends_with(".jsonl.zstd") || name.ends_with(".jsonl"))
 }
 
 // Antigravity's transcripts written to since a moment: one a conversation,
@@ -118,17 +145,53 @@ fn new_lines(path: &Path, from: u64) -> Option<(String, u64)> {
     Some((String::from_utf8_lossy(&bytes).into_owned(), from + whole as u64))
 }
 
+// The whole Zstandard frames appended to a file since the last reading, as
+// their text. A frame still being written (or anything not a frame) ends the
+// reading there, to be read whole the next time; where the last one stopped
+// no longer starting a frame, the file was written anew: read from its start.
+fn new_frames(path: &Path, from: u64) -> Option<(String, u64)> {
+    let mut file = File::open(path).ok()?;
+    let len = file.metadata().ok()?.len();
+    let mut from = if from > len { 0 } else { from };
+    let mut bytes = Vec::new();
+    loop {
+        file.seek(SeekFrom::Start(from)).ok()?;
+        bytes.clear();
+        (&mut file).take(MAX_READ).read_to_end(&mut bytes).ok()?;
+        if from == 0 || bytes.len() < ZSTD_MAGIC.len() || bytes.starts_with(&ZSTD_MAGIC) {
+            break;
+        }
+        from = 0;
+    }
+    let mut text = Vec::new();
+    let mut at = 0;
+    while bytes[at..].starts_with(&ZSTD_MAGIC) {
+        let mut source = &bytes[at..];
+        let mut frame = Vec::new();
+        {
+            let Ok(decoder) = ruzstd::decoding::StreamingDecoder::new_with_max_window_size(&mut source, MAX_ZSTD_WINDOW) else { break };
+            if decoder.take(MAX_READ + 1).read_to_end(&mut frame).is_err() || frame.len() as u64 > MAX_READ {
+                break;
+            }
+        }
+        at = bytes.len() - source.len();
+        text.extend(frame);
+    }
+    Some((String::from_utf8_lossy(&text).into_owned(), from + at as u64))
+}
+
 impl Tokens {
-    // Read what is new. agy_brains: Antigravity's brain folders (agy_dirs).
-    // day_start: local midnight (ms since 1970).
-    pub fn update(&mut self, claude_dir: &Path, codex_dir: &Path, agy_brains: &[PathBuf], day_start: u64) {
+    // Read what is new. agy_brains: Antigravity's brain folders (agy_dirs);
+    // dsh_sessions: DSH's sessions folder (dsh_dir). day_start: local
+    // midnight (ms since 1970).
+    pub fn update(&mut self, claude_dir: &Path, codex_dir: &Path, agy_brains: &[PathBuf], dsh_sessions: &Path, day_start: u64) {
         if day_start != self.day_start {
             *self = Tokens { day_start, ..Tokens::default() };
         }
         let mut files = Vec::new();
-        written_since(claude_dir, day_start, 4, &mut files);
+        written_since(claude_dir, day_start, 4, is_jsonl, &mut files);
         let claude_count = files.len();
-        written_since(codex_dir, day_start, 5, &mut files);
+        written_since(codex_dir, day_start, 5, is_jsonl, &mut files);
         let codex_count = files.len();
         for brain in agy_brains {
             agy_written_since(brain, day_start, &mut files);
@@ -145,6 +208,17 @@ impl Tokens {
                 } else {
                     self.agy_line(&path, line);
                 }
+            }
+        }
+        let mut logs = Vec::new();
+        written_since(dsh_sessions, day_start, 2, is_dsh_log, &mut logs);
+        for path in logs {
+            let from = self.read_to.get(&path).copied().unwrap_or(0);
+            let read = if path.extension().is_some_and(|e| e == "zstd") { new_frames(&path, from) } else { new_lines(&path, from) };
+            let Some((text, to)) = read else { continue };
+            self.read_to.insert(path, to);
+            for line in text.lines() {
+                self.dsh_line(line);
             }
         }
     }
@@ -204,10 +278,29 @@ impl Tokens {
         self.agy.output += output;
     }
 
+    // An answer of DSH's model, with what it used, once per message (a
+    // session forked or written anew may say it again).
+    fn dsh_line(&mut self, line: &str) {
+        if !line.contains("\"usage\"") {
+            return;
+        }
+        let Ok(e) = serde_json::from_str::<Value>(line) else { return };
+        let at = e["time"].as_u64().unwrap_or(0);
+        let usage = &e["data"]["usage"];
+        let id = e["data"]["message"]["id"].as_str().unwrap_or("");
+        if e["type"] != "assistant/message" || at < self.day_start || !usage.is_object() || id.is_empty() || !self.dsh_ids.insert(id.to_string()) {
+            return;
+        }
+        let n = |k: &str| usage[k].as_u64().unwrap_or(0);
+        let output = n("outputTokens");
+        self.dsh.total += n("inputTokens") + n("cacheReadTokens") + n("cacheWriteTokens") + output;
+        self.dsh.output += output;
+    }
+
     pub fn count(&self) -> Count {
         let mut sum = self.claude;
-        sum.total += self.agy.total;
-        sum.output += self.agy.output;
+        sum.total += self.agy.total + self.dsh.total;
+        sum.output += self.agy.output + self.dsh.output;
         for s in self.codex.values() {
             if let Some(today) = s.today {
                 sum.total += today.total.saturating_sub(s.before.total);
@@ -252,6 +345,11 @@ pub fn codex_dir() -> PathBuf {
 pub fn agy_dirs() -> Vec<PathBuf> {
     let gemini = crate::connection::gemini_dir();
     ["antigravity-cli", "antigravity", "antigravity-ide"].iter().map(|product| gemini.join(product).join("brain")).collect()
+}
+
+// DeepSeek Harness's, its sessions' logs by project.
+pub fn dsh_dir() -> PathBuf {
+    crate::connection::dsh_home().join("sessions")
 }
 
 pub const EVERY: Duration = Duration::from_secs(60);
@@ -304,23 +402,76 @@ mod tests {
         }
 
         let mut t = Tokens::default();
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, day);
+        let dsh = dir.join("dsh");
+        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
         assert_eq!(t.count(), Count { total: 132 + 500 + 1320, output: 20 + 30 + 20 });
         // More is written: only the new lines are read; a half-written one waits.
         let mut f = std::fs::OpenOptions::new().append(true).open(claude.join("s.jsonl")).unwrap();
         std::io::Write::write_all(&mut f, (reply("c", "2026-10-09T10:00:00.000Z", 5) + "\n{\"type\":\"assist").as_bytes()).unwrap();
         let mut f = std::fs::OpenOptions::new().append(true).open(logs.join("transcript.jsonl")).unwrap();
         std::io::Write::write_all(&mut f, (answer(3, "2026-10-09T08:01:00Z", 50, 5) + "\n").as_bytes()).unwrap();
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, day);
+        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
         assert_eq!(t.count(), Count { total: 632 + 117 + 1320 + 255, output: 55 + 25 });
         // Written anew, shorter: read again from its start, each step still once.
         std::fs::write(logs.join("transcript.jsonl"), steps.join("\n") + "\n").unwrap();
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, day);
+        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
         assert_eq!(t.count(), Count { total: 632 + 117 + 1320 + 255, output: 55 + 25 });
         // A new day: nothing yet.
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, day + 86_400_000);
+        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day + 86_400_000);
         assert_eq!(t.count(), Count::default());
         assert_eq!(words(Count { total: 1_234_567, output: 85_000 })["vars"], json!({ "total": "1.2M", "output": "85K" }));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn dsh_s_answers_are_read_by_whole_frames_once_each() {
+        let dir = std::env::temp_dir().join(format!("wakuwaku-tokens-dsh-{}", std::process::id()));
+        let sessions = dir.join("sessions");
+        let (one, fork) = (sessions.join("--C-waku--").join("session-1"), sessions.join("--C-waku--").join("session-2"));
+        std::fs::create_dir_all(&one).unwrap();
+        std::fs::create_dir_all(&fork).unwrap();
+        let day = parse_time("2026-10-09T00:00:00.000Z").unwrap();
+        // An answer of the model's: 300 read from the cache, 4 written to it.
+        let said = |id: &str, at: u64, input: u64, out: u64| format!(r#"{{"type":"assistant/message","seq":1,"time":{at},"data":{{"turn":1,"step":1,"message":{{"role":"assistant","content":[],"id":"{id}"}},"usage":{{"inputTokens":{input},"outputTokens":{out},"cacheReadTokens":300,"cacheWriteTokens":4,"totalTokens":0}}}},"surfaceOp":"append"}}"#);
+        let frame = |lines: &[String]| ruzstd::encoding::compress_to_vec((lines.join("\n") + "\n").as_bytes(), ruzstd::encoding::CompressionLevel::Fastest);
+        let header = r#"{"type":"session","version":4,"id":"session-1","createdAt":0}"#.to_string();
+        let asked = format!(r#"{{"type":"user/message","seq":2,"time":{},"data":{{"text":"say \"usage\""}}}}"#, day + 500);
+        let log = [frame(&[header.clone(), said("m1", day - 1000, 1000, 10)]), frame(&[asked, said("m2", day + 1000, 100, 30)])].concat();
+        let at = one.join("session.v4.jsonl.zstd");
+        std::fs::write(&at, &log).unwrap();
+        std::fs::write(one.join("session.v4.jsonl.zstd.tmp"), &log).unwrap();
+        // A fork's, not compressed: its parent's answer again, and its own.
+        std::fs::write(fork.join("session.v4.jsonl"), [said("m2", day + 1000, 100, 30), said("f1", day + 1500, 1, 1)].join("\n") + "\n").unwrap();
+
+        let none = dir.join("none");
+        let mut t = Tokens::default();
+        let mut read = || {
+            t.update(&none, &none, &[], &sessions, day);
+            t.count()
+        };
+        assert_eq!(read(), Count { total: 434 + 306, output: 30 + 1 });
+        // A frame appended, and half of another: the whole one read alone.
+        let append = |bytes: &[u8]| std::io::Write::write_all(&mut std::fs::OpenOptions::new().append(true).open(&at).unwrap(), bytes).unwrap();
+        let m4 = frame(&[said("m4", day + 3000, 20, 2)]);
+        let (head, tail) = m4.split_at(m4.len() / 2);
+        append(&[frame(&[said("m3", day + 2000, 50, 6)]), head.to_vec()].concat());
+        assert_eq!(read(), Count { total: 740 + 360, output: 31 + 6 });
+        append(tail);
+        assert_eq!(read(), Count { total: 1100 + 326, output: 37 + 2 });
+        // Written anew as one frame: read from its start, each answer still once.
+        let lines: Vec<String> = [("m1", day - 1000), ("m2", day + 1000), ("m3", day + 2000), ("m4", day + 3000), ("m5", day + 4000)].iter().map(|(id, at)| said(id, *at, 1, 1)).collect();
+        std::fs::write(&at, frame(&[[header].as_slice(), &lines].concat())).unwrap();
+        assert_eq!(read(), Count { total: 1426 + 306, output: 39 + 1 });
+        // Where the last reading stopped is no frame's start, or past the end:
+        // from its start.
+        let len = std::fs::metadata(&at).unwrap().len();
+        for from in [1, len + 10] {
+            let (text, to) = new_frames(&at, from).unwrap();
+            assert_eq!((text.lines().count(), to), (6, len));
+        }
+        // A new day: nothing yet.
+        t.update(&none, &none, &[], &sessions, day + 86_400_000);
+        assert_eq!(t.count(), Count::default());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

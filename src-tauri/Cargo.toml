@@ -51,13 +51,14 @@ flate2 = "1"
 crc32fast = "1"
 # Tauri's async runtime made with fewer threads (main.rs); already in the tree, under Tauri.
 tokio = { version = "1", features = ["rt-multi-thread"] }
+# DeepSeek Harness's session logs, Zstandard frames, read for today's tokens
+# (tokens.rs); agent-core reads them with the same, so already in the tree.
+# Her tests write them too (events_dsh.rs).
+ruzstd = { version = "=0.9.1", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 # Her tests make a connection's split fail (server.rs); her builds never have it.
 tiny_http = { version = "0.12", features = ["test-failed-split"] }
-# Her tests write DeepSeek Harness's session logs (events_dsh.rs); agent-core
-# reads them.
-ruzstd = { version = "=0.9.1", default-features = false, features = ["std"] }
 
 [patch.crates-io]
 # tiny_http 0.12.0 with its connections' failures dropped, not panicked on
