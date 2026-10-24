@@ -82,7 +82,18 @@
   // The one of them that most wants you, if one does.
   const urgentOf = (list, shown) => othersOf(list, shown).find(x => x.mood === 'waiting' || x.mood === 'error')
 
-  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, othersOf, urgentOf }
+  // Priority of moods when listing sessions: actionable and broken turns first,
+  // then reviews, finished turns, and active work.
+  const MOOD_PRIORITY = { waiting: 5, error: 4, review: 3, done: 2, working: 1, idle: 0 }
+  const sortByUrgency = list =>
+    [...(list || [])].sort((a, b) => {
+      const pa = MOOD_PRIORITY[a.mood] ?? 0
+      const pb = MOOD_PRIORITY[b.mood] ?? 0
+      if (pa !== pb) return pb - pa
+      return (b.since || 0) - (a.since || 0)
+    })
+
+  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, othersOf, urgentOf, MOOD_PRIORITY, sortByUrgency }
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api

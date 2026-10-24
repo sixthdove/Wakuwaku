@@ -307,7 +307,7 @@
 
   function pageNow() {
     const s = snap.settings
-    const sessions = snap.sessions || []
+    const sessions = Status.sortByUrgency(snap.sessions)
     // Each session: its name, and where it is (or how its turn ended).
     const detailed = s.details !== false
     const list = sessions.length

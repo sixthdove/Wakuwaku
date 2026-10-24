@@ -79,3 +79,22 @@ test('the others: every busy session but the one shown, the most urgent found', 
   assert.equal(Status.urgentOf(list, list[3]), undefined)
   assert.deepEqual(Status.othersOf(undefined, list[0]), [])
 })
+
+test('sessions sorted by urgency and mood priority', () => {
+  const sessions = [
+    session({ id: 'idle', mood: 'idle', since: 100 }),
+    session({ id: 'work', mood: 'working', since: 200 }),
+    session({ id: 'done_old', mood: 'done', since: 150 }),
+    session({ id: 'done_new', mood: 'done', since: 300 }),
+    session({ id: 'rev', mood: 'review', since: 250 }),
+    session({ id: 'err', mood: 'error', since: 180 }),
+    session({ id: 'wait', mood: 'waiting', since: 190 }),
+  ]
+  const sorted = Status.sortByUrgency(sessions)
+  assert.deepEqual(
+    sorted.map(s => s.id),
+    ['wait', 'err', 'rev', 'done_new', 'done_old', 'work', 'idle'],
+  )
+  assert.deepEqual(Status.sortByUrgency([]), [])
+  assert.deepEqual(Status.sortByUrgency(undefined), [])
+})
