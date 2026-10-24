@@ -27,7 +27,7 @@
 //            icon and number
 //   today    turns today, how long the agents worked, approvals given on her
 //            (Antigravity's never come to her)
-//   tokens   today's tokens, Claude Code's, Codex's, Antigravity's and DSH's (tokens.rs)
+//   tokens   today's tokens, Claude Code's, Codex's, Antigravity's, omp's, DSH's and Reasonix's (tokens.rs)
 //
 // Hers too, never expiring and never a script's: each mail account's
 // (mail.rs, "inbox-<id>"). And a third-party plugin's (addons.rs, "<id>"

@@ -109,9 +109,9 @@ test('what she can do is what the code does', () => {
   // (tokens.rs keeps a count for each agent it reads, by its id.)
   const fields = /pub struct Tokens \{([\s\S]*?)\n\}/.exec(read('src-tauri/src/tokens.rs'))[1]
   const counted = new Set([...fields.matchAll(/\n\s+(\w+): /g)].map(m => m[1]))
-  const withTokens = Agents.TABLE.filter(a => ['ag.cap.stats.tokens', 'ag.cap.stats.agy'].includes(a.caps.stats[1])).map(a => a.id)
+  const withTokens = Agents.TABLE.filter(a => ['ag.cap.stats.tokens', 'ag.cap.stats.agy', 'ag.cap.stats.reasonix'].includes(a.caps.stats[1])).map(a => a.id)
   assert.deepEqual(withTokens, Agents.TABLE.filter(a => counted.has(a.id)).map(a => a.id))
-  assert.deepEqual(withTokens, ['claude', 'codex', 'agy', 'dsh'])
+  assert.deepEqual(withTokens, ['claude', 'codex', 'agy', 'omp', 'dsh', 'reasonix'])
 })
 
 test('found here or not', () => {

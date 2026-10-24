@@ -934,7 +934,7 @@
       'w.nudge': '插件可以叫开灵动岛',
       'w.nudgeNote': '比如开会前的提醒；有会话在等你时不会。',
       'w.about.today': '几轮、AI 干了多久、在她这里批准几次（Antigravity 的批准不经过她）',
-      'w.about.tokens': 'Claude Code、Codex、Antigravity 和 DeepSeek Harness 今天用了多少',
+      'w.about.tokens': 'Claude Code、Codex、Antigravity、omp、DeepSeek Harness 和 Reasonix 今天用了多少',
       'w.about.monitor': 'CPU、内存、网速、电池、显卡、硬盘',
       'mon.cpu': 'CPU',
       'mon.mem': '内存',
@@ -1634,7 +1634,7 @@
       'ag.cap.status.reasonix': '跟着会话、每一步的工具、做完、出错和它最后说的话',
       'ag.cap.approve.reasonix': '批准还在 Reasonix 里，岛上只显示它在等你批准什么',
       'ag.cap.choose.reasonix': '它问你问题时岛上显示「有问题问你」，要在 Reasonix 里答',
-      'ag.cap.stats.reasonix': '算进「今天」的轮数和时长（批准不经过她）；token 还不算',
+      'ag.cap.stats.reasonix': '算进「今天」：轮数、时长，2.x 还算 token（批准不经过她）',
 
       // The program's own words: the tray's menu and its tip, Windows' menus
       // on the taskbar, her notices, dialogs and notifications (src-tauri's
@@ -2612,7 +2612,7 @@
       'w.nudge': 'Plugins may open the island',
       'w.nudgeNote': 'Say, before a meeting; never while a session waits on you.',
       'w.about.today': "turns, how long the AI worked, approvals given on her (Antigravity's never come to her)",
-      'w.about.tokens': 'what Claude Code, Codex, Antigravity and DeepSeek Harness used today',
+      'w.about.tokens': 'what Claude Code, Codex, Antigravity, omp, DeepSeek Harness and Reasonix used today',
       'w.about.monitor': 'CPU, memory, network, battery, graphics, drives',
       'mon.cpu': 'CPU',
       'mon.mem': 'Memory',
@@ -3312,7 +3312,7 @@
       'ag.cap.status.reasonix': "Follows its sessions, each step's tool, its finish, its errors and its last words",
       'ag.cap.approve.reasonix': 'Approvals stay in Reasonix; the island only shows what it waits for you to approve',
       'ag.cap.choose.reasonix': 'When it asks you, the island says it has a question for you; answer in Reasonix',
-      'ag.cap.stats.reasonix': "Counted in Today's turns and time (its approvals don't pass through her); not its tokens yet",
+      'ag.cap.stats.reasonix': "Counted in Today: turns, time, and in 2.x its tokens (its approvals don't pass through her)",
 
       // The program's own words: the tray's menu and its tip, Windows' menus
       // on the taskbar, her notices, dialogs and notifications (src-tauri's

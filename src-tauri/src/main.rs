@@ -38,7 +38,7 @@
 //                  the island's page (src/pet/addons.js), their views in the cards
 //                  (src/pet/views.js), served by wakuplugin://
 //   zip.rs         zips read and unpacked (LHM's download, a plugin's package)
-//   tokens.rs      today's tokens, from Claude Code's, Codex's, Antigravity's and DSH's own records
+//   tokens.rs      today's tokens, from Claude Code's, Codex's, Antigravity's, omp's, DSH's and Reasonix's own records
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 // The settings' snapshot (settings.rs) is one json! with every agent's part
 // in it: past the default 128 it no longer expands.
@@ -1855,7 +1855,7 @@ fn main() {
             spawn_named("widgets", move || {
                 power::thread_eco();
                 let mut tokens = tokens::Tokens::default();
-                let (claude_dir, codex_dir, agy_dirs, dsh_dir) = (tokens::claude_dir(), tokens::codex_dir(), tokens::agy_dirs(), tokens::dsh_dir());
+                let dirs = tokens::AgentDirs::discover();
                 let mut tokens_at: Option<std::time::Instant> = None;
                 loop {
                     let now = now_ms();
@@ -1873,7 +1873,7 @@ fn main() {
                     if tokens_at.is_none_or(|t| t.elapsed() >= tokens::EVERY) || unread("tokens") {
                         tokens_at = Some(std::time::Instant::now());
                         let count = watcher.is_widget_wanted("tokens").then(|| {
-                            tokens.update(&claude_dir, &codex_dir, &agy_dirs, &dsh_dir, widgets::local_midnight());
+                            tokens.update(&dirs, widgets::local_midnight(), &widgets::local_date());
                             tokens::words(tokens.count())
                         });
                         built_in("tokens", count);

@@ -1,5 +1,5 @@
-// Today's tokens, from what Claude Code, Codex, Antigravity and DeepSeek
-// Harness write down as they go:
+// Today's tokens, from what Claude Code, Codex, Antigravity, oh-my-pi (omp),
+// DeepSeek Harness and Reasonix write down as they go:
 //   Claude Code  <config>/projects/**/*.jsonl: each reply's usage, counted
 //                once per message id (a reply is written once per part)
 //   Codex        <codex home>/sessions/**/*.jsonl: token_count events, each
@@ -23,6 +23,20 @@
 //                it (2026-10-24): a session's sum is the tokenUsage totals
 //                of DSH's own projection cache, to the token. Its titles'
 //                calls are written down with no usage: not counted.
+//   omp          <agent dir>/sessions/<project>/<time>_<id>.jsonl and a
+//                subtask's <session>/<subtask>.jsonl below it (each profile's
+//                agent_dir, connection::omp_agent_dirs): each assistant
+//                message (type "message", message.role "assistant",
+//                message.usage) and each internal call of omp's (type
+//                "model_usage", usage), with input, output, cacheRead,
+//                cacheWrite and totalTokens (their sum) and timestamp,
+//                counted once per file and 8-hex-digit id (as omp 18.12.6
+//                writes it).
+//   Reasonix     <Reasonix home>/stats/<YYYY-MM-DD>.jsonl (Reasonix 2.x,
+//                CLI 2.49 / Studio 2.44; connection::reasonix_home): already
+//                split by local date; each model call appends { total,
+//                prompt, completion, ... }, and a new turn adds { turn:
+//                true, ... } with no total (skipped).
 // Only files written to today are read, each from where the last reading
 // stopped (and only whole lines, or whole frames). A new day starts from
 // nothing.
@@ -66,6 +80,10 @@ pub struct Tokens {
     agy: Count,
     dsh_ids: HashSet<String>,
     dsh: Count,
+    // omp's entries counted, per session or subtask file.
+    omp_ids: HashMap<PathBuf, HashSet<String>>,
+    omp: Count,
+    reasonix: Count,
 }
 
 // "2026-10-09T07:25:43.995Z" in ms since 1970.
@@ -180,21 +198,52 @@ fn new_frames(path: &Path, from: u64) -> Option<(String, u64)> {
     Some((String::from_utf8_lossy(&text).into_owned(), from + at as u64))
 }
 
+// Where the agents keep their logs on this computer.
+#[derive(Clone, Default, Debug)]
+pub struct AgentDirs {
+    pub claude: PathBuf,
+    pub codex: PathBuf,
+    pub agy: Vec<PathBuf>,
+    pub dsh: PathBuf,
+    pub omp: Vec<PathBuf>,
+    pub reasonix: PathBuf,
+}
+
+impl AgentDirs {
+    pub fn discover() -> Self {
+        Self {
+            claude: claude_dir(),
+            codex: codex_dir(),
+            agy: agy_dirs(),
+            dsh: dsh_dir(),
+            omp: omp_dirs(),
+            reasonix: reasonix_dir(),
+        }
+    }
+}
+
 impl Tokens {
-    // Read what is new. agy_brains: Antigravity's brain folders (agy_dirs);
-    // dsh_sessions: DSH's sessions folder (dsh_dir). day_start: local
-    // midnight (ms since 1970).
-    pub fn update(&mut self, claude_dir: &Path, codex_dir: &Path, agy_brains: &[PathBuf], dsh_sessions: &Path, day_start: u64) {
+    // Read what is new. day_start: local midnight (ms since 1970); today:
+    // local date ("YYYY-MM-DD", for Reasonix's daily stats file).
+    pub fn update(&mut self, dirs: &AgentDirs, day_start: u64, today: &str) {
         if day_start != self.day_start {
             *self = Tokens { day_start, ..Tokens::default() };
         }
         let mut files = Vec::new();
-        written_since(claude_dir, day_start, 4, is_jsonl, &mut files);
+        written_since(&dirs.claude, day_start, 4, is_jsonl, &mut files);
         let claude_count = files.len();
-        written_since(codex_dir, day_start, 5, is_jsonl, &mut files);
+        written_since(&dirs.codex, day_start, 5, is_jsonl, &mut files);
         let codex_count = files.len();
-        for brain in agy_brains {
+        for brain in &dirs.agy {
             agy_written_since(brain, day_start, &mut files);
+        }
+        let agy_count = files.len();
+        for sessions in &dirs.omp {
+            written_since(sessions, day_start, 3, is_jsonl, &mut files);
+        }
+        let omp_count = files.len();
+        if !today.is_empty() {
+            files.push(dirs.reasonix.join(format!("{today}.jsonl")));
         }
         for (i, path) in files.into_iter().enumerate() {
             let from = self.read_to.get(&path).copied().unwrap_or(0);
@@ -205,13 +254,17 @@ impl Tokens {
                     self.claude_line(line);
                 } else if i < codex_count {
                     self.codex_line(&path, line);
-                } else {
+                } else if i < agy_count {
                     self.agy_line(&path, line);
+                } else if i < omp_count {
+                    self.omp_line(&path, line);
+                } else {
+                    self.reasonix_line(line);
                 }
             }
         }
         let mut logs = Vec::new();
-        written_since(dsh_sessions, day_start, 2, is_dsh_log, &mut logs);
+        written_since(&dirs.dsh, day_start, 2, is_dsh_log, &mut logs);
         for path in logs {
             let from = self.read_to.get(&path).copied().unwrap_or(0);
             let read = if path.extension().is_some_and(|e| e == "zstd") { new_frames(&path, from) } else { new_lines(&path, from) };
@@ -297,10 +350,48 @@ impl Tokens {
         self.dsh.output += output;
     }
 
+    // An assistant reply or internal model_usage call of omp's, counted once
+    // per file and id.
+    fn omp_line(&mut self, path: &Path, line: &str) {
+        if !line.contains("\"usage\"") {
+            return;
+        }
+        let Ok(e) = serde_json::from_str::<Value>(line) else { return };
+        let Some(at) = e["timestamp"].as_str().and_then(parse_time) else { return };
+        let usage = match e["type"].as_str() {
+            Some("message") if e["message"]["role"] == "assistant" => &e["message"]["usage"],
+            Some("model_usage") => &e["usage"],
+            _ => return,
+        };
+        let id = e["id"].as_str().or_else(|| e["message"]["id"].as_str()).unwrap_or("");
+        if at < self.day_start || !usage.is_object() || id.is_empty() || !self.omp_ids.entry(path.to_path_buf()).or_default().insert(id.to_string()) {
+            return;
+        }
+        let n = |k: &str| usage[k].as_u64().unwrap_or(0);
+        let output = n("output");
+        self.omp.total += n("input") + n("cacheRead") + n("cacheWrite") + output;
+        self.omp.output += output;
+    }
+
+    // A model call in Reasonix 2.x's daily stats file (a new turn's marker
+    // line has turn: true and no total).
+    fn reasonix_line(&mut self, line: &str) {
+        if !line.contains("\"total\"") {
+            return;
+        }
+        let Ok(e) = serde_json::from_str::<Value>(line) else { return };
+        if e["turn"].as_bool() == Some(true) {
+            return;
+        }
+        let Some(total) = e["total"].as_u64() else { return };
+        self.reasonix.total += total;
+        self.reasonix.output += e["completion"].as_u64().unwrap_or(0);
+    }
+
     pub fn count(&self) -> Count {
         let mut sum = self.claude;
-        sum.total += self.agy.total + self.dsh.total;
-        sum.output += self.agy.output + self.dsh.output;
+        sum.total += self.agy.total + self.dsh.total + self.omp.total + self.reasonix.total;
+        sum.output += self.agy.output + self.dsh.output + self.omp.output + self.reasonix.output;
         for s in self.codex.values() {
             if let Some(today) = s.today {
                 sum.total += today.total.saturating_sub(s.before.total);
@@ -350,6 +441,16 @@ pub fn agy_dirs() -> Vec<PathBuf> {
 // DeepSeek Harness's, its sessions' logs by project.
 pub fn dsh_dir() -> PathBuf {
     crate::connection::dsh_home().join("sessions")
+}
+
+// oh-my-pi's sessions folder in each profile's agent folder.
+pub fn omp_dirs() -> Vec<PathBuf> {
+    crate::connection::omp_agent_dirs().into_iter().map(|d| d.join("sessions")).collect()
+}
+
+// Reasonix 2.x's daily stats folder.
+pub fn reasonix_dir() -> PathBuf {
+    crate::connection::reasonix_home().join("stats")
 }
 
 pub const EVERY: Duration = Duration::from_secs(60);
@@ -402,22 +503,29 @@ mod tests {
         }
 
         let mut t = Tokens::default();
-        let dsh = dir.join("dsh");
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
+        let dirs = AgentDirs {
+            claude: dir.join("claude"),
+            codex: dir.join("codex"),
+            agy: brains.to_vec(),
+            dsh: dir.join("dsh"),
+            omp: vec![],
+            reasonix: dir.join("none"),
+        };
+        t.update(&dirs, day, "2026-10-09");
         assert_eq!(t.count(), Count { total: 132 + 500 + 1320, output: 20 + 30 + 20 });
         // More is written: only the new lines are read; a half-written one waits.
         let mut f = std::fs::OpenOptions::new().append(true).open(claude.join("s.jsonl")).unwrap();
         std::io::Write::write_all(&mut f, (reply("c", "2026-10-09T10:00:00.000Z", 5) + "\n{\"type\":\"assist").as_bytes()).unwrap();
         let mut f = std::fs::OpenOptions::new().append(true).open(logs.join("transcript.jsonl")).unwrap();
         std::io::Write::write_all(&mut f, (answer(3, "2026-10-09T08:01:00Z", 50, 5) + "\n").as_bytes()).unwrap();
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
+        t.update(&dirs, day, "2026-10-09");
         assert_eq!(t.count(), Count { total: 632 + 117 + 1320 + 255, output: 55 + 25 });
         // Written anew, shorter: read again from its start, each step still once.
         std::fs::write(logs.join("transcript.jsonl"), steps.join("\n") + "\n").unwrap();
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day);
+        t.update(&dirs, day, "2026-10-09");
         assert_eq!(t.count(), Count { total: 632 + 117 + 1320 + 255, output: 55 + 25 });
         // A new day: nothing yet.
-        t.update(&dir.join("claude"), &dir.join("codex"), &brains, &dsh, day + 86_400_000);
+        t.update(&dirs, day + 86_400_000, "2026-10-10");
         assert_eq!(t.count(), Count::default());
         assert_eq!(words(Count { total: 1_234_567, output: 85_000 })["vars"], json!({ "total": "1.2M", "output": "85K" }));
         let _ = std::fs::remove_dir_all(&dir);
@@ -444,9 +552,17 @@ mod tests {
         std::fs::write(fork.join("session.v4.jsonl"), [said("m2", day + 1000, 100, 30), said("f1", day + 1500, 1, 1)].join("\n") + "\n").unwrap();
 
         let none = dir.join("none");
+        let dirs = AgentDirs {
+            claude: none.clone(),
+            codex: none.clone(),
+            agy: vec![],
+            dsh: sessions.clone(),
+            omp: vec![],
+            reasonix: none.clone(),
+        };
         let mut t = Tokens::default();
         let mut read = || {
-            t.update(&none, &none, &[], &sessions, day);
+            t.update(&dirs, day, "2026-10-09");
             t.count()
         };
         assert_eq!(read(), Count { total: 434 + 306, output: 30 + 1 });
@@ -470,7 +586,98 @@ mod tests {
             assert_eq!((text.lines().count(), to), (6, len));
         }
         // A new day: nothing yet.
-        t.update(&none, &none, &[], &sessions, day + 86_400_000);
+        t.update(&dirs, day + 86_400_000, "2026-10-10");
+        assert_eq!(t.count(), Count::default());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn omp_and_reasonix_tokens_are_counted_once_with_subtasks_and_turns() {
+        let dir = std::env::temp_dir().join(format!("wakuwaku-tokens-omp-rx-{}", std::process::id()));
+        let omp_sessions = dir.join("omp").join("sessions");
+        let proj = omp_sessions.join("--C-waku--");
+        let sub_dir = proj.join("2026-10-09T08-00-00-000Z_a1b2c3d4");
+        let rx_stats = dir.join("reasonix").join("stats");
+        std::fs::create_dir_all(&sub_dir).unwrap();
+        std::fs::create_dir_all(&rx_stats).unwrap();
+
+        let day = parse_time("2026-10-09T00:00:00.000Z").unwrap();
+        let omp_msg = |id: &str, at: &str, input: u64, out: u64, read: u64, write: u64| {
+            let total = input + out + read + write;
+            format!(r#"{{"type":"message","id":"{id}","parentId":"00000000","timestamp":"{at}","message":{{"role":"assistant","content":[],"model":"claude-sonnet-4-5","usage":{{"input":{input},"output":{out},"cacheRead":{read},"cacheWrite":{write},"totalTokens":{total}}},"stopReason":"end_turn"}}}}"#)
+        };
+        let omp_model = |id: &str, at: &str, input: u64, out: u64| {
+            let total = input + out;
+            format!(r#"{{"type":"model_usage","id":"{id}","parentId":"11223344","timestamp":"{at}","model":"claude-haiku-4-5","usage":{{"input":{input},"output":{out},"cacheRead":0,"cacheWrite":0,"totalTokens":{total}}}}}"#)
+        };
+
+        // Main session file: yesterday's answer, a user line, a timeless line,
+        // today's answer (repeated with the same 8-hex-digit id), and an
+        // internal model_usage call.
+        let main_file = proj.join("2026-10-09T08-00-00-000Z_a1b2c3d4.jsonl");
+        let main_lines = [
+            r#"{"type":"session","version":3,"id":"a1b2c3d4","timestamp":"2026-10-08T23:59:00.000Z","cwd":"C:\\waku"}"#.to_string(),
+            omp_msg("00aa11bb", "2026-10-08T23:59:59.000Z", 500, 50, 0, 0), // yesterday
+            r#"{"type":"message","id":"01a2b3c4","parentId":null,"timestamp":"2026-10-09T08:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"say \"usage\""}]}}"#.to_string(),
+            r#"{"type":"model_usage","id":"deadbeef","usage":{"input":999,"output":99,"cacheRead":0,"cacheWrite":0,"totalTokens":1098}}"#.to_string(), // no timestamp
+            omp_msg("11223344", "2026-10-09T08:00:05.120Z", 200, 50, 1200, 80), // 1530 (out 50)
+            omp_msg("11223344", "2026-10-09T08:00:05.120Z", 200, 50, 1200, 80), // same file + id, skipped
+            omp_model("55667788", "2026-10-09T08:00:09.450Z", 1800, 40),       // 1840 (out 40)
+        ];
+        std::fs::write(&main_file, main_lines.join("\n") + "\n").unwrap();
+
+        // Subtask file in the next directory level: may reuse the same 8-hex
+        // id ("11223344") as the main file since deduplication is per file + id.
+        let sub_file = sub_dir.join("subtask-explore.jsonl");
+        std::fs::write(&sub_file, omp_msg("11223344", "2026-10-09T08:01:00.000Z", 300, 30, 100, 0) + "\n").unwrap(); // 430 (out 30)
+
+        // Reasonix 2.x: yesterday's daily file (ignored) and today's file with
+        // turn: true markers and model call totals.
+        std::fs::write(rx_stats.join("2026-10-08.jsonl"), r#"{"ts":1791446405000,"model":"deepseek-reasoner","prompt":8000,"completion":1000,"total":9000}"#.to_string() + "\n").unwrap();
+        let rx_today = rx_stats.join("2026-10-09.jsonl");
+        let rx_lines = [
+            r#"{"turn":true,"ts":1791532800000,"model":"deepseek-reasoner"}"#,
+            r#"{"ts":1791532805000,"model":"deepseek-reasoner","prompt":1400,"completion":250,"total":1650}"#,
+            r#"{"turn":true,"ts":1791532810000,"model":"deepseek-reasoner"}"#,
+        ];
+        std::fs::write(&rx_today, rx_lines.join("\n") + "\n").unwrap();
+
+        let none = dir.join("none");
+        let dirs = AgentDirs {
+            claude: none.clone(),
+            codex: none.clone(),
+            agy: vec![],
+            dsh: none,
+            omp: vec![omp_sessions],
+            reasonix: rx_stats,
+        };
+        let mut t = Tokens::default();
+        t.update(&dirs, day, "2026-10-09");
+        // omp: 1530 + 1840 + 430 = 3800 (out: 50 + 40 + 30 = 120)
+        // reasonix: 1650 (out: 250)
+        assert_eq!(t.count(), Count { total: 3800 + 1650, output: 120 + 250 });
+
+        // Incremental append + half-written line waiting:
+        let append = |path: &Path, s: &str| {
+            std::io::Write::write_all(&mut std::fs::OpenOptions::new().append(true).open(path).unwrap(), s.as_bytes()).unwrap();
+        };
+        append(&main_file, &(omp_model("99aabbcc", "2026-10-09T09:00:00.000Z", 90, 10) + "\n"));
+        append(&rx_today, "{\"ts\":1791532820000,\"prompt\":300,\"completion\":50,\"total\":350}\n{\"ts\":1791532830000,\"total\":999");
+        t.update(&dirs, day, "2026-10-09");
+        assert_eq!(t.count(), Count { total: 5450 + 100 + 350, output: 370 + 10 + 50 });
+
+        // Complete the half-written Reasonix line:
+        append(&rx_today, ",\"prompt\":899,\"completion\":100}\n");
+        t.update(&dirs, day, "2026-10-09");
+        assert_eq!(t.count(), Count { total: 5900 + 999, output: 430 + 100 });
+
+        // Written anew, shorter: read again from its start, each entry still once.
+        std::fs::write(&main_file, main_lines.join("\n") + "\n").unwrap();
+        t.update(&dirs, day, "2026-10-09");
+        assert_eq!(t.count(), Count { total: 5900 + 999, output: 430 + 100 });
+
+        // A new day starts from nothing:
+        t.update(&dirs, day + 86_400_000, "2026-10-10");
         assert_eq!(t.count(), Count::default());
         let _ = std::fs::remove_dir_all(&dir);
     }
