@@ -1550,6 +1550,23 @@
     void startButton.offsetWidth
     startButton.classList.add('bounce')
   })
+  // Task View, after Start as on Windows' own taskbar, while Windows has its
+  // button on (taskbar:look taskView): a press opens it (Win+Tab). Windows'
+  // own pictures (taskbar_task_view_icons: Settings' two, for a light strip
+  // and a dark one, style.css .tv-light, .tv-dark); where Windows has none
+  // (Windows 10), the Task View glyph of its icon font. One part with Start
+  // in the layout (PART_NODES.start), as on Windows' they go together.
+  const taskViewButton = el('span', 'tview')
+  taskViewButton.dataset.bar = 'tasks'
+  taskViewButton.hidden = true
+  taskViewButton.innerHTML = '<i class="tv-glyph"></i>'
+  Promise.resolve(window.pet.taskbar.taskViewIcons?.()).then(icons => {
+    if (!icons?.light || !icons?.dark) return
+    const img = (svg, cls) => `<img class="${cls}" alt="" draggable="false" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}">`
+    taskViewButton.innerHTML = img(icons.light, 'tv-light') + img(icons.dark, 'tv-dark')
+  })
+  const startPart = el('span', 'tstart')
+  startPart.append(startButton, taskViewButton)
   const windowsBox = el('span', 'wins')
   const facesBox = el('span', 'faces')
   const trayBox = el('span', 'tray')
@@ -1739,7 +1756,7 @@
   // location: one part.
   const trayPart = el('span', 'tpair')
   trayPart.append(trayBox, privBox)
-  const PART_NODES = { her: herSlot, start: startButton, apps: windowsBox, monitor: facesBox, tray: trayPart, keys: keysBox, quick: quickBox, clock: clockBox }
+  const PART_NODES = { her: herSlot, start: startPart, apps: windowsBox, monitor: facesBox, tray: trayPart, keys: keysBox, quick: quickBox, clock: clockBox }
   for (const [part, node] of Object.entries(PART_NODES)) node.dataset.part = part
   const zones = { left: el('span', 'tzone tz-left'), center: el('span', 'tzone tz-center'), right: el('span', 'tzone tz-right') }
   // While the layout is being edited: the one being made, not yet kept.
@@ -2172,6 +2189,8 @@
     // The programs' buttons as icons alone (taskbarButtons), or with their titles.
     barRest.classList.toggle('icons', isSide() || config.taskbarButtons !== 'labels')
     startButton.title = t(lang, 'taskbar.start')
+    taskViewButton.title = t(lang, 'taskbar.taskView')
+    taskViewButton.hidden = !look.taskView
     quickBox.title = t(lang, 'taskbar.quick')
     deskEdge.title = t(lang, 'taskbar.desktop')
     facesBox.replaceChildren(...widgetFaces())
@@ -2258,7 +2277,7 @@
   // place, jumps rather than slides a long way, and gives a little under a
   // press. Not over what opens above the buttons, nor while a tray icon or
   // a program's button is being dragged.
-  const GLIDE_ON = '.start, .win, .tout .ticon, .tchev, .tpriv, .kbd .ime, .tquick, .face.mon, .tw-widget, .tw-plugin, .tw-group, .tclock'
+  const GLIDE_ON = '.start, .tview, .win, .tout .ticon, .tchev, .tpriv, .kbd .ime, .tquick, .face.mon, .tw-widget, .tw-plugin, .tw-group, .tclock'
   const GLIDE_FAR = 360
   const glide = el('span', 'hdrop')
   let glideOn = null
@@ -4085,7 +4104,7 @@
 
   window.pet.onLook(l => {
     const seconds = look.seconds
-    look = { mode: l?.mode === 'light' ? 'light' : 'dark', accent: l?.accent || null, endTask: l?.endTask === true, seconds: l?.seconds === true }
+    look = { mode: l?.mode === 'light' ? 'light' : 'dark', accent: l?.accent || null, endTask: l?.endTask === true, seconds: l?.seconds === true, taskView: l?.taskView === true }
     if (look.seconds !== seconds) clockLoop()
     // How many times a button flashes for attention (style.css .flash).
     if (l?.flashes !== undefined) barRest.style.setProperty('--flashes', l.flashes === 0 ? 'infinite' : String(l.flashes))

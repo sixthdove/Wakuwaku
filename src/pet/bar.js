@@ -17,6 +17,17 @@
 
   const body = document.body
   const start = document.querySelector('.start')
+  // Task View after Start, while Windows has its button on (as the main
+  // taskbar's, island.js taskViewButton): Windows' own pictures, else its
+  // icon font's glyph (bar.html).
+  const taskView = document.querySelector('.tview')
+  invoke('taskbar_task_view_icons')
+    .then(icons => {
+      if (!icons?.light || !icons?.dark) return
+      const img = (svg, cls) => `<img class="${cls}" alt="" draggable="false" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}">`
+      taskView.innerHTML = img(icons.light, 'tv-light') + img(icons.dark, 'tv-dark')
+    })
+    .catch(() => {})
   const wins = document.getElementById('wins')
   const clock = document.querySelector('.clock')
   let state = { windows: [], look: {}, edge: 'bottom', align: 'center', material: 'clear', lang: 'zh' }
@@ -218,6 +229,8 @@
     if (accent) body.style.setProperty('--accent', isLight() ? accent.dark || accent.base : accent.light || accent.base)
     document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : 'en'
     drawStart()
+    taskView.hidden = state.look?.taskView !== true
+    taskView.title = t(state.lang, 'taskbar.taskView')
     drawWindows()
     tickClock()
     drawHer()
