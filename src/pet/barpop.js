@@ -101,7 +101,7 @@
     }
     const w = pop.offsetWidth + pad.left + pad.right
     const h = pop.offsetHeight + pad.top + pad.bottom
-    invoke('barpop_place', { w, h }).catch(() => {})
+    invoke('barpop_place', { w, h, dpr: devicePixelRatio || 1 }).catch(() => {})
     // The live pictures once it is in place (it rises a little first).
     thumbsSent = ''
     clearTimeout(thumbTimer)
@@ -119,7 +119,7 @@
     const sent = JSON.stringify(items)
     if (sent === thumbsSent) return
     thumbsSent = sent
-    invoke('barpop_thumbs', { items }).catch(() => {})
+    invoke('barpop_thumbs', { items, dpr: devicePixelRatio || 1 }).catch(() => {})
   }
 
   function gone() {

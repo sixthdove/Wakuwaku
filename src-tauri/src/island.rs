@@ -71,6 +71,8 @@ pub struct Island {
     // monitor's scale factor when Windows text scaling changes WebView2's
     // devicePixelRatio without changing the native window's DPI.
     page_sf: f64,
+    // The page's zoom, as set last (fit_zoom); 0: never set, 1.
+    zoom: f64,
     // Extra room the page asked for.
     room: Option<(f64, f64)>,
     created: bool,
@@ -244,15 +246,19 @@ pub fn hwnd(sh: &Shared) -> isize {
 }
 
 // Where its window is (physical) and its scale: the page's px to the screen's.
+// The page's, as it told it (page_sf): Windows' text size makes it bigger
+// than its display's (110% at 150%: 1.65), the windows' live pictures
+// smaller than their cards' rooms and up to the left of them else, the tray's
+// icons told where they are not (zhoupengjie/Wakuwaku#90).
 pub fn origin(sh: &Shared) -> ((i32, i32), f64) {
     let isl = sh.island.lock().unwrap();
-    (isl.pos, isl.sf())
+    (isl.pos, isl.page_sf())
 }
 
-// Where its window is and its size (physical), and its scale.
+// Where its window is and its size (physical), and its scale (the page's, as origin).
 pub fn frame(sh: &Shared) -> ((i32, i32), (i32, i32), f64) {
     let isl = sh.island.lock().unwrap();
-    (isl.pos, isl.size, isl.sf())
+    (isl.pos, isl.size, isl.page_sf())
 }
 
 fn set_ignore(sh: &Shared, ignore: Option<bool>) {
@@ -601,6 +607,8 @@ fn lay_again(sh: &Shared, why: &str) {
 fn place(sh: &Shared) {
     sync_bar(sh, true);
     let fitted = fit(sh);
+    // Its home changed, perhaps (the taskbar's zoom, or none).
+    fit_zoom(sh);
     tell_strip(sh, false);
     let Some((pos, size)) = fitted else { return };
     if let Some(win) = window(sh) {
@@ -749,7 +757,8 @@ fn closed_rect(isl: &Island) -> Option<(i32, i32, i32, i32)> {
     if !isl.created || w <= 0.0 || h <= 0.0 {
         return None;
     }
-    let sf = isl.sf();
+    // In the page's px, by its scale (origin).
+    let sf = isl.page_sf();
     let (w, h) = ((w * sf).round() as i32, (h * sf).round() as i32);
     let top = (TOP * sf).round() as i32;
     let x = match isl.at {
@@ -1216,7 +1225,8 @@ pub fn set_room(sh: &Shared, measured: &Value) {
     place(sh);
 }
 
-fn valid_scale(scale: Option<f64>) -> Option<f64> {
+// A page's devicePixelRatio as it told it, if it is one.
+pub(crate) fn valid_scale(scale: Option<f64>) -> Option<f64> {
     scale.filter(|v| v.is_finite() && *v >= 0.5 && *v <= 8.0)
 }
 
@@ -1244,6 +1254,56 @@ pub fn set_editing(sh: &Shared, on: bool, rects: Vec<[f64; 4]>, page_sf: Option<
     } else if had != solid && !on {
         sh.log(&format!("island: {}", if solid { "the window takes the mouse over the picker or a panel" } else { "nothing of the picker's open: the mouse as ever" }));
     }
+    fit_zoom(sh);
+}
+
+// The page's zoom (its webview's): in the taskbar home, Windows' text size
+// taken back out of its scale, the strip as Windows' own is whatever the text
+// size; 1 elsewhere. The taskbar is laid out at 48 of the page's px, as thick
+// as Windows' (TASKBAR_H, island.js the same), the strip as thick as Windows
+// gives it (island.js --strip-h): with the text at 110% the page's px were
+// 1.65 of the screen's at 150%, the strip 43.6 of them, her end 48 of them
+// laid on its foot, up over its top, the flow light's ring past it
+// (zhoupengjie/Wakuwaku#90); bigger text sizes, more. The text size is what
+// the page's scale (page_sf) is over the display's (sf) and the zoom it has
+// (zoom). None: as it is.
+fn zoom_for(taskbar: bool, sf: f64, page_sf: f64, zoom: f64) -> Option<f64> {
+    let text = page_sf / (sf * zoom);
+    let want = if taskbar && text > 1.0 { 1.0 / text } else { 1.0 };
+    ((want - zoom).abs() > 0.001).then_some(want)
+}
+
+// The page's zoom as its home and scale want it (zoom_for), set when it is
+// to change, its scale taken to be what it will be once set (the page tells
+// it again then).
+fn fit_zoom(sh: &Shared) {
+    let taskbar = sh.home() == "taskbar";
+    let (want, text) = {
+        let mut isl = sh.island.lock().unwrap();
+        let Some(page_sf) = valid_scale(Some(isl.page_sf)) else { return };
+        let zoom = if isl.zoom > 0.0 { isl.zoom } else { 1.0 };
+        let Some(want) = zoom_for(taskbar, isl.sf(), page_sf, zoom) else { return };
+        isl.zoom = want;
+        isl.page_sf = page_sf / zoom * want;
+        (want, page_sf / (isl.sf() * zoom))
+    };
+    if let Some(win) = window(sh) {
+        let home = if taskbar { "taken out in the taskbar home" } else { "kept away from the taskbar" };
+        match win.set_zoom(want) {
+            Ok(()) => sh.log(&format!("island: page zoom {want:.4} (Windows' text size {:.0}%, {home})", text * 100.0)),
+            Err(e) => sh.log(&format!("island: page zoom {want:.4} not set: {e}")),
+        }
+    }
+    // The strips on the other displays the same.
+    crate::bars::fit_zoom(sh);
+}
+
+// Windows' text size (1.1 for 110%) as the page's scale shows it, over its
+// display's and its zoom; 1 until the page has told it.
+pub fn text_size(sh: &Shared) -> f64 {
+    let isl = sh.island.lock().unwrap();
+    let zoom = if isl.zoom > 0.0 { isl.zoom } else { 1.0 };
+    valid_scale(Some(isl.page_sf)).map_or(1.0, |page_sf| (page_sf / (isl.sf() * zoom)).max(1.0))
 }
 
 pub fn set_holding(sh: &Shared, is_holding: bool) {
@@ -1563,6 +1623,27 @@ pub fn where_(sh: &Shared) -> Value {
 }
 
 #[cfg(test)]
+mod zoom_tests {
+    use super::zoom_for;
+
+    // 150% with the text at 110% (zhoupengjie/Wakuwaku#90): the taskbar's
+    // page zoomed to 1/1.1, its scale 1.5 again; then as it is. In the
+    // island at the top, or with no text size, 1.
+    #[test]
+    fn the_text_size_taken_out_of_the_taskbar() {
+        let z = zoom_for(true, 1.5, 1.6500000953674316, 1.0).unwrap();
+        assert!((z - 1.0 / 1.1).abs() < 1e-6, "{z}");
+        assert_eq!(zoom_for(true, 1.5, 1.5, z), None, "told its new scale: kept");
+        assert_eq!(zoom_for(true, 1.5, 1.5, 1.0), None, "no text size");
+        // Back in the island: unzoomed, its scale the text size's again.
+        assert_eq!(zoom_for(false, 1.5, 1.5, z), Some(1.0));
+        assert_eq!(zoom_for(false, 1.5, 1.65, 1.0), None);
+        // The text at 225% on a display at 100%.
+        assert!((zoom_for(true, 1.0, 2.25, 1.0).unwrap() - 1.0 / 2.25).abs() < 1e-9);
+    }
+}
+
+#[cfg(test)]
 mod stow_tests {
     use super::{call_look, closed_rect, Island, Side, Stow, EDGE_MS, LEAVE_MS};
     use crate::screen::Area;
@@ -1585,6 +1666,16 @@ mod stow_tests {
         let mut isl = stowed();
         isl.stow.closed = (0.0, 0.0);
         assert_eq!(closed_rect(&isl), None, "no size said yet");
+    }
+
+    // Windows' text size at 110 %: the page's px bigger than the display's
+    // scale (1.375 at 125 %), the island too (zhoupengjie/Wakuwaku#90).
+    #[test]
+    fn the_closed_island_by_the_pages_scale() {
+        let isl = Island { page_sf: 1.375, ..stowed() };
+        assert_eq!(closed_rect(&isl), Some((1073, 11, 413, 50)));
+        // One not told: the display's.
+        assert_eq!(closed_rect(&Island { page_sf: 0.0, ..stowed() }), Some((1092, 10, 375, 45)));
     }
 
     // At a top corner (islandPos, zhoupengjie/Wakuwaku#59): the window flush

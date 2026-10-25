@@ -43,9 +43,48 @@ struct Bar {
     // when (keep_work); given back as it goes (give_work).
     work_side: Option<i32>,
     work_at: Option<Instant>,
+    // Its page's zoom as set last (fit_zoom).
+    zoom: f64,
 }
 
 static BARS: Mutex<Vec<Bar>> = Mutex::new(Vec::new());
+
+// The strips' pages and their list's as the main taskbar's (island.rs
+// fit_zoom): zoomed so that Windows' text size is taken out of their scale,
+// each laid out at 48 of its px as thick as Windows' (zhoupengjie/Wakuwaku#90).
+// The text size as her island's page has it; each once its page is up.
+static POP_ZOOM: Mutex<f64> = Mutex::new(1.0);
+
+pub fn fit_zoom(sh: &Shared) {
+    let want = 1.0 / island::text_size(sh);
+    let differs = |zoom: f64| (zoom - want).abs() > 0.001;
+    let mut labels: Vec<String> = BARS
+        .lock()
+        .unwrap()
+        .iter_mut()
+        .filter(|b| b.ready && differs(b.zoom))
+        .map(|b| {
+            b.zoom = want;
+            b.label.clone()
+        })
+        .collect();
+    if POP_READY.load(Ordering::SeqCst) {
+        let mut pop = POP_ZOOM.lock().unwrap();
+        if differs(*pop) {
+            *pop = want;
+            labels.push(POP.to_string());
+        }
+    }
+    if labels.is_empty() {
+        return;
+    }
+    sh.log(&format!("bars: page zoom {want:.4} for {}", labels.join(", ")));
+    for label in labels {
+        if let Some(win) = sh.app.get_webview_window(&label) {
+            let _ = win.set_zoom(want);
+        }
+    }
+}
 static NEXT: AtomicU32 = AtomicU32::new(1);
 // The displays without a strip of hers whose work area was last made whole, and when (keep_work).
 static BARE_AT: Mutex<Vec<(Mon, Instant)>> = Mutex::new(Vec::new());
@@ -81,7 +120,7 @@ pub fn sync(sh: &Arc<Shared>) {
         for a in &want {
             if !bars.iter().any(|b| b.mon == a.mon) {
                 let label = format!("bar-{}", NEXT.fetch_add(1, Ordering::SeqCst));
-                bars.push(Bar { label: label.clone(), mon: a.mon, sf: a.sf, edge, hwnd: 0, strip: None, ready: false, hidden: false, sent: Value::Null, paper: Value::Null, work_side: None, work_at: None });
+                bars.push(Bar { label: label.clone(), mon: a.mon, sf: a.sf, edge, hwnd: 0, strip: None, ready: false, hidden: false, sent: Value::Null, paper: Value::Null, work_side: None, work_at: None, zoom: 1.0 });
                 made.push((label, *a));
             }
         }
@@ -273,12 +312,16 @@ fn create(sh: &Arc<Shared>, label: String, area: Area, edge: Edge) {
         sh.own_window(&win);
         let granted = if hwnd != 0 && appbar::register(hwnd) { appbar::place(hwnd, area.mon, edge, thick) } else { strip };
         lay(&win, granted);
+        // Zoomed before its page lays out (fit_zoom).
+        let zoom = 1.0 / island::text_size(&sh);
+        let _ = win.set_zoom(zoom);
         let gone = {
             let mut bars = BARS.lock().unwrap();
             match bars.iter_mut().find(|b| b.label == label) {
                 Some(b) => {
                     b.hwnd = hwnd;
                     b.strip = Some(granted);
+                    b.zoom = zoom;
                     false
                 }
                 None => true,
@@ -326,6 +369,7 @@ pub fn bar_ready(app: tauri::AppHandle, window: WebviewWindow) {
         }
         None => false,
     };
+    fit_zoom(&sh);
     refresh(&sh);
     if new {
         taskbar::look_now();
@@ -440,12 +484,21 @@ const POP: &str = "barpop";
 
 struct Pop {
     // The strip it is for, list or menu, the program, its button there (the
-    // strip's own px), and where the window is once laid (physical).
+    // strip's own px, and their scale: its page's devicePixelRatio), and
+    // where the window is once laid (physical).
     bar: String,
     kind: String,
     key: String,
     at: (f64, f64, f64, f64),
+    bar_sf: f64,
     rect: Option<Mon>,
+}
+
+// A page's px to the screen's: its devicePixelRatio as it told it, which
+// Windows' text size makes bigger than the display's scale (sf) it is on
+// (zhoupengjie/Wakuwaku#90); that scale where it told none.
+fn page_scale(dpr: Option<f64>, sf: f64) -> f64 {
+    crate::island::valid_scale(dpr).unwrap_or(sf)
 }
 
 static OPEN: Mutex<Option<Pop>> = Mutex::new(None);
@@ -460,12 +513,11 @@ fn bar_of(label: &str) -> Option<(Mon, f64, Edge, Mon)> {
 // From a strip's page: the windows (list) or the menu of a program, its
 // button at (x, y, w, h) in the page's px.
 #[tauri::command]
-pub fn bar_pop(app: tauri::AppHandle, window: WebviewWindow, kind: String, key: String, at: (f64, f64, f64, f64)) {
+pub fn bar_pop(app: tauri::AppHandle, window: WebviewWindow, kind: String, key: String, at: (f64, f64, f64, f64), dpr: Option<f64>) {
     let sh = crate::shared(&app);
-    if bar_of(window.label()).is_none() {
-        return;
-    }
-    *OPEN.lock().unwrap() = Some(Pop { bar: window.label().to_string(), kind, key, at, rect: None });
+    let Some((_, sf, _, _)) = bar_of(window.label()) else { return };
+    let bar_sf = page_scale(dpr, sf);
+    *OPEN.lock().unwrap() = Some(Pop { bar: window.label().to_string(), kind, key, at, bar_sf, rect: None });
     if !POP_MADE.swap(true, Ordering::SeqCst) {
         return make_pop(&sh);
     }
@@ -508,6 +560,10 @@ fn make_pop(sh: &Arc<Shared>) {
                 #[cfg(windows)]
                 crate::tasks::no_transitions(win.hwnd().map(|h| h.0 as isize).unwrap_or(0));
                 sh.own_window(&win);
+                // Zoomed before its page lays out the first list (fit_zoom).
+                let want = 1.0 / island::text_size(&sh);
+                *POP_ZOOM.lock().unwrap() = want;
+                let _ = win.set_zoom(want);
             }
             Err(err) => {
                 POP_MADE.store(false, Ordering::SeqCst);
@@ -521,7 +577,9 @@ fn make_pop(sh: &Arc<Shared>) {
 #[tauri::command]
 pub fn barpop_ready(app: tauri::AppHandle) {
     POP_READY.store(true, Ordering::SeqCst);
-    send_pop(&crate::shared(&app));
+    let sh = crate::shared(&app);
+    fit_zoom(&sh);
+    send_pop(&sh);
 }
 
 // What the open one shows, told its page (again as the windows change): the
@@ -545,15 +603,17 @@ fn send_pop(sh: &Shared) {
 }
 
 // Its page laid out (w, h: its px, with room for its shadow away from the
-// strip): the window laid against the strip over the button, and shown.
+// strip; dpr, its scale): the window laid against the strip over the button,
+// and shown.
 #[tauri::command]
-pub fn barpop_place(app: tauri::AppHandle, w: f64, h: f64) {
+pub fn barpop_place(app: tauri::AppHandle, w: f64, h: f64, dpr: Option<f64>) {
     let sh = crate::shared(&app);
-    let Some((bar, at)) = OPEN.lock().unwrap().as_ref().map(|p| (p.bar.clone(), p.at)) else { return };
-    let Some((mon, sf, edge, strip)) = bar_of(&bar) else { return hide_pop(&sh) };
+    let Some((bar, at, sf)) = OPEN.lock().unwrap().as_ref().map(|p| (p.bar.clone(), p.at, p.bar_sf)) else { return };
+    let Some((mon, mon_sf, edge, strip)) = bar_of(&bar) else { return hide_pop(&sh) };
     let px = |v: f64| (v * sf).round() as i32;
+    let pop_px = |v: f64| (v * page_scale(dpr, mon_sf)).round() as i32;
     let button = (strip.0 + px(at.0), strip.1 + px(at.1), px(at.2), px(at.3));
-    let rect = pop_rect(edge, strip, mon, button, (px(w), px(h)));
+    let rect = pop_rect(edge, strip, mon, button, (pop_px(w), pop_px(h)));
     let Some(win) = sh.app.get_webview_window(POP) else { return };
     lay(&win, rect);
     let _ = win.show();
@@ -581,13 +641,14 @@ fn pop_rect(edge: Edge, strip: Mon, mon: Mon, button: Mon, (w, h): (i32, i32)) -
 }
 
 // Its live pictures where its cards left room for them (window, x, y, w, h
-// in its px); none, taken away.
+// in its px; dpr, its scale); none, taken away.
 #[tauri::command]
-pub fn barpop_thumbs(items: Vec<(i64, f64, f64, f64, f64)>) {
+pub fn barpop_thumbs(items: Vec<(i64, f64, f64, f64, f64)>, dpr: Option<f64>) {
     let Some((bar, rect)) = OPEN.lock().unwrap().as_ref().and_then(|p| p.rect.map(|r| (p.bar.clone(), r))) else {
         return taskbar::thumbs(taskbar::WATCH_BARS, Vec::new());
     };
     let Some((_, sf, _, _)) = bar_of(&bar) else { return };
+    let sf = page_scale(dpr, sf);
     let px = |v: f64| (v * sf).round() as i32;
     let items = items.into_iter().map(|(h, x, y, w, ht)| (h as isize, (rect.0 + px(x), rect.1 + px(y), px(w), px(ht)))).collect();
     taskbar::thumbs(taskbar::WATCH_BARS, items);

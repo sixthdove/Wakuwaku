@@ -100,9 +100,14 @@ fn brings_chain(agent: Option<&str>) -> bool {
 // reply; the person answers in Reasonix, and she shows the session waiting.
 // DeepSeek Harness's, unless her plugin says it can take her answer
 // (answerable: it could make the request withdraw DSH's own dialog as she
-// answers first; integrations/dsh/wakuwaku.js).
+// answers first; integrations/dsh/wakuwaku.js). Codex's where the person
+// let Codex approve for them (Approve for me): Codex asks its own reviewer
+// once the hook has not answered, never the person, so nothing is held, nor
+// shown (agent-core codex.rs auto_reviewed, zhoupengjie/Wakuwaku#90).
 fn answers_none(agent: Option<&str>, event: &Value) -> bool {
-    agent == Some("reasonix") || (agent == Some("dsh") && event.get("answerable") != Some(&Value::Bool(true)))
+    agent == Some("reasonix")
+        || (agent == Some("dsh") && event.get("answerable") != Some(&Value::Bool(true)))
+        || (agent == Some("codex") && agent_core::codex::auto_reviewed(event["transcript_path"].as_str().unwrap_or("")))
 }
 
 // An agent's event as she takes it: OpenCode's by the names Claude Code's
@@ -308,6 +313,9 @@ fn take(sh: &Shared, hook: Hook) {
     // terminal settles it, or time runs out.
     if is_prompt && !holds {
         sh.log("a prompt handed to the terminal: out of sight");
+    }
+    if !is_prompt && agent == Some("codex") && event["hook_event_name"] == "PermissionRequest" {
+        sh.log("a Codex request to approve left to Codex (Approve for me)");
     }
     match req {
         Some(req) if holds => {
