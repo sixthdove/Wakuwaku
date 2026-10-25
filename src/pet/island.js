@@ -2399,7 +2399,7 @@
         } else {
           button.append(el('span', 'letter', (app.name || '?').slice(0, 1).toUpperCase()))
         }
-        if (windows.length) button.append(el('span', 'wt', windows.length === 1 ? windows[0].title : app.name))
+        if (windows.length) button.append(el('span', 'wt', windows.length === 1 ? windows[0].title || app.name : app.name))
         if (windows.length > 1) button.append(el('span', 'count', String(windows.length)))
         return button
       }),
@@ -3291,7 +3291,8 @@
           img.src = w.png || app.png
           top.append(img)
         }
-        top.append(el('span', 'wt', w.title))
+        // A window with no title (tasks.rs is_task): its program's name.
+        top.append(el('span', 'wt', w.title || app.name))
         const x = el('span', 'wx', '✕')
         x.dataset.close = w.id
         top.append(x)

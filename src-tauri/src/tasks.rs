@@ -417,6 +417,8 @@ mod imp {
         got == 0 && cloaked != 0
     }
 
+    // Windows' own rules for a button. A window with no title has one too
+    // (DSH Desktop's has none): the page shows its program's name instead.
     fn is_task(hwnd: Hwnd, me: u32) -> bool {
         // SAFETY: plain queries about a window being enumerated.
         unsafe {
@@ -429,7 +431,7 @@ mod imp {
                 return false;
             }
         }
-        !is_cloaked(hwnd) && !NOT_TASKS.contains(&class_of(hwnd).as_str()) && !title_of(hwnd).is_empty()
+        !is_cloaked(hwnd) && !NOT_TASKS.contains(&class_of(hwnd).as_str())
     }
 
     extern "system" fn collect(hwnd: Hwnd, param: isize) -> i32 {
