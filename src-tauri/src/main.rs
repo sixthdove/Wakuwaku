@@ -86,6 +86,7 @@ mod pins;
 mod plugins;
 mod pointer;
 mod power;
+mod pri;
 mod proxy;
 #[cfg(test)]
 mod replay;
@@ -1699,6 +1700,7 @@ fn main() {
             taskbar::taskbar_inputs,
             taskbar::taskbar_input,
             taskbar::taskbar_battery_font,
+            taskbar::taskbar_task_view_icons,
             taskbar_handoff,
             taskbar::taskbar_tray_rects,
             taskbar::taskbar_window,

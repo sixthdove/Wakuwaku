@@ -1825,6 +1825,16 @@ mod imp {
         super::set_on(key.ok().and_then(|k| k.get_value::<u32, _>("ShowSecondsInSystemClock").ok()))
     }
 
+    // Windows' Task View button (Settings → Personalization → Taskbar →
+    // Taskbar items → Task view), as its settings page keeps it:
+    // Explorer\Advanced\ShowTaskViewButton, a number. On unless set to 0, as
+    // Windows has it by default.
+    fn task_view_on() -> bool {
+        use winreg::enums::HKEY_CURRENT_USER;
+        let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced");
+        key.ok().and_then(|k| k.get_value::<u32, _>("ShowTaskViewButton").ok()) != Some(0)
+    }
+
     // From outside (settings.rs, the wallpaper changed by her own settings:
     // Windows says nothing of that): the desktop looked at now.
     pub fn look_now() {
@@ -1853,6 +1863,8 @@ mod imp {
             "endTask": end_task_on(),
             // Whether the clock shows the seconds (island.js tickClock, bar.js).
             "seconds": seconds_on(),
+            // Whether Task View has a button, after Start (island.js, bar.js).
+            "taskView": task_view_on(),
         });
         let mut sent = LOOK.lock().unwrap();
         if *sent != look {
@@ -3367,6 +3379,27 @@ pub fn taskbar_input(id: String) -> bool {
 #[tauri::command]
 pub fn taskbar_battery_font() -> tauri::ipc::Response {
     tauri::ipc::Response::new(crate::widgets::battery_font())
+}
+
+// Windows' own Task View pictures, for its button (island.js, bar.js): the
+// two Windows 11's Settings shows by the Task view switch, as its taskbar
+// has them, { light, dark } (for a light strip, for a dark one), each an
+// SVG. Kept within Settings' resource index, in no file of their own
+// (pri.rs); read once. Null where Windows has none (Windows 10): the page
+// takes the Task View glyph of Windows' icon font then.
+#[tauri::command]
+pub async fn taskbar_task_view_icons() -> Option<serde_json::Value> {
+    static ICONS: std::sync::OnceLock<Option<serde_json::Value>> = std::sync::OnceLock::new();
+    ICONS.get_or_init(task_view_icons).clone()
+}
+
+fn task_view_icons() -> Option<serde_json::Value> {
+    let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+    let file = std::path::Path::new(&root).join(r"SystemResources\Windows.UI.SettingsAppThreshold\Windows.UI.SettingsAppThreshold.pri");
+    let mut got = crate::pri::embedded(&file, &["Files/SystemSettings/Assets/Taskview_Light.svg", "Files/SystemSettings/Assets/Taskview_Dark.svg"]).into_iter();
+    let mut svg = || got.next().flatten().and_then(|b| String::from_utf8(b).ok()).filter(|s| s.contains("<svg"));
+    let (light, dark) = (svg()?, svg()?);
+    Some(serde_json::json!({ "light": light, "dark": dark }))
 }
 
 // A press on a window's button (press: to the front or minimized; front: to

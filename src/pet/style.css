@@ -1464,6 +1464,7 @@ body.home-taskbar {
 /* Under the pointer (and the window in front): a light wash, as on the
    black strip so on the Mica. */
 #bar-rest .start:hover,
+#bar-rest .tview:hover,
 #bar-rest .ticon:hover,
 #bar-rest .tquick:hover,
 #bar-rest .tclock:hover {
@@ -2029,6 +2030,7 @@ body.home-taskbar {
    listed when the pointer rests on it: no title; how many, at the icon's
    top right when more than one. */
 #bar-rest.icons .start,
+#bar-rest.icons .tview,
 #bar-rest.icons .win {
   flex: none;
   width: 44px;
@@ -2288,6 +2290,7 @@ body.home-taskbar {
 }
 
 #bar-rest .start:hover:is(.ink-light, .ink-light *),
+#bar-rest .tview:hover:is(.ink-light, .ink-light *),
 #bar-rest .tout:is(.ink-light, .ink-light *) .ticon:hover,
 #bar-rest .tquick:hover:is(.ink-light, .ink-light *),
 #bar-rest .tclock:hover:is(.ink-light, .ink-light *),
@@ -2587,6 +2590,63 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
+/* --- Task View, after Start (island.js taskViewButton) -----------------------------
+   One part with Start. Windows' own pictures as big as Start's mark, the
+   one for a light strip on a light one; pressed in as Start is. Where
+   Windows has none (Windows 10), its icon font's Task View glyph, as big
+   as its taskbar draws it there. */
+#bar-rest .tstart {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+.tb-side #bar-rest .tstart {
+  flex-direction: column;
+}
+
+#bar-rest .tview {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#bar-rest .tview[hidden] {
+  display: none;
+}
+
+#bar-rest .tview img {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.42s cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+
+#bar-rest .tview:active img,
+#bar-rest .tview:active .tv-glyph {
+  transform: scale(0.8);
+  transition-duration: 0.08s;
+  transition-timing-function: ease-out;
+}
+
+#bar-rest .tview .tv-light,
+#bar-rest .tview:is(.ink-light, .ink-light *) .tv-dark {
+  display: none;
+}
+
+#bar-rest .tview:is(.ink-light, .ink-light *) .tv-light {
+  display: block;
+}
+
+#bar-rest .tview .tv-glyph {
+  font: normal 16px/1 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+  transition: transform 0.42s cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+
 /* --- The pointer's glide (island.js glideTo) --------------------------------------
    One highlight under the pointer for all the taskbar's buttons, behind
    them, sliding from one to the next with its edges at their own pace;
@@ -2641,6 +2701,7 @@ body:not(.tb-light) #bar-rest .tfly .ticon[data-mono='dark'] img {
 }
 
 .home-taskbar #bar-rest .start:not(.open):hover,
+.home-taskbar #bar-rest .tview:hover,
 .home-taskbar #bar-rest .win:not(.front):hover,
 .home-taskbar #bar-rest .tout .ticon:hover,
 .home-taskbar #bar-rest .tchev:hover,

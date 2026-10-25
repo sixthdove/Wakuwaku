@@ -14,7 +14,7 @@
   const { pet } = window
 
   // Her strip's parts that the dust becomes (and crumbles from).
-  const PARTS = '#island, #bar-rest .start, #bar-rest .win, #bar-rest .tchev, #bar-rest .ticon, #bar-rest .kbd, #bar-rest .tquick, #bar-rest .tpriv, #bar-rest .face.mon, #bar-rest .tclock'
+  const PARTS = '#island, #bar-rest .start, #bar-rest .tview, #bar-rest .win, #bar-rest .tchev, #bar-rest .ticon, #bar-rest .kbd, #bar-rest .tquick, #bar-rest .tpriv, #bar-rest .face.mon, #bar-rest .tclock'
   const STRIP_H = 48
   // At most this many grains; their size, and every how many is a glint.
   const MOST = 1500

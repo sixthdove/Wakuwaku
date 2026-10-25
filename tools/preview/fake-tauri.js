@@ -487,7 +487,8 @@
     return { url: world.wallpaper, position: 'fill', color: '#1b2533', mon: [0, 0, w, h], screen: [0, 0, w, h], sf: 1 }
   }
 
-  const look = () => ({ mode: world.mode, accent: world.accent, endTask: false, flashes: 7, seconds: world.seconds === true })
+  // Task View's button on, as Windows has it by default.
+  const look = () => ({ mode: world.mode, accent: world.accent, endTask: false, flashes: 7, seconds: world.seconds === true, taskView: world.taskView !== false })
 
   // Her taskbar on another display (bars.rs bar:state): Start, the windows,
   // the clock; her capsule at its start while a prompt waits.
@@ -1166,6 +1167,8 @@
     taskbar_end_task: () => false,
     taskbar_inputs: () => [],
     taskbar_battery_font: () => null,
+    // Windows' pictures are read from Windows itself: the glyph here.
+    taskbar_task_view_icons: () => null,
     taskbar_held: () => ({ shift: false, ctrl: false }),
     taskbar_window: () => true,
     taskbar_windows: () => true,

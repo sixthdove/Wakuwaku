@@ -190,6 +190,43 @@ body {
   stop-color: #0179d4;
 }
 
+/* Task View, after Start (bar.js taskView): Windows' own pictures, the one
+   for a light strip on a light one, else its icon font's glyph; as the
+   main taskbar's (style.css #bar-rest .tview). */
+.tview {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tview[hidden],
+.tview .tv-light,
+.b-light .tview .tv-dark {
+  display: none;
+}
+
+.b-light .tview .tv-light {
+  display: block;
+}
+
+.tview img {
+  width: 24px;
+  height: 24px;
+}
+
+.tview .tv-glyph {
+  font: normal 16px/1 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+}
+
 .win {
   position: relative;
   flex: none;
@@ -208,6 +245,7 @@ body {
 
 /* Under the pointer and the one in front: a light wash, as on the main one. */
 .start:hover,
+.tview:hover,
 .win:hover,
 .clock:hover {
   background: rgba(255, 255, 255, 0.11);
@@ -218,6 +256,7 @@ body {
 }
 
 .b-light .start:hover,
+.b-light .tview:hover,
 .b-light .win:hover,
 .b-light .clock:hover {
   background: rgba(0, 0, 0, 0.06);

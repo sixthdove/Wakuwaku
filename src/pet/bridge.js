@@ -144,6 +144,9 @@
       input: id => invoke('taskbar_input', { id: String(id) }).catch(() => false),
       // Windows' own battery font (an ArrayBuffer; empty where Windows has none).
       batteryFont: () => invoke('taskbar_battery_font').catch(() => null),
+      // Windows' own Task View pictures, { light, dark } (SVGs, for a light
+      // strip and a dark one); null where Windows has none (Windows 10).
+      taskViewIcons: () => invoke('taskbar_task_view_icons').catch(() => null),
       tray: (key, press) => send('taskbar_tray', { key: Number(key), press: String(press) }),
       trayRects: rects => send('taskbar_tray_rects', { rects }),
       // A press on a window's button: press (to the front, or minimized),
