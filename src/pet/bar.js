@@ -336,7 +336,7 @@
   function openPop(node, kind) {
     const b = node.getBoundingClientRect()
     popFor = { app: node.dataset.app, kind }
-    call('bar_pop', { kind, key: node.dataset.app, at: [b.left, b.top, b.width, b.height] })
+    call('bar_pop', { kind, key: node.dataset.app, at: [b.left, b.top, b.width, b.height], dpr: devicePixelRatio || 1 })
   }
   function closePop() {
     clearTimeout(popTimer)
