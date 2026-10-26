@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -112,12 +114,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -197,12 +201,14 @@
         "at": 2100,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -273,12 +279,24 @@
         "at": 2600,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -358,12 +376,24 @@
         "at": 3000,
         "detail": "apply_patch",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -483,12 +513,24 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "waiting",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -560,12 +602,35 @@
         "at": 6000,
         "detail": "apply_patch",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -647,12 +712,35 @@
         "at": 6500,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -725,12 +813,44 @@
         "at": 9000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "cargo test"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -801,12 +921,44 @@
         "at": 9500,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "review",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "cargo test"
+              }
+            }
+          }
+        ],
         "reply": "Added /health; the tests pass.",
         "since": null,
         "step": null,
@@ -875,12 +1027,44 @@
         "at": 9500,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "review",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "cargo test"
+              }
+            }
+          }
+        ],
         "reply": "Added /health; the tests pass.",
         "since": null,
         "step": null,
@@ -929,12 +1113,44 @@
         "at": 15000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/main.rs"
+        ],
         "files": 1,
         "id": "replay-codex",
         "jump": false,
         "mood": "idle",
         "name": "Add a health endpoint",
         "project": "svc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rg -n health src"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "main.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "cargo test"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -994,12 +1210,14 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Bump the version",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 20000,
         "step": {
@@ -1079,12 +1297,14 @@
         "at": 20100,
         "detail": "apply_patch",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Bump the version",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 20000,
         "step": {
@@ -1155,12 +1375,14 @@
         "at": 20200,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "done",
         "name": "Bump the version",
         "project": "svc",
+        "recentSteps": [],
         "reply": "Bumped to 0.1.1.",
         "since": null,
         "step": null,
@@ -1231,12 +1453,14 @@
         "at": 20200,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "review",
         "name": "Bump the version",
         "project": "svc",
+        "recentSteps": [],
         "reply": "Bumped to 0.1.1.",
         "since": null,
         "step": null,
@@ -1283,12 +1507,14 @@
         "at": 30000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "idle",
         "name": "Bump the version",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1348,12 +1574,14 @@
         "at": 31000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Run the linter",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 31000,
         "step": {
@@ -1433,12 +1661,14 @@
         "at": 31100,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "working",
         "name": "Run the linter",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 31000,
         "step": {
@@ -1502,12 +1732,14 @@
         "at": 32000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "idle",
         "name": "Run the linter",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1580,12 +1812,14 @@
           "vars": {}
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-codex",
         "jump": false,
         "mood": "waiting",
         "name": "Run the linter",
         "project": "svc",
+        "recentSteps": [],
         "reply": "",
         "since": 33000,
         "step": null,

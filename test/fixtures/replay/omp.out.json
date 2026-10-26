@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -111,12 +113,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -205,12 +209,14 @@
         "at": 2500,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -284,12 +290,24 @@
         "at": 2700,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -386,12 +404,24 @@
         "at": 3000,
         "detail": "Edit",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -468,12 +498,35 @@
         "at": 3500,
         "detail": "Edit",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -591,12 +644,35 @@
           }
         },
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "waiting",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -656,12 +732,35 @@
         "at": 6000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -754,12 +853,35 @@
         "at": 6500,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -845,12 +967,44 @@
         "at": 7000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -927,12 +1081,44 @@
           "vars": {}
         },
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "waiting",
         "name": "Change hi to bye in a.txt",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -1000,12 +1186,44 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "review",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "Done. Changed hi to bye.",
         "since": null,
         "step": null,
@@ -1054,12 +1272,44 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "a.txt"
+        ],
         "files": 1,
         "id": "replay-omp",
         "jump": false,
         "mood": "idle",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.txt"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1118,12 +1368,14 @@
         "at": 21000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": 21000,
         "step": {
@@ -1197,12 +1449,14 @@
         "at": 22000,
         "detail": "",
         "error": "Connection error.",
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "error",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1261,12 +1515,14 @@
         "at": 23000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "working",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": 23000,
         "step": {
@@ -1327,12 +1583,14 @@
         "at": 24000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-omp",
         "jump": false,
         "mood": "idle",
         "name": "Change a greeting",
         "project": "omp",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,

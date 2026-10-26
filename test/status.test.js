@@ -79,3 +79,28 @@ test('the others: every busy session but the one shown, the most urgent found', 
   assert.equal(Status.urgentOf(list, list[3]), undefined)
   assert.deepEqual(Status.othersOf(undefined, list[0]), [])
 })
+
+test('detailsOf returns capped file list and mapped recent steps, or null when off or empty', () => {
+  const files = Array.from({ length: 18 }, (_, i) => 'src/file' + (i + 1) + '.js')
+  const recentSteps = [
+    { step: { key: 'step.read', vars: { file: 'a.js' } }, ok: true },
+    { step: { key: 'step.edit', vars: { file: 'b.js' } }, ok: false },
+  ]
+  const s = session({ fileList: files, files: 18, recentSteps })
+  const det = Status.detailsOf('zh', s)
+  assert.equal(det.files.length, 15)
+  assert.equal(det.files[0], 'src/file1.js')
+  assert.equal(det.totalFiles, 18)
+  assert.equal(det.moreFiles, 3)
+  assert.equal(det.steps.length, 2)
+  assert.equal(det.steps[0].text, '读 a.js')
+  assert.equal(det.steps[0].ok, true)
+  assert.equal(det.steps[1].text, '改 b.js')
+  assert.equal(det.steps[1].ok, false)
+
+  // With specifics off: returns null
+  assert.equal(Status.detailsOf('zh', s, { detailed: false }), null)
+
+  // Empty files and empty steps: returns null
+  assert.equal(Status.detailsOf('zh', session({ fileList: [], files: 0, recentSteps: [] })), null)
+})

@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-agy",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "agyws",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -112,12 +114,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -191,12 +195,26 @@
         "at": 4000,
         "detail": "write_to_file",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -259,12 +277,26 @@
         "at": 5000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -316,12 +348,26 @@
         "at": 5000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -391,12 +437,35 @@
         "at": 15000,
         "detail": "run_command",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -461,12 +530,35 @@
         "at": 16000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -536,12 +628,35 @@
         "at": 18000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "review",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "Created hello.txt; the ping is done.",
         "since": null,
         "step": null,
@@ -590,12 +705,35 @@
         "at": 25000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "idle",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -668,12 +806,44 @@
         "at": 26000,
         "detail": "run_command",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "working",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 26000,
         "step": {
@@ -749,12 +919,44 @@
         "at": 27000,
         "detail": "",
         "error": "quota exceeded",
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "error",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "Created hello.txt; the ping is done.",
         "since": null,
         "step": null,
@@ -806,12 +1008,44 @@
         "at": 28000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "idle",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -871,12 +1105,44 @@
         "at": 29000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "idle",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -925,12 +1191,44 @@
         "at": 29000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "hello.txt"
+        ],
         "files": 1,
         "id": "replay-agy",
         "jump": false,
         "mood": "idle",
         "name": "Create hello.txt, then ping in the background",
         "project": "agyws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "write_to_file"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "run_command"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
