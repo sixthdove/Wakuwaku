@@ -79,6 +79,36 @@ impl Edge {
         }
     }
 
+    // Whether a work area stops short of a strip along this edge (a gap
+    // between them no maximized window reaches).
+    pub fn short_of(self, work: (i32, i32, i32, i32), strip: (i32, i32, i32, i32)) -> bool {
+        let (side, inner) = (self.side_of(work), self.inner(strip));
+        match self {
+            Edge::Top | Edge::Left => side > inner,
+            Edge::Bottom | Edge::Right => side < inner,
+        }
+    }
+
+    // Whether a strip lies along this edge of its display (x, y, w, h). One
+    // told before the display changed lies where that edge was until it is
+    // told anew: back from 1920×1080 to 2560×1440, the strip still at 1032
+    // had the work area's bottom set there, and the new strip at 1392 had
+    // 360 px above it no maximized window reached (2026-10-26).
+    pub fn lies_along(self, strip: (i32, i32, i32, i32), mon: (i32, i32, i32, i32)) -> bool {
+        self.side_of(strip) == self.side_of(mon)
+    }
+
+    // Where a work area's side along this edge is set: the strip's inner
+    // side, when the work area reaches into the strip, or stops short of it
+    // at the side last set for a strip of hers (`ours`: the strip moved, the
+    // display at another scale, and the side set for the old one stayed);
+    // None to leave it be (short of it otherwise: another bar's room, or
+    // Windows' own).
+    pub fn work_fix(self, work: (i32, i32, i32, i32), strip: (i32, i32, i32, i32), ours: Option<i32>) -> Option<i32> {
+        let left_short = self.short_of(work, strip) && ours == Some(self.side_of(work));
+        (self.reaches(work, strip) || left_short).then_some(self.inner(strip))
+    }
+
     // The work area's sides other than this edge's (and the bottom, the
     // room Windows' own keeps: taskbar.rs band_left) held in from the
     // display by as much as the strip is thick: a strip of hers along that
@@ -464,6 +494,46 @@ mod edge_tests {
         assert_eq!(Edge::Top.with_side(mon, Edge::Top.inner(Edge::Top.strip(mon, 84))), (2560, -65, 2560, 1516));
         assert_eq!(Edge::Right.with_side(mon, Edge::Right.inner(Edge::Right.strip(mon, 84))), (2560, -149, 2476, 1600));
         assert_eq!(Edge::Right.side_of(mon), 5120);
+    }
+
+    #[test]
+    fn a_strip_told_before_the_display_changed_lies_off_its_edge() {
+        // Told at 1920×1080, the display 2560×1440 again (2026-10-26).
+        let old = Edge::Bottom.strip((0, 0, 1920, 1080), 48);
+        let mon = (0, 0, 2560, 1440);
+        assert!(!Edge::Bottom.lies_along(old, mon));
+        assert!(Edge::Bottom.lies_along(Edge::Bottom.strip(mon, 48), mon));
+        // Along the right, the display wider now; along the left, its x the same.
+        assert!(!Edge::Right.lies_along(Edge::Right.strip((0, 0, 1920, 1080), 48), mon));
+        assert!(Edge::Left.lies_along(Edge::Left.strip((0, 0, 1920, 1080), 48), mon));
+        // On another display, left of the main one.
+        let side = (-1920, 0, 1920, 1200);
+        assert!(Edge::Top.lies_along(Edge::Top.strip(side, 60), side));
+        assert!(!Edge::Bottom.lies_along(Edge::Bottom.strip((-1920, 0, 1920, 1080), 48), side));
+    }
+
+    #[test]
+    fn the_work_area_follows_the_strip_it_was_set_for() {
+        let mon = (0, 0, 2560, 1440);
+        // At 125% the strip 60 px, at 100% 48: Windows' room moved to 1392,
+        // the side set for the old strip (1380) stayed.
+        let now = Edge::Bottom.strip(mon, 48);
+        assert!(Edge::Bottom.short_of((0, 0, 2560, 1380), now));
+        assert_eq!(Edge::Bottom.work_fix((0, 0, 2560, 1380), now, Some(1380)), Some(1392));
+        // Short of it at a side not set by her (another bar's room): left be.
+        assert_eq!(Edge::Bottom.work_fix((0, 0, 2560, 1380), now, None), None);
+        assert_eq!(Edge::Bottom.work_fix((0, 0, 2560, 1380), now, Some(1032)), None);
+        // Reaching into it: set, whoever set it.
+        assert_eq!(Edge::Bottom.work_fix(mon, now, None), Some(1392));
+        // Where it should be: left be.
+        assert_eq!(Edge::Bottom.work_fix((0, 0, 2560, 1392), now, Some(1380)), None);
+        // Along the left, a thinner strip now: the side moves in.
+        let left = Edge::Left.strip(mon, 48);
+        assert!(Edge::Left.short_of((60, 0, 2500, 1440), left));
+        assert_eq!(Edge::Left.work_fix((60, 0, 2500, 1440), left, Some(60)), Some(48));
+        // Along the top and the right.
+        assert_eq!(Edge::Top.work_fix((0, 60, 2560, 1380), Edge::Top.strip(mon, 48), Some(60)), Some(48));
+        assert_eq!(Edge::Right.work_fix((0, 0, 2500, 1440), Edge::Right.strip(mon, 48), Some(2500)), Some(2512));
     }
 
     #[test]

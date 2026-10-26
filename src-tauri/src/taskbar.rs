@@ -318,6 +318,12 @@ mod imp {
     // The strip as granted (physical); since when (tick) the work area has
     // reached into it, and when it was last taken again for that.
     static STRIP: Mutex<Option<(i32, i32, i32, i32)>> = Mutex::new(None);
+    // The work area's side on the strip's edge as she last set it (tick,
+    // strip_moved): left there as the strip moves, it follows the strip
+    // (appbar.rs work_fix). Whether the strip as told lies off its display's
+    // edge (the display changed), said once.
+    static WORK_SIDE: Mutex<Option<(Edge, i32)>> = Mutex::new(None);
+    static STRIP_OFF: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     static LOST_SINCE: AtomicU32 = AtomicU32::new(0);
     static LAST_TAKEN: AtomicU32 = AtomicU32::new(0);
     // Asking programs for their icons: from this tick (0: asked), the last
@@ -996,6 +1002,7 @@ mod imp {
             });
         }
         *WORK_EDGE.lock().unwrap() = None;
+        *WORK_SIDE.lock().unwrap() = None;
         *SENT.lock().unwrap() = Value::Null;
         *SENT_WINDOWS.lock().unwrap() = Value::Null;
         *PAPER.lock().unwrap() = Value::Null;
@@ -1736,6 +1743,7 @@ mod imp {
             }
             log(&format!("the strip now along the {edge:?}: work area made ({}, {}, {}, {})", r.left, r.top, r.right, r.bottom));
             set_work_area(r);
+            *WORK_SIDE.lock().unwrap() = Some((edge, edge.inner(strip)));
             icons_out(strip, edge);
         } else if is_up() && was.is_some_and(|w| w != Edge::Bottom) && edge == Edge::Bottom {
             // Back along the bottom: the work area the display less the room
@@ -1956,17 +1964,6 @@ mod imp {
                 now.left, now.top, now.right, now.bottom, later.left, later.top, later.right, later.bottom
             ));
         });
-    }
-
-    // Where the work area should stop on the strip's edge (its inner side),
-    // when it reaches into the strip; None while it is clear of it.
-    fn work_lost(edge: Edge, work: &Rect, s: (i32, i32, i32, i32)) -> Option<i32> {
-        match edge {
-            Edge::Bottom => (work.bottom > s.1).then_some(s.1),
-            Edge::Top => (work.top < s.1 + s.3).then_some(s.1 + s.3),
-            Edge::Left => (work.left < s.0 + s.2).then_some(s.0 + s.2),
-            Edge::Right => (work.right > s.0).then_some(s.0),
-        }
     }
 
     // The tray's icons and the buttons as last sent, for a page that has just come up.
@@ -2562,21 +2559,36 @@ mod imp {
             }
         }
         // The work area reaching into the strip: Windows has not counted it.
-        // Its side on the strip's edge is set where the strip starts (after
-        // half a second of it, at most every two seconds, should something
-        // set it back).
+        // Or stopping short of it where she set it for the strip before it
+        // moved. Its side on the strip's edge is set where the strip starts
+        // (after half a second of it, at most every two seconds, should
+        // something set it back).
         let work = work_area();
         let bottom = work.bottom;
         if bottom != WORK_BOTTOM.swap(bottom, Ordering::SeqCst) {
             log(&format!("work area's bottom now {bottom}"));
         }
-        let strip = *STRIP.lock().unwrap();
         let edge = *EDGE.lock().unwrap();
-        let fix = strip.and_then(|s| work_lost(edge, &work, s));
-        // A side an earlier strip of hers held in, kept by Explorer: given back (appbar.rs stale_sides).
-        let mon = strip.filter(|_| edge != Edge::Bottom).map(|s| monitor_of(s).0);
+        // The strip and its display; none while the strip as told lies off
+        // its display's edge (appbar.rs lies_along): told before the display
+        // changed, it would set the work area by where the edge was. Nothing
+        // is set until it is told anew.
+        let told = *STRIP.lock().unwrap();
+        let laid = told.map(|s| (s, monitor_of(s).0)).filter(|&(s, mon)| {
+            let along = edge.lies_along(s, mon);
+            if !along && !STRIP_OFF.swap(true, Ordering::SeqCst) {
+                log(&format!("the strip as told {s:?} lies off the {edge:?} of its display {mon:?} (the display changed): the work area left be until it is told anew"));
+            } else if along {
+                STRIP_OFF.store(false, Ordering::SeqCst);
+            }
+            along
+        });
+        let strip = laid.map(|(s, _)| s);
         let xywh = (work.left, work.top, work.right - work.left, work.bottom - work.top);
-        let stale = strip.zip(mon).map(|(s, m)| edge.stale_sides(xywh, s, m)).unwrap_or_default();
+        let ours = WORK_SIDE.lock().unwrap().filter(|w| w.0 == edge).map(|w| w.1);
+        let fix = strip.and_then(|s| edge.work_fix(xywh, s, ours));
+        // A side an earlier strip of hers held in, kept by Explorer: given back (appbar.rs stale_sides).
+        let stale = laid.filter(|_| edge != Edge::Bottom).map(|(s, m)| edge.stale_sides(xywh, s, m)).unwrap_or_default();
         let lost = fix.is_some() || !stale.is_empty();
         let ticks = TICKS.load(Ordering::SeqCst);
         if !lost {
@@ -2587,8 +2599,10 @@ mod imp {
             LAST_TAKEN.store(ticks, Ordering::SeqCst);
             LOST_SINCE.store(0, Ordering::SeqCst);
             if let Some(side) = fix {
-                log(&format!("work area ({}, {}, {}, {}) reaches into the strip ({strip:?}, {edge:?}): its side set to {side}", work.left, work.top, work.right, work.bottom));
+                let (how, why) = if strip.is_some_and(|s| edge.reaches(xywh, s)) { ("reaches into", "") } else { ("stops short of", ", where she set it for one before") };
+                log(&format!("work area ({}, {}, {}, {}) {how} the strip ({strip:?}, {edge:?}){why}: its side set to {side}", work.left, work.top, work.right, work.bottom));
                 set_work_side(edge, side);
+                *WORK_SIDE.lock().unwrap() = Some((edge, side));
                 if let Some(strip) = strip {
                     icons_out(strip, edge);
                 }
