@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -111,12 +113,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -199,12 +203,14 @@
         "at": 2500,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -279,12 +285,24 @@
         "at": 2800,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -396,12 +414,24 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "waiting",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -459,12 +489,24 @@
         "at": 6000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -537,12 +579,35 @@
         "at": 6500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt"
+        ],
         "files": 1,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -604,12 +669,35 @@
         "at": 6500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt"
+        ],
         "files": 1,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -671,12 +759,35 @@
         "at": 6500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt"
+        ],
         "files": 1,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -750,12 +861,45 @@
         "at": 7500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -808,12 +952,45 @@
         "at": 7500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -876,12 +1053,45 @@
         "at": 7500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -999,12 +1209,45 @@
           }
         },
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "waiting",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -1065,12 +1308,45 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1155,12 +1431,54 @@
         "at": 9500,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Remove-Item build -Recurse"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1269,12 +1587,61 @@
         "at": 9800,
         "detail": "TodoWrite",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt, then create copy.txt",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Remove-Item build -Recurse"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1363,12 +1730,61 @@
         "at": 10000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "review",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Remove-Item build -Recurse"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "Done — copy.txt has hi.",
         "since": null,
         "step": null,
@@ -1435,12 +1851,61 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "copy.txt",
+          "notes.md"
+        ],
         "files": 2,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "idle",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Get-Content note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "notes.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "Remove-Item build -Recurse"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1503,12 +1968,14 @@
         "at": 21000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": 21000,
         "step": {
@@ -1569,12 +2036,14 @@
         "at": 22000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "idle",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1633,12 +2102,14 @@
         "at": 23000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "working",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": 23000,
         "step": {
@@ -1712,12 +2183,14 @@
         "at": 24000,
         "detail": "",
         "error": "401 Unauthorized: invalid api key",
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "error",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1768,12 +2241,14 @@
         "at": 24000,
         "detail": "",
         "error": "401 Unauthorized: invalid api key",
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-main",
         "jump": false,
         "mood": "error",
         "name": "Copy a note",
         "project": "dsh-ws",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,

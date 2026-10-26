@@ -727,6 +727,41 @@
         await p.wait(600)
       },
     })),
+    {
+      id: 'settings-general-open',
+      section: 'settings',
+      title: '设置 · 通用，会话展开（改过的文件、最近几步）',
+      page: 'island',
+      home: 'taskbar',
+      view: [0, above(660), 560, 660],
+      world: F => ({ ...busy(F), sessions: [F.session('review'), ...F.others()], widgets: F.widgets('monitor', 'today', 'tokens', 'weather', 'stock-aapl', 'stock-nvda', 'pomodoro', 'countdown', 'inbox-a1', 'deploy'), deskLayout: F.DESK.everyday }),
+      steps: async p => {
+        p.emit('island:settings', { tab: 'now' })
+        await p.wait(600)
+        p.click('#island-settings [data-sess-open="s1"]')
+        p.click('#island-settings [data-sess-open="s2"]')
+        await p.wait(300)
+      },
+    },
+    {
+      id: 'settings-general-nodetails',
+      section: 'settings',
+      title: '设置 · 通用，关掉具体内容（对齐计时）',
+      page: 'island',
+      home: 'taskbar',
+      view: [0, above(660), 560, 660],
+      world: F => ({
+        ...busy(F),
+        config: { details: false },
+        sessions: [F.session('review'), ...F.others()],
+        widgets: F.widgets('monitor', 'today', 'tokens', 'weather', 'stock-aapl', 'stock-nvda', 'pomodoro', 'countdown', 'inbox-a1', 'deploy'),
+        deskLayout: F.DESK.everyday,
+      }),
+      steps: async p => {
+        p.emit('island:settings', { tab: 'now' })
+        await p.wait(600)
+      },
+    },
     // The Agent page: the agents found here (fake-tauri.js: Claude Code,
     // Codex and Reasonix, the others not on this computer), then Reasonix's
     // row opened to its details, and a Reasonix 0.x's, which she does not

@@ -54,20 +54,87 @@
   }
 
   // --- Sessions ---------------------------------------------------------------------------
-  const BASE = { id: 's1', project: 'pet', agent: 'claude', jump: true, name: '任务栏设计', detail: null, at: T0, since: null, took: null, step: null, stepSince: null, todo: null, files: 0, reply: '', error: null }
+  const BASE = { id: 's1', project: 'pet', agent: 'claude', jump: true, name: '任务栏设计', detail: null, at: T0, since: null, took: null, step: null, stepSince: null, todo: null, files: 0, fileList: [], recentSteps: [], reply: '', error: null }
   const MOODS = {
     idle: {},
-    working: { since: T0 - 95e3, step: { key: 'step.edit', vars: { file: 'island.js' } }, stepSince: T0 - 4e3, todo: { done: 3, total: 7, active: '胶囊的流光' } },
+    working: {
+      since: T0 - 95e3,
+      step: { key: 'step.edit', vars: { file: 'island.js' } },
+      stepSince: T0 - 4e3,
+      todo: { done: 3, total: 7, active: '胶囊的流光' },
+      files: 2,
+      fileList: ['src/pet/island.js', 'src/pet/style.css'],
+      recentSteps: [
+        { step: { key: 'step.read', vars: { file: 'flow.js' } }, ok: true },
+        { step: { key: 'step.edit', vars: { file: 'style.css' } }, ok: true },
+        { step: { key: 'step.edit', vars: { file: 'island.js' } }, ok: true },
+      ],
+    },
     waiting: { since: T0 - 131e3, detail: { key: 'detail.needsApproval', vars: { tool: 'Bash' } } },
-    done: { took: 151e3, reply: '改好了：浅色下胶囊的描边，和小点的位置。' },
-    review: { took: 151e3, files: 3, reply: '改了三个文件，来看看。' },
+    done: { took: 73e3, reply: '写好了。', files: 0, fileList: [], recentSteps: [] },
+    review: {
+      took: 151e3,
+      reply: '改好了：浅色下胶囊的描边，和小点的位置。',
+      files: 18,
+      fileList: [
+        'src/pet/island.js',
+        'src/pet/style.css',
+        'src/pet/settings.js',
+        'src/pet/settings.css',
+        'src/pet/status.js',
+        'src/pet/bar.js',
+        'src/pet/bar.css',
+        'src/pet/island.html',
+        'src/pet/pet.js',
+        'src/shared/i18n.js',
+        'src-tauri/src/state.rs',
+        'src-tauri/src/events.rs',
+        'src-tauri/src/main.rs',
+        'README.md',
+        'D:\\external\\tools\\wakuwaku-helper\\src\\config.rs',
+      ],
+      recentSteps: [
+        { step: { key: 'step.read', vars: { file: 'island.js' } }, ok: true },
+        { step: { key: 'step.edit', vars: { file: 'style.css' } }, ok: true },
+        { step: { key: 'step.command', vars: { what: 'cargo check' } }, ok: true },
+        { step: { key: 'step.edit', vars: { file: 'island.js' } }, ok: true },
+      ],
+    },
     error: { took: 42e3, error: { key: 'error.rate_limit', vars: {} } },
   }
   const session = (mood, extra = {}) => ({ ...BASE, mood, ...MOODS[mood], ...extra })
   // Others beside the one shown: Codex at work, a turn done.
   const others = () => [
-    { ...BASE, id: 's2', agent: 'codex', name: '邮件同步', project: 'mail', mood: 'working', since: T0 - 412e3, step: { key: 'step.command', vars: { what: 'cargo test' } }, stepSince: T0 - 30e3 },
-    { ...BASE, id: 's3', name: '发布说明', project: 'pet', mood: 'done', took: 73e3, reply: '写好了。' },
+    {
+      ...BASE,
+      id: 's2',
+      agent: 'codex',
+      name: '邮件同步',
+      project: 'mail',
+      mood: 'working',
+      since: T0 - 412e3,
+      step: { key: 'step.command', vars: { what: 'cargo test' } },
+      stepSince: T0 - 30e3,
+      files: 1,
+      fileList: ['src-tauri/src/mail/sync.rs'],
+      recentSteps: [
+        { step: { key: 'step.read', vars: { file: 'sync.rs' } }, ok: true },
+        { step: { key: 'step.edit', vars: { file: 'sync.rs' } }, ok: true },
+        { step: { key: 'step.command', vars: { what: 'cargo check' } }, ok: false },
+      ],
+    },
+    {
+      ...BASE,
+      id: 's3',
+      name: '发布说明',
+      project: 'pet',
+      mood: 'done',
+      took: 73e3,
+      reply: '写好了。',
+      files: 0,
+      fileList: [],
+      recentSteps: [],
+    },
   ]
   // A third at work: reading, in another project.
   const reading = () => ({ ...BASE, id: 's3', name: '周报', project: 'docs', mood: 'working', since: T0 - 48e3, step: { key: 'step.read', vars: { file: 'style.md' } }, stepSince: T0 - 2e3 })

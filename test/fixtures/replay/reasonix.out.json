@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -111,12 +113,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -197,12 +201,14 @@
         "at": 2500,
         "detail": "Write",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -276,12 +282,26 @@
         "at": 3000,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -392,12 +412,26 @@
           }
         },
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-rx",
         "jump": false,
         "mood": "waiting",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -473,12 +507,26 @@
           }
         },
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-rx",
         "jump": false,
         "mood": "waiting",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -555,12 +603,26 @@
         "at": 8000,
         "detail": "Grep",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -634,12 +696,36 @@
         "at": 8500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -692,12 +778,36 @@
         "at": 8500,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -776,12 +886,45 @@
         "at": 9000,
         "detail": "Edit",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -834,12 +977,45 @@
         "at": 9000,
         "detail": "Edit",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -910,12 +1086,45 @@
         "at": 10000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "review",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "Done: Created note.txt and pushed it.",
         "since": null,
         "step": null,
@@ -965,12 +1174,45 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "note.txt",
+          "todo.md"
+        ],
         "files": 2,
         "id": "replay-rx",
         "jump": false,
         "mood": "idle",
         "name": "Create note.txt and push it.",
         "project": "rx",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "todo.md"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1029,12 +1271,14 @@
         "at": 21000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Now tag a release",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 21000,
         "step": {
@@ -1108,12 +1352,14 @@
         "at": 22000,
         "detail": "",
         "error": "deepseek: 402 Insufficient Balance",
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "error",
         "name": "Now tag a release",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1164,12 +1410,14 @@
         "at": 22000,
         "detail": "",
         "error": "deepseek: 402 Insufficient Balance",
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "error",
         "name": "Now tag a release",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1219,12 +1467,14 @@
         "at": 30000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "idle",
         "name": "Now tag a release",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1283,12 +1533,14 @@
         "at": 31000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "working",
         "name": "Try once more",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 31000,
         "step": {
@@ -1349,12 +1601,14 @@
         "at": 32000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "idle",
         "name": "Try once more",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1401,12 +1655,14 @@
         "at": 32000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "idle",
         "name": "Try once more",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1497,12 +1753,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "waiting",
         "name": "Try once more",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 100000,
         "step": null,
@@ -1566,12 +1824,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-rx",
         "jump": false,
         "mood": "waiting",
         "name": "Try once more",
         "project": "rx",
+        "recentSteps": [],
         "reply": "",
         "since": 100000,
         "step": null,

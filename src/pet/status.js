@@ -82,7 +82,21 @@
   // The one of them that most wants you, if one does.
   const urgentOf = (list, shown) => othersOf(list, shown).find(x => x.mood === 'waiting' || x.mood === 'error')
 
-  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, othersOf, urgentOf }
+  // What a session's expanded row shows: the files its turn edited (up to 15)
+  // and its last few tool steps; null when specifics are off or it has neither.
+  function detailsOf(lang, s, { detailed = true } = {}) {
+    if (!detailed || !s) return null
+    const files = Array.isArray(s.fileList) ? s.fileList.slice(0, 15) : []
+    const totalFiles = Math.max(Number(s.files) || 0, files.length)
+    const moreFiles = Math.max(0, totalFiles - files.length)
+    const steps = Array.isArray(s.recentSteps)
+      ? s.recentSteps.map(x => ({ text: render(lang, x?.step), ok: x?.ok !== false })).filter(x => x.text)
+      : []
+    if (!files.length && !steps.length) return null
+    return { files, moreFiles, totalFiles, steps }
+  }
+
+  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, othersOf, urgentOf, detailsOf }
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api

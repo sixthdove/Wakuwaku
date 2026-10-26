@@ -47,12 +47,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-zc",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "zc",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -111,12 +113,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-zc",
         "jump": false,
         "mood": "working",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -197,12 +201,14 @@
         "at": 2500,
         "detail": "Write",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-zc",
         "jump": false,
         "mood": "working",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -326,12 +332,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-zc",
         "jump": false,
         "mood": "waiting",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -400,12 +408,26 @@
         "at": 4000,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-zc",
         "jump": false,
         "mood": "working",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -486,12 +508,26 @@
         "at": 4500,
         "detail": "Task",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-zc",
         "jump": false,
         "mood": "working",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -556,12 +592,26 @@
         "at": 4500,
         "detail": "Task",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-zc",
         "jump": false,
         "mood": "working",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -633,12 +683,26 @@
         "at": 6000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "note.txt"
+        ],
         "files": 1,
         "id": "replay-zc",
         "jump": false,
         "mood": "review",
         "name": "Create a file named note.txt containing hi",
         "project": "zc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "Created note.txt.",
         "since": null,
         "step": null,

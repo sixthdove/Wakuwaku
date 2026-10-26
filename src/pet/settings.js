@@ -319,9 +319,28 @@
 
   // --- The pages -------------------------------------------------------------------------
 
+  function sessionDetails(det) {
+    const kv = (key, val) => `<div class="kv"><span class="k">${esc(T(key))}</span><span class="v">${val}</span></div>`
+    const rows = []
+    if (det.files.length) {
+      const list = det.files.map(f => `<span class="s-file mono path">${esc(f)}</span>`).join('')
+      const more = det.moreFiles > 0 ? `<span class="d s-more">${esc(T('s.filesMore', { n: det.moreFiles, total: det.totalFiles }))}</span>` : ''
+      rows.push(kv('s.changedFiles', `<div class="s-files">${list}${more}</div>`))
+    }
+    if (det.steps.length) {
+      const list = det.steps
+        .map(st => `<div class="s-step${st.ok ? '' : ' err'}"><span class="fi s-st-ic">${st.ok ? '\uE73E' : '\uE711'}</span><span class="ellip">${esc(st.text)}</span></div>`)
+        .join('')
+      rows.push(kv('s.recentSteps', `<div class="s-steps">${list}</div>`))
+    }
+    return `<div class="ag-det s-det">${rows.join('')}</div>`
+  }
+
   function pageNow() {
     const s = snap.settings
     const sessions = snap.sessions || []
+    const alive = new Set(sessions.map(x => x.id))
+    for (const id of sessionOpen) if (!alive.has(id)) sessionOpen.delete(id)
     // Each session: its name, and where it is (or how its turn ended).
     const detailed = s.details !== false
     const list = sessions.length
@@ -334,10 +353,17 @@
               detailed && x.name && x.project !== name ? x.project : '',
               detailed && Status.isEnding(x) ? x.reply : '',
             ].filter(Boolean)
+            const det = Status.detailsOf(lang, x, { detailed })
+            const open = !!det && sessionOpen.has(x.id)
+            const exp = detailed
+              ? det
+                ? `<button type="button" class="s-exp" data-sess-open="${esc(x.id)}" aria-expanded="${open}" aria-label="${esc(T('s.changedFiles'))}"><span class="fi chev${open ? ' open' : ''}">\uE76C</span></button>`
+                : '<span class="s-exp-space"></span>'
+              : ''
             // One with a window to go to: a click on it goes there.
             const jump = x.jump ? ` data-jump="${esc(x.id)}"` : ''
             const tip = [...what, x.jump ? T('jump.hint') : ''].filter(Boolean).join('\n')
-            return `<div class="r${x.jump ? ' jumps' : ''}"${jump} title="${esc(tip)}"><span class="dot" style="background:${COLOR[x.mood] || COLOR.idle}"></span><div class="grow"><div class="ellip">${esc(name || '—')}</div><div class="d ellip">${esc(what.join(' · '))}</div></div>${clockTag(x)}</div>`
+            return `<div class="r s-row${x.jump ? ' jumps' : ''}${open ? ' open' : ''}"${jump} title="${esc(tip)}"><span class="dot" style="background:${COLOR[x.mood] || COLOR.idle}"></span><div class="grow"><div class="ellip">${esc(name || '—')}</div><div class="d ellip">${esc(what.join(' · '))}</div></div>${clockTag(x)}${exp}</div>${open ? sessionDetails(det) : ''}`
           })
           .join('')
       : `<div class="note">${esc(T('home.noSessions', { list: toolNames(toolsHere()) }))}</div>`
@@ -2744,6 +2770,7 @@
   const failed = {}
   let pluginOpen = false
   let agentOpen = ''
+  const sessionOpen = new Set()
   let othersOpen = false
   let connectingAll = false
   const known = () => ({ busy: connecting, failed })
@@ -3659,6 +3686,14 @@
     }
     const tabButton = at('[data-tab]')
     if (tabButton) return setTab(tabButton.dataset.tab)
+    const sessToggle = at('[data-sess-open]')
+    if (sessToggle) {
+      const id = sessToggle.dataset.sessOpen
+      if (sessionOpen.has(id)) sessionOpen.delete(id)
+      else sessionOpen.add(id)
+      draw()
+      return
+    }
     // A session: to its window (the settings close as it comes to the front).
     const session = at('[data-jump]')
     if (session) {
