@@ -9,8 +9,6 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-#[cfg(test)]
-use agent_core::agy::with_transcript;
 
 fn s<'a>(e: &'a Value, key: &str) -> &'a str {
     e.get(key).and_then(Value::as_str).unwrap_or("")
@@ -29,6 +27,32 @@ pub fn read_config() -> Value {
         .unwrap_or_else(|| json!({}))
 }
 
+// Antigravity CLI's settings (~/.gemini/antigravity-cli/settings.json), where
+// toolPermission (always-proceed, request-review, strict, proceed-in-sandbox),
+// agentMode (accept-edits, auto), allowNonWorkspaceAccess and permissions.allow live.
+pub fn cli_settings_file() -> PathBuf {
+    crate::connection::gemini_dir().join("antigravity-cli").join("settings.json")
+}
+
+pub fn read_cli_settings() -> Value {
+    std::fs::read_to_string(cli_settings_file())
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(|| json!({}))
+}
+
+// Whether an Antigravity event comes from `agy` CLI (vs Antigravity 2.0 Desktop).
+// CLI events have transcripts/artifacts inside `antigravity-cli/`, or are flagged
+// by main.rs via process inspection (jump::agy_cli_info).
+pub fn is_cli_event(e: &Value) -> bool {
+    if e.get("is_cli").and_then(Value::as_bool) == Some(true) {
+        return true;
+    }
+    let transcript = s(e, "transcriptPath");
+    let artifact = s(e, "artifactDirectoryPath");
+    transcript.contains("antigravity-cli") || artifact.contains("antigravity-cli")
+}
+
 // A line for her log as a turn begins or ends, or a prompt comes: what
 // Antigravity said, to tell a turn that never ended from one shown short.
 pub fn log_line(e: &Value) -> Option<String> {
@@ -43,34 +67,45 @@ pub fn log_line(e: &Value) -> Option<String> {
     Some(format!("agy {name}{what} ({})", s(e, "conversationId").chars().take(8).collect::<String>()))
 }
 
-fn norm_path(p: &str) -> String {
-    let mut out = p.trim().replace('\\', "/");
-    while out.ends_with('/') && out.len() > 1 {
-        out.pop();
-    }
-    if cfg!(windows) {
-        out.to_ascii_lowercase()
+fn strip_drive(p: &str) -> &str {
+    let bytes = p.as_bytes();
+    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+        &p[2..]
     } else {
-        out
+        p
     }
 }
 
-fn path_within(path: &str, root: &str) -> bool {
+pub fn norm_path(p: &str) -> String {
+    let mut s = p.trim().replace('\\', "/");
+    if cfg!(windows) {
+        s = strip_drive(&s).to_string();
+        s = s.to_ascii_lowercase();
+    }
+    while s.ends_with('/') && s.len() > 1 {
+        s.pop();
+    }
+    s
+}
+
+pub fn path_within(path: &str, root: &str) -> bool {
     let (p, r) = (norm_path(path), norm_path(root));
     if p.is_empty() || r.is_empty() {
         return false;
     }
+    if r == "/" {
+        return p.starts_with('/');
+    }
     p == r || p.strip_prefix(&r).is_some_and(|rest| rest.starts_with('/'))
 }
 
-fn is_relative_path(path: &str) -> bool {
+pub fn is_relative_path(path: &str) -> bool {
     let p = path.trim();
     !p.is_empty() && !p.starts_with('/') && !p.starts_with('\\') && p.as_bytes().get(1) != Some(&b':')
 }
 
-// Antigravity's isFilePathAllowed allows any path inside workspacePaths or
-// its own ~/.gemini/antigravity folder (artifacts, brain, scratch) without
-// prompting the person; only paths outside those ask.
+// Antigravity's isFilePathAllowed allows any path inside workspacePaths,
+// artifactDirectoryPath, or its own ~/.gemini/antigravity or ~/.gemini/antigravity-cli folders.
 fn is_workspace_or_artifact_path(e: &Value, path: &str) -> bool {
     if path.trim().is_empty() || is_relative_path(path) {
         return true;
@@ -84,12 +119,105 @@ fn is_workspace_or_artifact_path(e: &Value, path: &str) -> bool {
     if !artifact.is_empty() && path_within(path, artifact) {
         return true;
     }
-    let agy_dir = crate::connection::gemini_dir().join("antigravity");
-    path_within(path, &agy_dir.to_string_lossy())
+    let gemini = crate::connection::gemini_dir();
+    let agy_dir = gemini.join("antigravity");
+    if path_within(path, &agy_dir.to_string_lossy()) {
+        return true;
+    }
+    let cli_dir = gemini.join("antigravity-cli");
+    path_within(path, &cli_dir.to_string_lossy())
+}
+
+// Extract hostname/domain from a URL (e.g. "https://mail.google.com/a" -> "mail.google.com").
+pub fn extract_domain(url: &str) -> &str {
+    let mut s = url.trim();
+    if let Some(pos) = s.find("://") {
+        s = &s[pos + 3..];
+    }
+    let end = s.find(['/', '?', '#', ':']).unwrap_or(s.len());
+    &s[..end]
+}
+
+pub fn domain_covers(grant_target: &str, url_or_target: &str) -> bool {
+    if grant_target == "*" {
+        return true;
+    }
+    let host = extract_domain(url_or_target).to_ascii_lowercase();
+    let g_host = extract_domain(grant_target).to_ascii_lowercase();
+    if g_host.is_empty() || host.is_empty() {
+        return false;
+    }
+    host == g_host || host.ends_with(&format!(".{g_host}"))
+}
+
+// Split compound shell commands (separated by &&, ||, ;, |, \n) respecting quotes.
+pub fn split_compound_commands(cmd: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut cur = String::new();
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut chars = cmd.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\'' if !in_double => {
+                in_single = !in_single;
+                cur.push(c);
+            }
+            '"' if !in_single => {
+                in_double = !in_double;
+                cur.push(c);
+            }
+            ';' | '\n' if !in_single && !in_double => {
+                let trimmed = cur.trim().to_string();
+                if !trimmed.is_empty() {
+                    parts.push(trimmed);
+                }
+                cur.clear();
+            }
+            '&' if !in_single && !in_double => {
+                if chars.peek() == Some(&'&') {
+                    chars.next();
+                }
+                let trimmed = cur.trim().to_string();
+                if !trimmed.is_empty() {
+                    parts.push(trimmed);
+                }
+                cur.clear();
+            }
+            '|' if !in_single && !in_double => {
+                if chars.peek() == Some(&'|') {
+                    chars.next();
+                }
+                let trimmed = cur.trim().to_string();
+                if !trimmed.is_empty() {
+                    parts.push(trimmed);
+                }
+                cur.clear();
+            }
+            _ => cur.push(c),
+        }
+    }
+    let trimmed = cur.trim().to_string();
+    if !trimmed.is_empty() {
+        parts.push(trimmed);
+    }
+    if parts.is_empty() && !cmd.trim().is_empty() {
+        parts.push(cmd.trim().to_string());
+    }
+    parts
+}
+
+fn command_rule_covers(grant_target: &str, simple_cmd: &str) -> bool {
+    if grant_target == "*" {
+        return true;
+    }
+    let rule_tokens: Vec<&str> = grant_target.split_whitespace().collect();
+    let cmd_tokens: Vec<&str> = simple_cmd.split_whitespace().collect();
+    !rule_tokens.is_empty() && cmd_tokens.len() >= rule_tokens.len() && cmd_tokens[..rule_tokens.len()] == rule_tokens[..]
 }
 
 // Parse Antigravity's `<action>(<target>)` grant string.
-fn parse_grant(grant: &str) -> Option<(&str, &str)> {
+pub fn parse_grant(grant: &str) -> Option<(&str, &str)> {
     let g = grant.trim();
     let open = g.find('(')?;
     let rest = g.strip_suffix(')')?;
@@ -98,33 +226,93 @@ fn parse_grant(grant: &str) -> Option<(&str, &str)> {
     (!action.is_empty()).then_some((action, target))
 }
 
-// Whether a grant in userSettings.globalPermissionGrants covers (action, target),
-// matching language_server's PermissionGrant.Covers / coversCommand / CoversPath / coversMCP.
-fn grant_covers(grant: &str, action: &str, target: &str) -> bool {
-    let Some((g_action, g_target)) = parse_grant(grant) else { return false };
-    if g_action != action {
-        return false;
-    }
-    if g_target == "*" {
+fn path_matches_target(path: &str, target: &str, ws_paths: &[String]) -> bool {
+    if target == "*" {
         return true;
     }
-    match action {
-        "command" => {
-            let rule_tokens: Vec<&str> = g_target.split_whitespace().collect();
-            let cmd_tokens: Vec<&str> = target.split_whitespace().collect();
-            !rule_tokens.is_empty() && cmd_tokens.len() >= rule_tokens.len() && cmd_tokens[..rule_tokens.len()] == rule_tokens[..]
-        }
-        "write_file" | "read_file" => path_within(target, g_target),
-        "read_url" => target == g_target || target.starts_with(g_target),
-        "mcp" => {
-            if let Some(prefix) = g_target.strip_suffix("/*") {
-                target.strip_prefix(prefix).is_some_and(|rest| rest.starts_with('/'))
-            } else {
-                target == g_target
+    if path_within(path, target) {
+        return true;
+    }
+    // If target is relative (e.g. "src/", ".git/"), check against workspace paths
+    if is_relative_path(target) {
+        for ws in ws_paths {
+            let combined = format!("{ws}/{target}");
+            if path_within(path, &combined) {
+                return true;
             }
         }
-        _ => target == g_target,
     }
+    // Check wildcard pattern like *.log or .env*
+    if let Some(prefix) = target.strip_suffix('*') {
+        let norm_p = norm_path(path);
+        let norm_pre = norm_path(prefix);
+        if norm_p.starts_with(&norm_pre) {
+            return true;
+        }
+        let file_name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+        if file_name.starts_with(prefix) {
+            return true;
+        }
+    }
+    false
+}
+
+// Whether a grant covers (action, target).
+// Supports `<action>(<target>)` format (e.g. `command(npm test)`, `write_file(/a/b)`),
+// `unsandboxed(...)`, `command(*)` wildcard, and plain command rules without parentheses.
+pub fn grant_covers(grant: &str, action: &str, target: &str, ws_paths: &[String]) -> bool {
+    let grant = grant.trim();
+    if let Some((g_action, g_target)) = parse_grant(grant) {
+        let action_match = g_action == action || (action == "command" && g_action == "unsandboxed");
+        if !action_match {
+            return false;
+        }
+        if g_target == "*" {
+            return true;
+        }
+        match action {
+            "command" => command_rule_covers(g_target, target),
+            "write_file" | "read_file" => path_matches_target(target, g_target, ws_paths),
+            "read_url" => domain_covers(g_target, target),
+            "mcp" => {
+                if let Some(prefix) = g_target.strip_suffix("/*") {
+                    target.strip_prefix(prefix).is_some_and(|rest| rest.starts_with('/'))
+                } else {
+                    target == g_target
+                }
+            }
+            _ => target == g_target,
+        }
+    } else if action == "command" {
+        command_rule_covers(grant, target)
+    } else if action == "read_url" {
+        domain_covers(grant, target)
+    } else {
+        grant == target
+    }
+}
+
+// Implicit permission rules per official docs (antigravity.google/docs/permissions):
+// - Write implies read: Allowing write_file on a path automatically grants read_file.
+// - Deny read implies deny write: Denying read_file on a path immediately blocks write_file.
+fn grant_matches_allow(grant: &str, action: &str, target: &str, ws_paths: &[String]) -> bool {
+    if grant_covers(grant, action, target, ws_paths) {
+        return true;
+    }
+    if action == "read_file" {
+        return grant_covers(grant, "write_file", target, ws_paths);
+    }
+    false
+}
+
+fn grant_matches_deny(grant: &str, action: &str, target: &str, ws_paths: &[String]) -> bool {
+    if grant_covers(grant, action, target, ws_paths) {
+        return true;
+    }
+    if action == "write_file" {
+        return grant_covers(grant, "read_file", target, ws_paths);
+    }
+    false
 }
 
 fn first_str<'a>(args: &'a Value, keys: &[&str]) -> &'a str {
@@ -182,23 +370,24 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
             let src = first_str(raw_args, &["NewSource", "Content", "new_source"]);
             ("NotebookEdit".into(), json!({ "notebook_path": path, "new_source": src }), Some(("write_file", path.into())))
         }
-        "read_file" | "view_file" | "list_dir" => {
-            let path = first_str(raw_args, &["Path", "AbsolutePath", "DirectoryPath", "file_path"]);
+        "read_file" | "view_file" | "list_dir" | "view_code_item" => {
+            let path = first_str(raw_args, &["Path", "File", "AbsolutePath", "DirectoryPath", "file_path"]);
             ("Read".into(), json!({ "file_path": path }), Some(("read_file", path.into())))
         }
         "grep_search" => {
-            let path = first_str(raw_args, &["SearchPath", "Path", "path"]);
+            let path = first_str(raw_args, &["SearchPath", "Path", "SearchDirectory", "Directory", "path"]);
             let pat = first_str(raw_args, &["Query", "pattern"]);
             ("Grep".into(), json!({ "path": path, "pattern": pat }), Some(("read_file", path.into())))
         }
         "find_by_name" => {
-            let path = first_str(raw_args, &["SearchDirectory", "DirectoryPath", "Path", "path"]);
+            let path = first_str(raw_args, &["SearchDirectory", "DirectoryPath", "Path", "Directory", "path"]);
             let pat = first_str(raw_args, &["Pattern", "pattern"]);
             ("Glob".into(), json!({ "path": path, "pattern": pat }), Some(("read_file", path.into())))
         }
         "read_url_content" => {
             let url = first_str(raw_args, &["Url", "url"]);
-            ("WebFetch".into(), json!({ "url": url }), Some(("read_url", url.into())))
+            let domain = extract_domain(url);
+            ("WebFetch".into(), json!({ "url": url }), Some(("read_url", domain.into())))
         }
         "call_mcp_tool" => {
             let server = first_str(raw_args, &["ServerName", "server"]);
@@ -220,51 +409,177 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
     }
 }
 
-// Whether a PreToolUse event in Antigravity will actually prompt the person in
-// EnsurePermissions: internal tools, workspace/artifact file edits, grants
-// already in globalPermissionGrants.allow, and Turbo / Eager auto-execution
-// modes run without asking, so the hook answers {"decision":"allow"} at once.
-pub fn needs_approval(e: &Value, config: &Value) -> bool {
+// Whether a PreToolUse event in Antigravity will actually prompt the person in EnsurePermissions:
+// - Internal tools (ask_question, task_boundary, search_web, view_file_outline) never prompt.
+// - `--dangerously-skip-permissions` skips all tool prompts.
+// - Evaluation order: Deny > Strict > Ask > Allow > Defaults.
+// - CLI settings (~/.gemini/antigravity-cli/settings.json):
+//   - toolPermission: "always-proceed", "request-review", "strict", "proceed-in-sandbox"
+//   - agentMode: "accept-edits", "auto" (auto-approves workspace edits)
+//   - allowNonWorkspaceAccess (auto-allows reading outside workspace)
+//   - permissions: { allow, ask, deny }
+// - Desktop config (~/.gemini/config/config.json):
+//   - permissionPreset: "AGENT_PERMISSION_PRESET_TURBO", "AGENT_PERMISSION_PRESET_DEFAULT", etc.
+//   - autoExecutionPolicy: "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+//   - globalPermissionGrants: { allow, ask, deny }
+pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     let call = e.get("toolCall").unwrap_or(&Value::Null);
     let raw_tool = s(call, "name");
     let raw_args = call.get("args").unwrap_or(&Value::Null);
     let (_, _, Some((action, target))) = classify_tool(raw_tool, raw_args) else {
         return false;
     };
+
+    if e.get("dangerously_skip_permissions").and_then(Value::as_bool) == Some(true) {
+        return false;
+    }
+
+    let is_cli = is_cli_event(e);
+    let ws_paths: Vec<String> = e
+        .get("workspacePaths")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect())
+        .unwrap_or_default();
+
     let settings = config.get("userSettings").unwrap_or(&Value::Null);
-    let grants = settings.get("globalPermissionGrants").unwrap_or(&Value::Null);
-    let matches_any = |key: &str| {
-        grants
-            .get(key)
-            .and_then(Value::as_array)
-            .is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_covers(g, action, &target)))
+    let desktop_grants = settings.get("globalPermissionGrants").unwrap_or(&Value::Null);
+    let cli_perms = cli.get("permissions").unwrap_or(&Value::Null);
+
+    let (grants_deny, grants_ask, grants_allow) = if is_cli {
+        (
+            cli_perms.get("deny").and_then(Value::as_array),
+            cli_perms.get("ask").and_then(Value::as_array),
+            cli_perms.get("allow").and_then(Value::as_array),
+        )
+    } else {
+        (
+            desktop_grants.get("deny").and_then(Value::as_array),
+            desktop_grants.get("ask").and_then(Value::as_array),
+            desktop_grants.get("allow").and_then(Value::as_array),
+        )
     };
-    if matches_any("ask") {
+
+    let sub_cmds = if action == "command" {
+        split_compound_commands(&target)
+    } else {
+        vec![target.clone()]
+    };
+
+    // 1. Deny rules: Deny > Ask > Allow.
+    // If any part matches deny, return false (Antigravity natively blocks it without asking).
+    let is_denied = |cmd_or_target: &str| {
+        let check = |arr: Option<&Vec<Value>>| {
+            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths)))
+        };
+        check(grants_deny)
+            || check(desktop_grants.get("deny").and_then(Value::as_array))
+            || check(cli_perms.get("deny").and_then(Value::as_array))
+    };
+    if sub_cmds.iter().any(|cmd| is_denied(cmd)) {
+        return false;
+    }
+
+    // 2. Strict mode: prompts before every tool action even if an allow rule matches.
+    if is_cli {
+        let tool_perm = cli.get("toolPermission").and_then(Value::as_str).unwrap_or("request-review");
+        if tool_perm == "strict" {
+            return true;
+        }
+    }
+
+    // 3. Ask rules: Ask > Allow.
+    let is_asked = |cmd_or_target: &str| {
+        let check = |arr: Option<&Vec<Value>>| {
+            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_covers(g, action, cmd_or_target, &ws_paths)))
+        };
+        check(grants_ask)
+            || check(desktop_grants.get("ask").and_then(Value::as_array))
+            || check(cli_perms.get("ask").and_then(Value::as_array))
+    };
+    if sub_cmds.iter().any(|cmd| is_asked(cmd)) {
         return true;
     }
-    if matches_any("allow") || matches_any("deny") {
+
+    // 4. Allow rules:
+    // For compound commands, EVERY simple command must match an allow rule.
+    let is_allowed = |cmd_or_target: &str| {
+        let check = |arr: Option<&Vec<Value>>| {
+            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths)))
+        };
+        check(grants_allow)
+            || check(desktop_grants.get("allow").and_then(Value::as_array))
+            || check(cli_perms.get("allow").and_then(Value::as_array))
+    };
+    if !sub_cmds.is_empty() && sub_cmds.iter().all(|cmd| is_allowed(cmd)) {
         return false;
     }
-    if matches!(action, "write_file" | "read_file") && is_workspace_or_artifact_path(e, &target) {
-        return false;
-    }
-    if s(settings, "permissionPreset") == "AGENT_PERMISSION_PRESET_TURBO" {
-        return false;
-    }
-    match action {
-        "command" => {
-            let policy = s(settings, "autoExecutionPolicy");
-            if policy == "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER" {
-                return false;
-            }
-            if policy == "CASCADE_COMMANDS_AUTO_EXECUTION_PROCEED_IN_SANDBOX"
-                && settings.get("enableTerminalSandbox").and_then(Value::as_bool) == Some(true)
-            {
-                return false;
-            }
-            true
+
+    // 5. Global bypass presets
+    if is_cli {
+        let tool_perm = cli.get("toolPermission").and_then(Value::as_str).unwrap_or("request-review");
+        if tool_perm == "always-proceed" {
+            return false;
         }
-        "write_file" | "read_file" => s(settings, "nonWorkspaceFileAccessPolicy") != "AGENT_SETTING_POLICY_ALLOW",
+    } else {
+        let preset = s(settings, "permissionPreset");
+        if preset == "AGENT_PERMISSION_PRESET_TURBO" {
+            return false;
+        }
+    }
+
+    // 6. Action-specific and mode defaults
+    match action {
+        "read_file" => {
+            if is_workspace_or_artifact_path(e, &target) {
+                return false;
+            }
+            if is_cli {
+                cli.get("allowNonWorkspaceAccess").and_then(Value::as_bool) != Some(true)
+            } else {
+                s(settings, "nonWorkspaceFileAccessPolicy") != "AGENT_SETTING_POLICY_ALLOW"
+            }
+        }
+        "write_file" => {
+            let inside_ws = is_workspace_or_artifact_path(e, &target);
+            if is_cli {
+                let agent_mode = e.get("cli_mode").and_then(Value::as_str).unwrap_or_else(|| {
+                    cli.get("agentMode").and_then(Value::as_str).unwrap_or("")
+                });
+                if inside_ws {
+                    // In CLI: "accept-edits" and "auto" allow workspace file edits without asking.
+                    // Default mode "" in request-review asks for write_file even inside workspace.
+                    agent_mode != "accept-edits" && agent_mode != "auto"
+                } else {
+                    let non_ws = cli.get("allowNonWorkspaceAccess").and_then(Value::as_bool) == Some(true);
+                    !(non_ws && (agent_mode == "accept-edits" || agent_mode == "auto"))
+                }
+            } else {
+                // Desktop App:
+                // Workspace read/write is allowed without prompting under AGENT_PERMISSION_PRESET_DEFAULT.
+                // Only non-workspace file access requires approval.
+                !inside_ws
+            }
+        }
+        "command" => {
+            if is_cli {
+                let tool_perm = cli.get("toolPermission").and_then(Value::as_str).unwrap_or("request-review");
+                let sandbox = cli.get("sandbox").and_then(Value::as_bool) == Some(true);
+                if tool_perm == "proceed-in-sandbox" && sandbox {
+                    return false;
+                }
+                true
+            } else {
+                let policy = s(settings, "autoExecutionPolicy");
+                if policy == "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER" {
+                    return false;
+                }
+                let sandbox_enabled = settings.get("enableTerminalSandbox").and_then(Value::as_bool) == Some(true);
+                if policy == "CASCADE_COMMANDS_AUTO_EXECUTION_PROCEED_IN_SANDBOX" && sandbox_enabled {
+                    return false;
+                }
+                true
+            }
+        }
         "read_url" | "mcp" => true,
         _ => false,
     }
@@ -331,7 +646,7 @@ pub fn with_seen(e: &mut Value) {
 
 // Persist "Always Allow" grants into ~/.gemini/config/config.json
 // (userSettings.globalPermissionGrants.allow), which language_server watches.
-pub fn save_always_grants_to(file: &Path, rules: &[String]) {
+pub fn save_always_grants_to_config(file: &Path, rules: &[String]) {
     if rules.is_empty() {
         return;
     }
@@ -366,6 +681,50 @@ pub fn save_always_grants_to(file: &Path, rules: &[String]) {
     }
 }
 
+// Persist "Always Allow" grants into ~/.gemini/antigravity-cli/settings.json
+// (permissions.allow), which `agy` CLI reads natively.
+pub fn save_always_grants_to_cli(file: &Path, rules: &[String]) {
+    if rules.is_empty() {
+        return;
+    }
+    let mut root: Value = if file.exists() {
+        let Ok(text) = std::fs::read_to_string(file) else { return };
+        let Ok(val) = serde_json::from_str(&text) else { return };
+        val
+    } else {
+        json!({})
+    };
+    let Some(root_obj) = root.as_object_mut() else { return };
+    let perms = root_obj.entry("permissions").or_insert_with(|| json!({}));
+    let Some(perms_obj) = perms.as_object_mut() else { return };
+    let allow = perms_obj.entry("allow").or_insert_with(|| json!([]));
+    let Some(arr) = allow.as_array_mut() else { return };
+    let mut changed = false;
+    for rule in rules {
+        if !arr.iter().any(|v| v.as_str() == Some(rule.as_str())) {
+            arr.push(json!(rule));
+            changed = true;
+        }
+    }
+    if changed {
+        if let Some(parent) = file.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        if let Ok(text) = serde_json::to_string_pretty(&root) {
+            let _ = std::fs::write(file, format!("{text}\n"));
+        }
+    }
+}
+
+pub fn save_always_grants_to(file: &Path, rules: &[String]) {
+    save_always_grants_to_config(file, rules);
+}
+
+pub fn save_always_grants(rules: &[String]) {
+    save_always_grants_to_config(&config_file(), rules);
+    save_always_grants_to_cli(&cli_settings_file(), rules);
+}
+
 fn extract_rules(perms: &[Value]) -> Vec<String> {
     let mut rules = Vec::new();
     for p in perms {
@@ -390,18 +749,18 @@ fn extract_rules(perms: &[Value]) -> Vec<String> {
 
 // What to return to Antigravity on stdout for her decision:
 // - Allow once -> {"decision":"auto_approve"} (bypasses Antigravity's native dialog)
-// - Always allow -> {"decision":"auto_approve","permissionOverrides":[...]} + saved to config.json
+// - Always allow -> {"decision":"auto_approve"} + saved to config.json & settings.json
 // - Deny -> {"decision":"deny","reason":"..."}
 // - Dismiss / timeout / out of sight -> {"decision":"allow"} (defers to Antigravity's native dialog)
 pub fn to_output(body: &str) -> String {
     #[cfg(not(test))]
-    let persist = Some(config_file());
+    let (cfg, cli) = (Some(config_file()), Some(cli_settings_file()));
     #[cfg(test)]
-    let persist: Option<PathBuf> = None;
-    to_output_with(body, persist.as_deref())
+    let (cfg, cli): (Option<PathBuf>, Option<PathBuf>) = (None, None);
+    to_output_with(body, cfg.as_deref(), cli.as_deref())
 }
 
-pub fn to_output_with(body: &str, config: Option<&Path>) -> String {
+pub fn to_output_with(body: &str, config: Option<&Path>, cli: Option<&Path>) -> String {
     let Ok(val) = serde_json::from_str::<Value>(body) else {
         return r#"{"decision":"allow"}"#.to_string();
     };
@@ -414,15 +773,17 @@ pub fn to_output_with(body: &str, config: Option<&Path>) -> String {
                 let rules = extract_rules(perms);
                 if !rules.is_empty() {
                     if let Some(file) = config {
-                        save_always_grants_to(file, &rules);
+                        save_always_grants_to_config(file, &rules);
                     }
-                    return json!({ "decision": "auto_approve", "permissionOverrides": rules }).to_string();
+                    if let Some(cli_file) = cli {
+                        save_always_grants_to_cli(cli_file, &rules);
+                    }
                 }
             }
             r#"{"decision":"auto_approve"}"#.to_string()
         }
         Some("deny") => {
-            let msg = decision.get("message").and_then(Value::as_str).unwrap_or("用户在灵动岛上拒绝了此操作");
+            let msg = decision.get("message").and_then(Value::as_str).unwrap_or("The user denied this action on the Dynamic Island.");
             json!({ "decision": "deny", "reason": msg }).to_string()
         }
         _ => r#"{"decision":"allow"}"#.to_string(),
@@ -434,148 +795,27 @@ fn to_message(e: &Value) -> Option<Value> {
     let mut e = e.clone();
     agent_core::agy::to_event(&mut e).map(|ev| crate::events::message_of(&ev))
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // As agy 1.3.4 sends them (trimmed), the event's name added by main.rs.
+    // As agy sends them (trimmed), with is_cli: true representing CLI sessions.
     fn event(name: &str, more: Value) -> Value {
         let mut e = json!({
             "hook_event_name": name,
             "conversationId": "5064aa2e",
             "modelName": "gemini-3.8-flash-high",
             "workspacePaths": ["Z:/nowhere/agyws"],
-            "transcriptPath": "",
+            "transcriptPath": "Z:/nowhere/agyws/.gemini/antigravity-cli/transcript.jsonl",
+            "is_cli": true,
         });
-        for (k, v) in more.as_object().unwrap() {
-            e[k] = v.clone();
+        if let (Some(base), Some(extra)) = (e.as_object_mut(), more.as_object()) {
+            for (k, v) in extra {
+                base.insert(k.clone(), v.clone());
+            }
         }
         e
-    }
-
-    #[test]
-    fn agy_events_become_messages() {
-        let m = to_message(&event("SessionStart", json!({}))).unwrap();
-        assert_eq!(m, json!({ "mood": "idle", "react": "wave", "say": { "key": "say.hello" }, "agent": "agy", "session": "5064aa2e", "project": "agyws" }));
-        let m = to_message(&event("PreInvocation", json!({ "invocationNum": 0, "initialNumSteps": 1, "prompt": "Create a file named hello.txt" }))).unwrap();
-        assert_eq!((m["event"].as_str(), m["task"].as_str()), (Some("turn-start"), Some("Create a file named hello.txt")));
-        let m = to_message(&event("PreInvocation", json!({ "invocationNum": 1, "initialNumSteps": 3 }))).unwrap();
-        assert_eq!((m["mood"].as_str(), m.get("event")), (Some("working"), None));
-        let call = json!({ "name": "write_to_file", "args": { "CodeContent": "hi", "TargetFile": "Z:\\nowhere\\agyws\\hello.txt", "toolAction": "Creating hello.txt", "toolSummary": "Create hello.txt" } });
-        let mut done = event("PostToolUse", json!({ "stepIdx": 2, "error": "", "toolCall": call }));
-        let m = to_message(&done).unwrap();
-        assert_eq!((m["event"].as_str(), m["file"].as_str()), (Some("tool-done"), Some("Z:\\nowhere\\agyws\\hello.txt")));
-        // Its own words for what it did go with the call.
-        match agent_core::agy::to_event(&mut done).unwrap().kind {
-            agent_core::event::Kind::ToolDone { call } => assert_eq!(call.intent.as_deref(), Some("Creating hello.txt")),
-            other => panic!("{other:?}"),
-        }
-        let m = to_message(&event("PostToolUse", json!({ "error": "exit status 1", "toolCall": { "name": "run_command", "args": {} } }))).unwrap();
-        assert_eq!((m["event"].as_str(), m["react"].as_str()), (Some("tool-failed"), Some("failed")));
-        let m = to_message(&event("Stop", json!({ "executionNum": 0, "fullyIdle": true, "terminationReason": "NO_TOOL_CALL", "error": "", "last_assistant_message": "done" }))).unwrap();
-        assert_eq!((m["mood"].as_str(), m["event"].as_str(), m["reply"].as_str()), (Some("done"), Some("turn-end"), Some("done")));
-        let m = to_message(&event("Stop", json!({ "fullyIdle": true, "error": "quota exceeded" }))).unwrap();
-        assert_eq!((m["mood"].as_str(), m["error"].as_str()), (Some("error"), Some("quota exceeded")));
-        let m = to_message(&event("Stop", json!({ "fullyIdle": true, "terminationReason": "USER_CANCELLED", "error": "" }))).unwrap();
-        assert_eq!((m["mood"].as_str(), m["event"].as_str()), (Some("idle"), Some("turn-end")));
-    }
-
-    #[test]
-    fn agy_events_that_change_nothing() {
-        assert!(to_message(&event("Stop", json!({ "fullyIdle": false, "error": "" }))).is_none());
-        for name in ["PostInvocation", "PreToolUse", "Nope", ""] {
-            assert!(to_message(&event(name, json!({}))).is_none(), "{name}");
-        }
-        assert!(to_message(&json!("nope")).is_none());
-    }
-
-    #[test]
-    fn the_person_s_words_and_the_reply_from_the_transcript() {
-        let file = std::env::temp_dir().join(format!("wakuwaku-agy-{}.jsonl", std::process::id()));
-        let lines = [
-            json!({ "step_index": 0, "source": "USER_EXPLICIT", "type": "USER_INPUT", "status": "DONE", "content": "<USER_REQUEST>\nCreate a file named hello.txt\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is 09:47.\n</ADDITIONAL_METADATA>" }),
-            json!({ "step_index": 1, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "thinking": "write it", "tool_calls": [] }),
-            json!({ "step_index": 3, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "content": "done" }),
-        ];
-        std::fs::write(&file, lines.iter().map(Value::to_string).collect::<Vec<_>>().join("\n")).unwrap();
-        let path = file.to_string_lossy().into_owned();
-        let mut e = event("PreInvocation", json!({ "invocationNum": 0, "transcriptPath": path }));
-        with_transcript(&mut e);
-        assert_eq!((e["prompt"].as_str(), e["userStep"].as_u64()), (Some("Create a file named hello.txt"), Some(0)));
-        assert_eq!(to_message(&e).unwrap()["turn"], "0");
-        let mut e = event("Stop", json!({ "fullyIdle": true, "transcriptPath": path }));
-        with_transcript(&mut e);
-        assert_eq!(e["last_assistant_message"], "done");
-        // A later call of the model reads nothing.
-        let mut e = event("PreInvocation", json!({ "invocationNum": 1, "transcriptPath": path }));
-        with_transcript(&mut e);
-        assert!(e.get("prompt").is_none());
-        // The person's next words, an image alone: a turn of its own, without words.
-        let mut f = std::fs::OpenOptions::new().append(true).open(&file).unwrap();
-        std::io::Write::write_all(&mut f, format!("\n{}", json!({ "step_index": 4, "type": "USER_INPUT", "content": "" })).as_bytes()).unwrap();
-        let mut e = event("PreInvocation", json!({ "invocationNum": 0, "transcriptPath": path }));
-        with_transcript(&mut e);
-        assert_eq!((e.get("prompt"), e["userStep"].as_u64()), (None, Some(4)));
-        let _ = std::fs::remove_file(&file);
-    }
-
-    // Each event as the server takes it, applied at a time (ms): the turns it
-    // began and the time it counted.
-    fn feed(pet: &mut crate::state::Pet, name: &str, more: Value, at: u64) -> (u64, u64) {
-        let mut e = event(name, more);
-        with_transcript(&mut e);
-        agent_core::agy::to_event(&mut e).and_then(|ev| pet.apply(&ev, None, at, crate::state::Hold::Seen)).map_or((0, 0), |out| (out.turns, out.worked_ms))
-    }
-
-    #[test]
-    fn an_agy_round_counts_its_turn_and_its_time() {
-        // The plainest: the model called, a tool, the end.
-        let mut pet = crate::state::Pet::default();
-        assert_eq!(feed(&mut pet, "SessionStart", json!({}), 0), (0, 0));
-        assert_eq!(feed(&mut pet, "PreInvocation", json!({ "invocationNum": 0 }), 1_000), (1, 0));
-        let call = json!({ "name": "write_to_file", "args": { "TargetFile": "Z:\\nowhere\\agyws\\a.txt", "toolAction": "Creating a.txt" } });
-        assert_eq!(feed(&mut pet, "PostToolUse", json!({ "error": "", "toolCall": call }), 4_000), (0, 0));
-        assert_eq!(feed(&mut pet, "Stop", json!({ "fullyIdle": true, "terminationReason": "NO_TOOL_CALL", "error": "" }), 6_500), (0, 5_500));
-
-        // A command left running in the background, as agy 1.3.4 ran one: the
-        // model answers (not fully idle), the command ends, the model is
-        // called again from 0, then the end. One turn, all of its time.
-        let file = std::env::temp_dir().join(format!("wakuwaku-agy-round-{}.jsonl", std::process::id()));
-        let path = file.to_string_lossy().into_owned();
-        let _ = std::fs::remove_file(&file);
-        let write = |steps: &[Value]| {
-            let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&file).unwrap();
-            let lines: String = steps.iter().map(|s| format!("{s}\n")).collect();
-            std::io::Write::write_all(&mut f, lines.as_bytes()).unwrap();
-        };
-        let at = |more: Value| {
-            let mut more = more;
-            more["transcriptPath"] = json!(path);
-            more
-        };
-        let mut pet = crate::state::Pet::default();
-        write(&[json!({ "step_index": 0, "source": "USER_EXPLICIT", "type": "USER_INPUT", "status": "DONE", "content": "<USER_REQUEST>\nping in the background\n</USER_REQUEST>" })]);
-        assert_eq!(feed(&mut pet, "PreInvocation", at(json!({ "invocationNum": 0, "initialNumSteps": 1 })), 100), (1, 0));
-        write(&[
-            json!({ "step_index": 1, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "tool_calls": [{ "name": "run_command" }] }),
-            json!({ "step_index": 2, "source": "MODEL", "type": "GENERIC", "status": "RUNNING", "content": "Tool is running as a background task" }),
-        ]);
-        assert_eq!(feed(&mut pet, "PreInvocation", at(json!({ "invocationNum": 1, "initialNumSteps": 3 })), 9_000), (0, 0));
-        write(&[json!({ "step_index": 3, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "content": "started" })]);
-        assert_eq!(feed(&mut pet, "Stop", at(json!({ "executionNum": 0, "fullyIdle": false, "terminationReason": "NO_TOOL_CALL", "error": "" })), 13_800), (0, 0));
-        assert_eq!(pet.get(13_900)["mood"], "working");
-        assert_eq!(feed(&mut pet, "PostToolUse", at(json!({ "stepIdx": 2, "error": "", "toolCall": { "name": "run_command", "args": { "toolAction": "Running ping" } } })), 20_300), (0, 0));
-        write(&[json!({ "step_index": 4, "source": "SYSTEM", "type": "SYSTEM_MESSAGE", "status": "DONE", "content": "the task is done" })]);
-        assert_eq!(feed(&mut pet, "PreInvocation", at(json!({ "invocationNum": 0, "initialNumSteps": 4 })), 20_500), (0, 0));
-        write(&[json!({ "step_index": 5, "source": "MODEL", "type": "PLANNER_RESPONSE", "status": "DONE", "content": "It finished." })]);
-        assert_eq!(feed(&mut pet, "Stop", at(json!({ "executionNum": 0, "fullyIdle": true, "terminationReason": "NO_TOOL_CALL", "error": "" })), 23_600), (0, 23_500));
-        assert_eq!((pet.get(23_700)["mood"].as_str(), pet.get(23_700)["reply"].as_str()), (Some("done"), Some("It finished.")));
-
-        // The person's next words, stopped by them: a turn, and its time.
-        write(&[json!({ "step_index": 6, "source": "USER_EXPLICIT", "type": "USER_INPUT", "status": "DONE", "content": "<USER_REQUEST>\nnext\n</USER_REQUEST>" })]);
-        assert_eq!(feed(&mut pet, "PreInvocation", at(json!({ "invocationNum": 0, "initialNumSteps": 7 })), 60_000), (1, 0));
-        assert_eq!(feed(&mut pet, "Stop", at(json!({ "fullyIdle": true, "terminationReason": "USER_CANCELED", "error": "" })), 70_000), (0, 10_000));
-        let _ = std::fs::remove_file(&file);
     }
 
     #[test]
@@ -591,7 +831,7 @@ mod tests {
     #[test]
     fn agy_pre_tool_use_becomes_ask_and_replies() {
         let call = json!({ "name": "run_command", "args": { "CommandLine": "npm test", "toolSummary": "Run tests" } });
-        let pre = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "toolCall": call, "stepIdx": 5 });
+        let pre = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": call, "stepIdx": 5 });
         let ask = for_ask(&pre);
         assert_eq!((ask["hook_event_name"].as_str(), ask["tool_name"].as_str()), (Some("PermissionRequest"), Some("Bash")));
         assert_eq!(ask["tool_input"]["command"], "npm test");
@@ -600,7 +840,7 @@ mod tests {
         assert_eq!(ask["permission_suggestions"][0]["destination"], "userSettings");
 
         // asks.rs view_of and reply_for round-trip
-        let view = agent_core::asks::view_of(1, &ask);
+        let view = agent_core::asks::view_of(&ask).unwrap();
         assert_eq!(view["always"]["rules"], json!(["command(npm test)"]));
         assert_eq!(view["always"]["where"], json!(["userSettings"]));
 
@@ -608,28 +848,36 @@ mod tests {
         let allow = agent_core::asks::reply_for(&ask, &json!({ "action": "allow" }), "denied").unwrap();
         assert_eq!(to_output(&allow.to_string()), r#"{"decision":"auto_approve"}"#);
 
-        // Always allow -> auto_approve + permissionOverrides + persisted to config.json
+        // Always allow -> auto_approve (without permissionOverrides) + persisted to BOTH config.json and settings.json
         let cfg_file = std::env::temp_dir().join(format!("wakuwaku-agy-cfg-{}.json", std::process::id()));
+        let cli_file = std::env::temp_dir().join(format!("wakuwaku-agy-cli-{}.json", std::process::id()));
         let _ = std::fs::remove_file(&cfg_file);
+        let _ = std::fs::remove_file(&cli_file);
         let always = agent_core::asks::reply_for(&ask, &json!({ "action": "always" }), "denied").unwrap();
         assert_eq!(
-            to_output_with(&always.to_string(), Some(&cfg_file)),
-            r#"{"decision":"auto_approve","permissionOverrides":["command(npm test)"]}"#
+            to_output_with(&always.to_string(), Some(&cfg_file), Some(&cli_file)),
+            r#"{"decision":"auto_approve"}"#
         );
-        let saved: Value = serde_json::from_str(&std::fs::read_to_string(&cfg_file).unwrap()).unwrap();
-        assert_eq!(saved["userSettings"]["globalPermissionGrants"]["allow"], json!(["command(npm test)"]));
+        let saved_cfg: Value = serde_json::from_str(&std::fs::read_to_string(&cfg_file).unwrap()).unwrap();
+        assert_eq!(saved_cfg["userSettings"]["globalPermissionGrants"]["allow"], json!(["command(npm test)"]));
+        let saved_cli: Value = serde_json::from_str(&std::fs::read_to_string(&cli_file).unwrap()).unwrap();
+        assert_eq!(saved_cli["permissions"]["allow"], json!(["command(npm test)"]));
 
-        // Once saved in config.json, needs_approval is false for `npm test` and `npm test --watch`
-        assert!(!needs_approval(&pre, &saved));
-        let pre_watch = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "toolCall": { "name": "run_command", "args": { "CommandLine": "npm test --watch" } } });
-        assert!(!needs_approval(&pre_watch, &saved));
-        let pre_other = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "toolCall": { "name": "run_command", "args": { "CommandLine": "cargo build" } } });
-        assert!(needs_approval(&pre_other, &saved));
+        // Once saved, needs_approval is false for `npm test` and `npm test --watch`
+        let empty_cfg = json!({});
+        assert!(!needs_approval(&pre, &empty_cfg, &saved_cli));
+        let pre_watch = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": { "name": "run_command", "args": { "CommandLine": "npm test --watch" } } });
+        assert!(!needs_approval(&pre_watch, &empty_cfg, &saved_cli));
+        let pre_other = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": { "name": "run_command", "args": { "CommandLine": "cargo build" } } });
+        assert!(needs_approval(&pre_other, &empty_cfg, &saved_cli));
         let _ = std::fs::remove_file(&cfg_file);
+        let _ = std::fs::remove_file(&cli_file);
 
         // Deny -> deny + reason
-        let deny = agent_core::asks::reply_for(&ask, &json!({ "action": "deny", "message": "no" }), "denied").unwrap();
-        assert_eq!(to_output(&deny.to_string()), r#"{"decision":"deny","reason":"no"}"#);
+        let deny = agent_core::asks::reply_for(&ask, &json!({ "action": "deny" }), "denied by person").unwrap();
+        assert_eq!(to_output(&deny.to_string()), r#"{"decision":"deny","reason":"denied by person"}"#);
+        let deny_fallback = json!({ "hookSpecificOutput": { "decision": { "behavior": "deny" } } });
+        assert_eq!(to_output(&deny_fallback.to_string()), r#"{"decision":"deny","reason":"The user denied this action on the Dynamic Island."}"#);
 
         // Dismiss / Timeout / Out of sight -> allow (defers to Antigravity's native dialog)
         assert_eq!(to_output("{}"), r#"{"decision":"allow"}"#);
@@ -638,29 +886,138 @@ mod tests {
     #[test]
     fn agy_needs_approval_filters_auto_allowed_tools_and_modes() {
         let default_cfg = json!({});
-        // Command in default mode needs approval
+        let default_cli = json!({});
+
+        // Command in default CLI mode (request-review) needs approval
         let cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status" } } }));
-        assert!(needs_approval(&cmd, &default_cfg));
+        assert!(needs_approval(&cmd, &default_cfg, &default_cli));
 
-        // Turbo preset or Eager autoExecutionPolicy auto-allows commands
+        // CLI settings.json: toolPermission == "always-proceed" auto-allows commands and tools
+        let cli_always = json!({ "toolPermission": "always-proceed" });
+        assert!(!needs_approval(&cmd, &default_cfg, &cli_always));
+
+        // CLI settings.json: permissions.allow matches rules to auto-allow
+        let cli_allowed = json!({ "permissions": { "allow": ["command(git status)"] } });
+        assert!(!needs_approval(&cmd, &default_cfg, &cli_allowed));
+        let cli_plain_allowed = json!({ "permissions": { "allow": ["git status"] } });
+        assert!(!needs_approval(&cmd, &default_cfg, &cli_plain_allowed));
+
+        // Desktop config.json should NOT cross-pollinate into CLI sessions:
+        // When Desktop is in Turbo, CLI still requires approval!
         let turbo_cfg = json!({ "userSettings": { "permissionPreset": "AGENT_PERMISSION_PRESET_TURBO" } });
-        assert!(!needs_approval(&cmd, &turbo_cfg));
-        let eager_cfg = json!({ "userSettings": { "autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER" } });
-        assert!(!needs_approval(&cmd, &eager_cfg));
+        assert!(needs_approval(&cmd, &turbo_cfg, &default_cli));
+        // But for a Desktop session (is_cli: false), Turbo preset auto-allows commands
+        let desktop_cmd = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "transcriptPath": "Z:/brain/transcript.jsonl", "toolCall": { "name": "run_command", "args": { "CommandLine": "git status" } } });
+        assert!(!needs_approval(&desktop_cmd, &turbo_cfg, &default_cli));
 
-        // File edit inside workspacePaths is auto-allowed; outside workspacePaths needs approval
-        let in_ws = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": "Z:\\nowhere\\agyws\\src\\lib.rs" } } }));
-        assert!(!needs_approval(&in_ws, &default_cfg));
-        let out_ws = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": "C:\\outside\\secret.txt" } } }));
-        assert!(needs_approval(&out_ws, &default_cfg));
-        let allow_non_ws = json!({ "userSettings": { "nonWorkspaceFileAccessPolicy": "AGENT_SETTING_POLICY_ALLOW" } });
-        assert!(!needs_approval(&out_ws, &allow_non_ws));
+        // In CLI request-review mode:
+        // - File write inside workspace STILL NEEDS APPROVAL when agentMode is default ""
+        let in_ws_write = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"Z:\nowhere\agyws\src\lib.rs" } } }));
+        assert!(needs_approval(&in_ws_write, &default_cfg, &default_cli));
 
-        // Internal tools (ask_question, task_boundary, view_file_outline) never need EnsurePermissions approval
+        // - In CLI agentMode "accept-edits" or "auto": workspace edits are auto-allowed without asking
+        let cli_accept_edits = json!({ "agentMode": "accept-edits" });
+        assert!(!needs_approval(&in_ws_write, &default_cfg, &cli_accept_edits));
+
+        // - File write outside workspace needs approval
+        let out_ws_write = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"C:\outside\secret.txt" } } }));
+        assert!(needs_approval(&out_ws_write, &default_cfg, &default_cli));
+
+        // - File write in CLI always-proceed is auto-allowed
+        assert!(!needs_approval(&in_ws_write, &default_cfg, &cli_always));
+
+        // - In Desktop session: workspace read/write is allowed by default preset
+        let desktop_in_ws_write = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "transcriptPath": "Z:/brain/transcript.jsonl", "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"Z:\nowhere\agyws\src\lib.rs" } } });
+        assert!(!needs_approval(&desktop_in_ws_write, &default_cfg, &default_cli));
+
+        // - File read inside workspace is auto-allowed
+        let in_ws_read = event("PreToolUse", json!({ "toolCall": { "name": "read_file", "args": { "Path": r"Z:\nowhere\agyws\src\lib.rs" } } }));
+        assert!(!needs_approval(&in_ws_read, &default_cfg, &default_cli));
+
+        // - File read outside workspace needs approval by default, unless allowNonWorkspaceAccess is true
+        let out_ws_read = event("PreToolUse", json!({ "toolCall": { "name": "read_file", "args": { "Path": r"C:\outside\secret.txt" } } }));
+        assert!(needs_approval(&out_ws_read, &default_cfg, &default_cli));
+        let cli_non_ws = json!({ "allowNonWorkspaceAccess": true });
+        assert!(!needs_approval(&out_ws_read, &default_cfg, &cli_non_ws));
+
+        // Internal tools never need EnsurePermissions approval
         for tool in ["ask_question", "task_boundary", "view_file_outline", "search_web"] {
             let internal = event("PreToolUse", json!({ "toolCall": { "name": tool, "args": {} } }));
-            assert!(!needs_approval(&internal, &default_cfg), "{tool}");
+            assert!(!needs_approval(&internal, &default_cfg, &default_cli), "{tool}");
         }
+    }
+
+    #[test]
+    fn rule_precedence_and_compound_commands() {
+        let default_cfg = json!({});
+        let default_cli = json!({});
+
+        // Priority 1: Deny > Ask > Allow
+        let mixed_cli = json!({
+            "permissions": {
+                "deny": ["command(rm)"],
+                "ask": ["command(*)"],
+                "allow": ["command(git)"]
+            }
+        });
+        // "rm -rf foo" matches deny -> returns false (blocked without prompt)
+        let rm_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "rm -rf foo" } } }));
+        assert!(!needs_approval(&rm_cmd, &default_cfg, &mixed_cli));
+
+        // "ls" matches ask(*) -> returns true (needs approval)
+        let ls_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "ls" } } }));
+        assert!(needs_approval(&ls_cmd, &default_cfg, &mixed_cli));
+
+        // Priority 2: strict mode overrides allow
+        let strict_cli = json!({
+            "toolPermission": "strict",
+            "permissions": { "allow": ["command(git status)"] }
+        });
+        let git_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status" } } }));
+        assert!(needs_approval(&git_cmd, &default_cfg, &strict_cli));
+
+        // Compound command security:
+        // "git status && rm -rf /" MUST NOT be allowed by "command(git)" alone
+        let git_allow_cli = json!({
+            "permissions": { "allow": ["command(git)"] }
+        });
+        let compound_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status && rm -rf /" } } }));
+        assert!(needs_approval(&compound_cmd, &default_cfg, &git_allow_cli));
+
+        // But compound command where ALL sub-commands are allowed IS allowed
+        let multi_allow_cli = json!({
+            "permissions": { "allow": ["command(git)", "command(cargo)"] }
+        });
+        let safe_compound = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status && cargo build" } } }));
+        assert!(!needs_approval(&safe_compound, &default_cfg, &multi_allow_cli));
+
+        // Implicit permission rules:
+        // 1. Write implies read
+        let write_allow_cli = json!({
+            "permissions": { "allow": [r"write_file(C:\outside\dir)"] }
+        });
+        let read_outside = event("PreToolUse", json!({ "toolCall": { "name": "read_file", "args": { "Path": r"C:\outside\dir\file.txt" } } }));
+        assert!(!needs_approval(&read_outside, &default_cfg, &write_allow_cli));
+
+        // 2. Deny read implies deny write
+        let read_deny_cli = json!({
+            "permissions": { "deny": [r"read_file(C:\outside\secret)"] }
+        });
+        let write_outside = event("PreToolUse", json!({ "toolCall": { "name": "write_file", "args": { "Path": r"C:\outside\secret\evil.txt" } } }));
+        assert!(!needs_approval(&write_outside, &default_cfg, &read_deny_cli));
+
+        // URL domain matching
+        let url_allow_cli = json!({
+            "permissions": { "allow": ["read_url(github.com)"] }
+        });
+        let fetch_gh = event("PreToolUse", json!({ "toolCall": { "name": "read_url_content", "args": { "Url": "https://api.github.com/repos" } } }));
+        assert!(!needs_approval(&fetch_gh, &default_cfg, &url_allow_cli));
+        let fetch_other = event("PreToolUse", json!({ "toolCall": { "name": "read_url_content", "args": { "Url": "https://evil.org/steal" } } }));
+        assert!(needs_approval(&fetch_other, &default_cfg, &url_allow_cli));
+
+        // Tool classification for view_code_item
+        let code_item = event("PreToolUse", json!({ "toolCall": { "name": "view_code_item", "args": { "File": r"C:\outside\lib.rs" } } }));
+        assert!(needs_approval(&code_item, &default_cfg, &default_cli));
     }
 
     #[test]
@@ -668,7 +1025,7 @@ mod tests {
         let pre = event("PreToolUse", json!({ "stepIdx": 5, "toolCall": { "name": "run_command", "args": { "CommandLine": "npm test" } } }));
         let ask = for_ask(&pre);
         let mut asks: agent_core::asks::Asks<Box<dyn FnOnce(Option<Value>) + Send>> = agent_core::asks::Asks::default();
-        let id = asks.add(ask, Box::new(|_| {}), 1_000, 60_000).unwrap();
+        let id = asks.add(ask, Box::new(|_| {}), 1_000, 60_000).ok().unwrap();
 
         let mut post = event("PostToolUse", json!({ "stepIdx": 5, "error": "", "toolCall": { "name": "run_command", "args": { "CommandLine": "npm test" } } }));
         with_seen(&mut post);

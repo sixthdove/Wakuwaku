@@ -485,13 +485,14 @@ impl Shared {
         let out = self.pet.lock().unwrap().apply(ev, chain, now_ms(), self.hold());
         let Some(out) = out else { return false };
         if out.turns > 0 || out.worked_ms > 0 {
-            // Antigravity's and Reasonix's approvals never come to her, nor
+            // Reasonix's approvals never come to her, nor
             // DeepSeek Harness's through its hook bridge (through her plugin
             // they may: those given on her are counted all the same).
-            let is_agy = matches!(ev.agent, Agent::Agy | Agent::Dsh | Agent::Reasonix);
+            // Antigravity's approvals come to her since 2026-10-26 (events_agy).
+            let without_approvals = matches!(ev.agent, Agent::Dsh | Agent::Reasonix);
             self.count_today(|t| {
                 t.begun(out.turns);
-                if is_agy {
+                if without_approvals {
                     t.agy_turns += out.turns;
                 }
                 t.worked_ms += out.worked_ms;
@@ -1355,10 +1356,23 @@ fn agy_hook(port: u16, name: &str) {
             let _ = out.write_all(br#"{"decision":"allow"}"#);
             let _ = out.flush();
         };
-        let Some(event) = read_event() else {
+        let Some(mut event) = read_event() else {
             return allow();
         };
-        if !events_agy::needs_approval(&event, &events_agy::read_config()) {
+        if let Some((_pid, cmd)) = jump::agy_cli_info() {
+            if let Some(obj) = event.as_object_mut() {
+                obj.insert("is_cli".into(), json!(true));
+                if cmd.contains("--dangerously-skip-permissions") || cmd.contains("--dangerously_skip_permissions") {
+                    obj.insert("dangerously_skip_permissions".into(), json!(true));
+                }
+                if cmd.contains("--mode accept-edits") || cmd.contains("--mode=accept-edits") {
+                    obj.insert("cli_mode".into(), json!("accept-edits"));
+                } else if cmd.contains("--mode auto") || cmd.contains("--mode=auto") {
+                    obj.insert("cli_mode".into(), json!("auto"));
+                }
+            }
+        }
+        if !events_agy::needs_approval(&event, &events_agy::read_config(), &events_agy::read_cli_settings()) {
             return allow();
         }
         let who = || starts::hook_who("Antigravity", name, &[], &hook_parents());
