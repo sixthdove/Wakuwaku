@@ -1362,13 +1362,17 @@ fn agy_hook(port: u16, name: &str) {
         if let Some((_pid, cmd)) = jump::agy_cli_info() {
             if let Some(obj) = event.as_object_mut() {
                 obj.insert("is_cli".into(), json!(true));
-                if cmd.contains("--dangerously-skip-permissions") || cmd.contains("--dangerously_skip_permissions") {
+                let words: Vec<&str> = cmd.split_whitespace().collect();
+                if words.iter().any(|&w| w == "--dangerously-skip-permissions" || w == "--dangerously_skip_permissions") {
                     obj.insert("dangerously_skip_permissions".into(), json!(true));
                 }
                 if cmd.contains("--mode accept-edits") || cmd.contains("--mode=accept-edits") {
                     obj.insert("cli_mode".into(), json!("accept-edits"));
                 } else if cmd.contains("--mode auto") || cmd.contains("--mode=auto") {
                     obj.insert("cli_mode".into(), json!("auto"));
+                }
+                if words.iter().any(|&w| w == "--sandbox" || w == "--sandbox=true") {
+                    obj.insert("cli_sandbox".into(), json!(true));
                 }
             }
         }

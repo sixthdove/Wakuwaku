@@ -9,7 +9,6 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-
 fn s<'a>(e: &'a Value, key: &str) -> &'a str {
     e.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -150,70 +149,15 @@ pub fn domain_covers(grant_target: &str, url_or_target: &str) -> bool {
     host == g_host || host.ends_with(&format!(".{g_host}"))
 }
 
-// Split compound shell commands (separated by &&, ||, ;, |, \n) respecting quotes.
-pub fn split_compound_commands(cmd: &str) -> Vec<String> {
-    let mut parts = Vec::new();
-    let mut cur = String::new();
-    let mut in_single = false;
-    let mut in_double = false;
-    let mut chars = cmd.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '\'' if !in_double => {
-                in_single = !in_single;
-                cur.push(c);
-            }
-            '"' if !in_single => {
-                in_double = !in_double;
-                cur.push(c);
-            }
-            ';' | '\n' if !in_single && !in_double => {
-                let trimmed = cur.trim().to_string();
-                if !trimmed.is_empty() {
-                    parts.push(trimmed);
-                }
-                cur.clear();
-            }
-            '&' if !in_single && !in_double => {
-                if chars.peek() == Some(&'&') {
-                    chars.next();
-                }
-                let trimmed = cur.trim().to_string();
-                if !trimmed.is_empty() {
-                    parts.push(trimmed);
-                }
-                cur.clear();
-            }
-            '|' if !in_single && !in_double => {
-                if chars.peek() == Some(&'|') {
-                    chars.next();
-                }
-                let trimmed = cur.trim().to_string();
-                if !trimmed.is_empty() {
-                    parts.push(trimmed);
-                }
-                cur.clear();
-            }
-            _ => cur.push(c),
-        }
-    }
-    let trimmed = cur.trim().to_string();
-    if !trimmed.is_empty() {
-        parts.push(trimmed);
-    }
-    if parts.is_empty() && !cmd.trim().is_empty() {
-        parts.push(cmd.trim().to_string());
-    }
-    parts
-}
-
-fn command_rule_covers(grant_target: &str, simple_cmd: &str) -> bool {
+// Matches a command against a rule target.
+// agy 1.4.7 requires exact full-line matching (except for wildcard `*`).
+fn command_rule_covers(grant_target: &str, cmd: &str) -> bool {
+    let grant_target = grant_target.trim();
+    let cmd = cmd.trim();
     if grant_target == "*" {
         return true;
     }
-    let rule_tokens: Vec<&str> = grant_target.split_whitespace().collect();
-    let cmd_tokens: Vec<&str> = simple_cmd.split_whitespace().collect();
-    !rule_tokens.is_empty() && cmd_tokens.len() >= rule_tokens.len() && cmd_tokens[..rule_tokens.len()] == rule_tokens[..]
+    grant_target == cmd
 }
 
 // Parse Antigravity's `<action>(<target>)` grant string.
@@ -412,10 +356,11 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
 // Whether a PreToolUse event in Antigravity will actually prompt the person in EnsurePermissions:
 // - Internal tools (ask_question, task_boundary, search_web, view_file_outline) never prompt.
 // - `--dangerously-skip-permissions` skips all tool prompts.
+// - Strict mode yields directly to agy (decision: allow) without prompting on island.
 // - Evaluation order: Deny > Strict > Ask > Allow > Defaults.
 // - CLI settings (~/.gemini/antigravity-cli/settings.json):
 //   - toolPermission: "always-proceed", "request-review", "strict", "proceed-in-sandbox"
-//   - agentMode: "accept-edits", "auto" (auto-approves workspace edits)
+//   - enableTerminalSandbox: true (auto-allows commands in sandbox under proceed-in-sandbox)
 //   - allowNonWorkspaceAccess (auto-allows reading outside workspace)
 //   - permissions: { allow, ask, deny }
 // - Desktop config (~/.gemini/config/config.json):
@@ -459,14 +404,8 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
         )
     };
 
-    let sub_cmds = if action == "command" {
-        split_compound_commands(&target)
-    } else {
-        vec![target.clone()]
-    };
-
-    // 1. Deny rules: Deny > Ask > Allow.
-    // If any part matches deny, return false (Antigravity natively blocks it without asking).
+    // 1. Deny rules: Deny > Strict > Ask > Allow.
+    // If matching deny, return false (Antigravity natively blocks it without asking).
     let is_denied = |cmd_or_target: &str| {
         let check = |arr: Option<&Vec<Value>>| {
             arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths)))
@@ -475,15 +414,22 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
             || check(desktop_grants.get("deny").and_then(Value::as_array))
             || check(cli_perms.get("deny").and_then(Value::as_array))
     };
-    if sub_cmds.iter().any(|cmd| is_denied(cmd)) {
+    if is_denied(&target) {
         return false;
     }
 
-    // 2. Strict mode: prompts before every tool action even if an allow rule matches.
+    // 2. Strict mode: in strict mode, agy rejects auto_approve hook decisions
+    // ("soft-denying tool confirmation") and reprompts on the terminal anyway.
+    // Return false immediately so it yields to agy natively without showing on island.
     if is_cli {
         let tool_perm = cli.get("toolPermission").and_then(Value::as_str).unwrap_or("request-review");
         if tool_perm == "strict" {
-            return true;
+            return false;
+        }
+    } else {
+        let preset = s(settings, "permissionPreset");
+        if preset == "AGENT_PERMISSION_PRESET_STRICT" {
+            return false;
         }
     }
 
@@ -496,12 +442,11 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
             || check(desktop_grants.get("ask").and_then(Value::as_array))
             || check(cli_perms.get("ask").and_then(Value::as_array))
     };
-    if sub_cmds.iter().any(|cmd| is_asked(cmd)) {
+    if is_asked(&target) {
         return true;
     }
 
-    // 4. Allow rules:
-    // For compound commands, EVERY simple command must match an allow rule.
+    // 4. Allow rules: exact full-line match (commands must match entire line or command(*)).
     let is_allowed = |cmd_or_target: &str| {
         let check = |arr: Option<&Vec<Value>>| {
             arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths)))
@@ -510,8 +455,9 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
             || check(desktop_grants.get("allow").and_then(Value::as_array))
             || check(cli_perms.get("allow").and_then(Value::as_array))
     };
-    if !sub_cmds.is_empty() && sub_cmds.iter().all(|cmd| is_allowed(cmd)) {
+    if is_allowed(&target) {
         return false;
+    }
     }
 
     // 5. Global bypass presets
@@ -542,9 +488,7 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
         "write_file" => {
             let inside_ws = is_workspace_or_artifact_path(e, &target);
             if is_cli {
-                let agent_mode = e.get("cli_mode").and_then(Value::as_str).unwrap_or_else(|| {
-                    cli.get("agentMode").and_then(Value::as_str).unwrap_or("")
-                });
+                let agent_mode = e.get("cli_mode").and_then(Value::as_str).unwrap_or("");
                 if inside_ws {
                     // In CLI: "accept-edits" and "auto" allow workspace file edits without asking.
                     // Default mode "" in request-review asks for write_file even inside workspace.
@@ -563,7 +507,8 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
         "command" => {
             if is_cli {
                 let tool_perm = cli.get("toolPermission").and_then(Value::as_str).unwrap_or("request-review");
-                let sandbox = cli.get("sandbox").and_then(Value::as_bool) == Some(true);
+                let sandbox = cli.get("enableTerminalSandbox").and_then(Value::as_bool) == Some(true)
+                    || e.get("cli_sandbox").and_then(Value::as_bool) == Some(true);
                 if tool_perm == "proceed-in-sandbox" && sandbox {
                     return false;
                 }
@@ -716,15 +661,6 @@ pub fn save_always_grants_to_cli(file: &Path, rules: &[String]) {
     }
 }
 
-pub fn save_always_grants_to(file: &Path, rules: &[String]) {
-    save_always_grants_to_config(file, rules);
-}
-
-pub fn save_always_grants(rules: &[String]) {
-    save_always_grants_to_config(&config_file(), rules);
-    save_always_grants_to_cli(&cli_settings_file(), rules);
-}
-
 fn extract_rules(perms: &[Value]) -> Vec<String> {
     let mut rules = Vec::new();
     for p in perms {
@@ -788,12 +724,6 @@ pub fn to_output_with(body: &str, config: Option<&Path>, cli: Option<&Path>) -> 
         }
         _ => r#"{"decision":"allow"}"#.to_string(),
     }
-}
-
-#[cfg(test)]
-fn to_message(e: &Value) -> Option<Value> {
-    let mut e = e.clone();
-    agent_core::agy::to_event(&mut e).map(|ev| crate::events::message_of(&ev))
 }
 
 #[cfg(test)]
@@ -863,11 +793,11 @@ mod tests {
         let saved_cli: Value = serde_json::from_str(&std::fs::read_to_string(&cli_file).unwrap()).unwrap();
         assert_eq!(saved_cli["permissions"]["allow"], json!(["command(npm test)"]));
 
-        // Once saved, needs_approval is false for `npm test` and `npm test --watch`
+        // Once saved, needs_approval is false for `npm test`, but true for `npm test --watch` (exact full-line matching)
         let empty_cfg = json!({});
         assert!(!needs_approval(&pre, &empty_cfg, &saved_cli));
         let pre_watch = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": { "name": "run_command", "args": { "CommandLine": "npm test --watch" } } });
-        assert!(!needs_approval(&pre_watch, &empty_cfg, &saved_cli));
+        assert!(needs_approval(&pre_watch, &empty_cfg, &saved_cli));
         let pre_other = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": { "name": "run_command", "args": { "CommandLine": "cargo build" } } });
         assert!(needs_approval(&pre_other, &empty_cfg, &saved_cli));
         let _ = std::fs::remove_file(&cfg_file);
@@ -916,8 +846,9 @@ mod tests {
         assert!(needs_approval(&in_ws_write, &default_cfg, &default_cli));
 
         // - In CLI agentMode "accept-edits" or "auto": workspace edits are auto-allowed without asking
-        let cli_accept_edits = json!({ "agentMode": "accept-edits" });
-        assert!(!needs_approval(&in_ws_write, &default_cfg, &cli_accept_edits));
+        // - In CLI with --mode accept-edits or auto: workspace edits are auto-allowed without asking
+        let in_ws_write_mode = event("PreToolUse", json!({ "cli_mode": "accept-edits", "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"Z:\nowhere\agyws\src\lib.rs" } } }));
+        assert!(!needs_approval(&in_ws_write_mode, &default_cfg, &default_cli));
 
         // - File write outside workspace needs approval
         let out_ws_write = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"C:\outside\secret.txt" } } }));
@@ -952,10 +883,10 @@ mod tests {
         let default_cfg = json!({});
         let default_cli = json!({});
 
-        // Priority 1: Deny > Ask > Allow
+        // Priority 1: Deny > Strict > Ask > Allow
         let mixed_cli = json!({
             "permissions": {
-                "deny": ["command(rm)"],
+                "deny": ["command(rm -rf foo)"],
                 "ask": ["command(*)"],
                 "allow": ["command(git)"]
             }
@@ -968,28 +899,99 @@ mod tests {
         let ls_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "ls" } } }));
         assert!(needs_approval(&ls_cmd, &default_cfg, &mixed_cli));
 
-        // Priority 2: strict mode overrides allow
+        // Priority 2: strict mode overrides allow -> yields directly to agy without island prompt
         let strict_cli = json!({
             "toolPermission": "strict",
             "permissions": { "allow": ["command(git status)"] }
         });
         let git_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status" } } }));
-        assert!(needs_approval(&git_cmd, &default_cfg, &strict_cli));
+        assert!(!needs_approval(&git_cmd, &default_cfg, &strict_cli));
 
-        // Compound command security:
-        // "git status && rm -rf /" MUST NOT be allowed by "command(git)" alone
-        let git_allow_cli = json!({
-            "permissions": { "allow": ["command(git)"] }
+        // Exact line matching for commands:
+        // "command(echo AAA)" does NOT cover "echo AAA BBB", and "command(echo *)" does NOT wildcard
+        let echo_cli = json!({
+            "permissions": { "allow": ["command(echo AAA)", "command(echo *)"] }
         });
-        let compound_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status && rm -rf /" } } }));
-        assert!(needs_approval(&compound_cmd, &default_cfg, &git_allow_cli));
+        let echo_exact = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "echo AAA" } } }));
+        assert!(!needs_approval(&echo_exact, &default_cfg, &echo_cli));
+        let echo_sub = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "echo AAA BBB" } } }));
+        assert!(needs_approval(&echo_sub, &default_cfg, &echo_cli));
 
-        // But compound command where ALL sub-commands are allowed IS allowed
-        let multi_allow_cli = json!({
-            "permissions": { "allow": ["command(git)", "command(cargo)"] }
+        // "command(whoami)" does NOT cover "whoami /user", "command(whoami /user)" does
+        let whoami_cli = json!({
+            "permissions": { "allow": ["command(whoami)"] }
         });
-        let safe_compound = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "git status && cargo build" } } }));
-        assert!(!needs_approval(&safe_compound, &default_cfg, &multi_allow_cli));
+        let whoami_user = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "whoami /user" } } }));
+        assert!(needs_approval(&whoami_user, &default_cfg, &whoami_cli));
+        let whoami_user_cli = json!({
+            "permissions": { "allow": ["command(whoami /user)"] }
+        });
+        assert!(!needs_approval(&whoami_user, &default_cfg, &whoami_user_cli));
+
+        // Compound command exact matching:
+        // "echo AAA; echo BBB": separate rules ["command(echo AAA)", "command(echo BBB)"] or "command(echo)" do NOT allow it
+        let split_rules_cli = json!({
+            "permissions": { "allow": ["command(echo AAA)", "command(echo BBB)", "command(echo)"] }
+        });
+        let compound_cmd = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "echo AAA; echo BBB" } } }));
+        assert!(needs_approval(&compound_cmd, &default_cfg, &split_rules_cli));
+
+        // But exact whole-line rule "command(echo AAA; echo BBB)" DOES allow it
+        let exact_compound_cli = json!({
+            "permissions": { "allow": ["command(echo AAA; echo BBB)"] }
+        });
+        assert!(!needs_approval(&compound_cmd, &default_cfg, &exact_compound_cli));
+
+        // Compound command with Always Allow saves exact full-line rule and re-run does not prompt
+        let pre_compound = json!({
+            "hook_event_name": "PreToolUse",
+            "conversationId": "5064aa2e",
+            "workspacePaths": ["Z:/nowhere/agyws"],
+            "is_cli": true,
+            "toolCall": { "name": "run_command", "args": { "CommandLine": "echo AAA; echo BBB" } },
+            "stepIdx": 7
+        });
+        let ask_compound = for_ask(&pre_compound);
+        assert_eq!(ask_compound["permission_suggestions"][0]["rules"][0], json!({ "toolName": "command", "ruleContent": "echo AAA; echo BBB" }));
+        let always_reply = agent_core::asks::reply_for(&ask_compound, &json!({ "action": "always" }), "denied").unwrap();
+        let cfg_tmp = std::env::temp_dir().join(format!("waku-comp-cfg-{}.json", std::process::id()));
+        let cli_tmp = std::env::temp_dir().join(format!("waku-comp-cli-{}.json", std::process::id()));
+        let _ = std::fs::remove_file(&cfg_tmp);
+        let _ = std::fs::remove_file(&cli_tmp);
+        assert_eq!(
+            to_output_with(&always_reply.to_string(), Some(&cfg_tmp), Some(&cli_tmp)),
+            r#"{"decision":"auto_approve"}"#
+        );
+        let saved_comp_cli: Value = serde_json::from_str(&std::fs::read_to_string(&cli_tmp).unwrap()).unwrap();
+        assert_eq!(saved_comp_cli["permissions"]["allow"], json!(["command(echo AAA; echo BBB)"]));
+        assert!(!needs_approval(&pre_compound, &default_cfg, &saved_comp_cli));
+        let _ = std::fs::remove_file(&cfg_tmp);
+        let _ = std::fs::remove_file(&cli_tmp);
+
+        // Sandbox settings:
+        // enableTerminalSandbox: true allows commands under proceed-in-sandbox
+        let sandbox_cli = json!({
+            "toolPermission": "proceed-in-sandbox",
+            "enableTerminalSandbox": true
+        });
+        assert!(!needs_approval(&echo_exact, &default_cfg, &sandbox_cli));
+
+        // enableTerminalSandbox: false requires approval under proceed-in-sandbox
+        let no_sandbox_cli = json!({
+            "toolPermission": "proceed-in-sandbox",
+            "enableTerminalSandbox": false
+        });
+        assert!(needs_approval(&echo_exact, &default_cfg, &no_sandbox_cli));
+
+        // --sandbox command line flag allows commands under proceed-in-sandbox
+        let flag_sandbox_cli = json!({
+            "toolPermission": "proceed-in-sandbox"
+        });
+        let cmd_with_sandbox_flag = event("PreToolUse", json!({
+            "cli_sandbox": true,
+            "toolCall": { "name": "run_command", "args": { "CommandLine": "echo AAA" } }
+        }));
+        assert!(!needs_approval(&cmd_with_sandbox_flag, &default_cfg, &flag_sandbox_cli));
 
         // Implicit permission rules:
         // 1. Write implies read
