@@ -61,10 +61,13 @@
     // the monitor scale reported to Rust (Windows text scaling), so include
     // it when the native window converts that room to physical pixels.
     panel: measured => send('pet_panel', { measured: measured ? { ...measured, dpr: devicePixelRatio || 1 } : null }),
-    hover: isOver => {
+    // her: false for what is over her head out on the desktop (her words,
+    // her list, a prompt), not her: no drag starts from a press there, and
+    // it is not her seen (pet.rs hover).
+    hover: (isOver, her = true) => {
       // The real pointer has the page now, or has left it: start over.
       inside = []
-      send('pet_hover', { isOver: isOver === true })
+      send('pet_hover', { isOver: isOver === true, her: her !== false })
     },
     dragStart: () => send('pet_drag_start'),
     dragEnd: () => send('pet_drag_end'),

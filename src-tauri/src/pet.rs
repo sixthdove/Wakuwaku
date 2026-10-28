@@ -64,13 +64,18 @@ pub struct Win {
     // Watching the button while the pointer is on her (see poll).
     watching: bool,
     was_down: bool,
-    // The prompt panel's size (logical) while one is up above her, as the page measured it.
+    // The pointer is on her herself, not on what is over her head.
+    on_her: bool,
+    // The room (logical) over her head for what is there, as the page
+    // measured it: her words, her list, a prompt panel (pet.js room).
     panel: Option<(f64, f64)>,
     // How far she sits right of the window's centre: when the screen edge
     // stops the grown window from centring on her, she shifts so she stays put.
     shift: i32,
-    // Where the window was before a panel grew it, to go back to exactly.
-    parked: Option<(i32, i32)>,
+    // Where the window was before the room over her head grew it, to go back
+    // to exactly; and where she stood (her middle, her feet) as it was last
+    // grown: moved since, she goes back to where she is instead.
+    parked: Option<((i32, i32), (i32, i32))>,
 }
 
 // Her window's display's scale.
@@ -87,13 +92,54 @@ impl Win {
         ((BASE_W * scale * self.sf()).round() as i32, (BASE_H * scale * self.sf()).round() as i32)
     }
 
-    // The window now: taller, and wider if need be, while a prompt panel is up.
+    // The window now: taller, and wider, should what is over her head need
+    // more room than her own window has above her.
     fn size_for(&self, scale: f64) -> (i32, i32) {
         let base = self.base_size(scale);
         match self.panel {
-            Some((w, h)) => (base.0.max((w * self.sf()).ceil() as i32), base.1 + (h * self.sf()).ceil() as i32),
+            Some((w, h)) => (base.0.max((w * self.sf()).ceil() as i32), base.1.max(((CELL_H * scale + h) * self.sf()).ceil() as i32)),
             None => base,
         }
+    }
+
+    // The room over her head as measured (set_panel): the window's size and
+    // place for it, kept on screen by clamp, she staying put. False when
+    // nothing changes.
+    fn make_room(&mut self, measured: Option<(f64, f64)>, scale: f64, clamp: impl Fn((i32, i32), (i32, i32)) -> (i32, i32)) -> bool {
+        if self.panel == measured {
+            return false;
+        }
+        let (old, before) = (self.pos, self.size);
+        let pet_x = old.0 + before.0 / 2 + self.shift;
+        let pet_bottom = old.1 + before.1;
+        // Where to go back to once nothing is over her head: where she was
+        // before it came, unless she has been moved since (dragged, a walk:
+        // her words are up all through a turn); then where she is now.
+        let parked = match self.parked.take() {
+            Some((back, at)) if at == (pet_x, pet_bottom) => Some(back),
+            _ if self.panel.is_none() => Some(old),
+            _ => None,
+        };
+        self.panel = measured;
+        self.size = self.size_for(scale);
+        match (measured, parked) {
+            (None, Some(back)) => {
+                self.pos = back;
+                self.shift = 0;
+            }
+            (panel, back) => {
+                let want_x = pet_x - self.size.0 / 2;
+                let p = clamp((want_x, pet_bottom - self.size.1), self.size);
+                self.pos = p;
+                self.shift = if panel.is_some() { want_x - p.0 } else { 0 };
+                if panel.is_some() {
+                    let base = self.base_size(scale);
+                    let back = back.unwrap_or((pet_x - base.0 / 2, pet_bottom - base.1));
+                    self.parked = Some((back, (p.0 + self.size.0 / 2 + self.shift, p.1 + self.size.1)));
+                }
+            }
+        }
+        true
     }
 
     // Her middle on the screen, for the island to reach for.
@@ -282,13 +328,14 @@ pub fn apply_visibility(sh: &Shared) {
         if want {
             let _ = win.as_ref().show();
             sh.show_window(&win);
-            // Hidden, her page heard no updates (main.rs to_pages): the
-            // whole state now, whether quiet with it.
-            sh.send_to_pet();
         } else {
             hide_window(&win);
         }
     }
+    // Hidden, her page heard no updates (main.rs to_pages): the whole state
+    // now, whether quiet with it; and her home told she is up or not (herUp:
+    // who holds a prompt), an app full screen changing it as well.
+    sh.redraw();
 }
 
 // Her window put away, and its page with it (WebView2's IsVisible): with
@@ -352,36 +399,16 @@ pub fn return_to_spot(sh: &Shared) {
     move_to(sh, p.0, p.1, false);
 }
 
-// The prompt panel's size (logical) as the page measured it, or None once it
-// has gone. It grows the window upwards and both ways, her staying put.
+// The room over her head (logical) for what is there (her words, her list,
+// a prompt panel), as the page measured it, or None once nothing is. More
+// than her window has above her grows it upwards and both ways, her staying put.
 pub fn set_panel(sh: &Shared, measured: Option<(f64, f64)>) {
     let scale = scale(sh);
     let screens = sh.screens();
     let (pos, size, shift, sf) = {
         let mut w = sh.win.lock().unwrap();
-        if w.panel == measured {
+        if !w.make_room(measured, scale, |p, size| screens.clamp(p, size)) {
             return;
-        }
-        let (old, before) = (w.pos, w.size);
-        let pet_x = old.0 + before.0 / 2 + w.shift;
-        let pet_bottom = old.1 + before.1;
-        if w.panel.is_none() && measured.is_some() {
-            w.parked = Some(old);
-        }
-        w.panel = measured;
-        w.size = w.size_for(scale);
-        match (measured, w.parked.take()) {
-            (None, Some(parked)) => {
-                w.pos = parked;
-                w.shift = 0;
-            }
-            (panel, parked) => {
-                w.parked = parked;
-                let want_x = pet_x - w.size.0 / 2;
-                let p = screens.clamp((want_x, pet_bottom - w.size.1), w.size);
-                w.pos = p;
-                w.shift = if panel.is_some() { want_x - p.0 } else { 0 };
-            }
         }
         (w.pos, w.size, w.shift, w.sf())
     };
@@ -535,8 +562,9 @@ pub fn poll(sh: &Arc<Shared>, cursor: (i32, i32)) -> u64 {
             // So while the pointer is on her, the button itself is watched too,
             // and a press starts the drag, whichever hears it first.
             let is_down = down == Some(true);
-            // Not with a prompt panel up: a press there is on its buttons.
-            if w.ct.over && w.panel.is_none() {
+            // On her alone: a press on what is over her head (her words, her
+            // list, a prompt's buttons) is on that.
+            if w.ct.over && w.on_her {
                 if w.watching && is_down && !w.was_down {
                     press_now = true;
                 }
@@ -545,9 +573,9 @@ pub fn poll(sh: &Arc<Shared>, cursor: (i32, i32)) -> u64 {
                 w.watching = false;
             }
             w.was_down = is_down;
-            // Her eyes follow only while idle.
+            // Her eyes follow only while idle (up at her list, too).
             let mut is_looking = false;
-            if seen.moved && look && is_idle && w.panel.is_none() {
+            if seen.moved && look && is_idle {
                 let face = (pos.0 as f64 + size.0 as f64 / 2.0 + w.shift as f64, pos.1 as f64 + size.1 as f64 - CELL_H * scale * sf * 0.62);
                 let (dx, dy) = ((cursor.0 as f64 - face.0) / sf, (cursor.1 as f64 - face.1) / sf);
                 if dx.hypot(dy) <= LOOK_FAR {
@@ -584,16 +612,23 @@ pub fn is_dragged(sh: &Shared) -> bool {
     sh.win.lock().unwrap().drag.as_ref().is_some_and(|d| !d.carried)
 }
 
-pub fn hover(sh: &Shared, is_over: bool) {
+// The pointer on her, or off; on what is over her head (her = false): that
+// catches the mouse too, but no press there drags her, and it is not her
+// seen (her words stay to be read and pressed).
+pub fn hover(sh: &Shared, is_over: bool, her: bool) {
     let ignore = {
         let mut w = sh.win.lock().unwrap();
         let (held, passive) = match &w.drag {
             Some(d) => (!d.carried, d.carried),
             None => (false, false),
         };
+        w.on_her = is_over && her;
         w.ct.set_over(is_over, held, passive)
     };
     set_ignore(sh, ignore);
+    if is_over && !her {
+        return;
+    }
     if is_over {
         let shown = {
             let now = sh.pet.lock().unwrap().get(now_ms());
@@ -856,5 +891,69 @@ pub fn where_(sh: &Shared) -> Value {
         "walking": w.walking,
         "flying": w.flying,
         "dragging": w.drag.as_ref().map(|d| if d.carried { "carried" } else { "dragged" }),
+        "room": w.panel.map(|(rw, rh)| json!([rw, rh])),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A 2560×1380 work area, at 125% as on the user's screen.
+    fn clamp(p: (i32, i32), size: (i32, i32)) -> (i32, i32) {
+        (p.0.max(0).min(2560 - size.0), p.1.max(0).min(1380 - size.1))
+    }
+
+    // Her middle and her feet on the screen.
+    fn feet(w: &Win) -> (i32, i32) {
+        (w.pos.0 + w.size.0 / 2 + w.shift, w.pos.1 + w.size.1)
+    }
+
+    fn standing(at: (i32, i32)) -> Win {
+        let mut w = Win { sf: 1.25, ..Win::default() };
+        w.size = w.base_size(0.75);
+        w.pos = at;
+        w
+    }
+
+    #[test]
+    fn room_over_her_head_grows_her_window_and_she_stays_put() {
+        let mut w = standing((1700, 900));
+        let (start, stood) = (w.pos, feet(&w));
+        // Her words fit in the room her window has above her: no bigger.
+        assert!(w.make_room(Some((200.0, 40.0)), 0.75, clamp));
+        assert_eq!((w.pos, w.size), (start, w.base_size(0.75)));
+        // A prompt: taller and wider, she where she was.
+        assert!(w.make_room(Some((340.0, 220.0)), 0.75, clamp));
+        assert!(w.size.0 > 338 && w.size.1 > 300, "{:?}", w.size);
+        assert_eq!(feet(&w), stood);
+        // Gone: back exactly.
+        assert!(w.make_room(None, 0.75, clamp));
+        assert_eq!((w.pos, w.size), (start, w.base_size(0.75)));
+        assert!(!w.make_room(None, 0.75, clamp));
+    }
+
+    #[test]
+    fn moved_while_her_words_are_up_she_stays_where_she_was_moved_to() {
+        let mut w = standing((1700, 900));
+        w.make_room(Some((340.0, 220.0)), 0.75, clamp);
+        // Dragged 400 px left and 100 up meanwhile.
+        w.pos = (w.pos.0 - 400, w.pos.1 - 100);
+        let stood = feet(&w);
+        w.make_room(Some((300.0, 60.0)), 0.75, clamp);
+        assert_eq!(feet(&w), stood);
+        w.make_room(None, 0.75, clamp);
+        assert_eq!((feet(&w), w.size), (stood, w.base_size(0.75)));
+    }
+
+    #[test]
+    fn with_no_room_above_her_she_steps_down_for_it_and_back_up_after() {
+        let mut w = standing((1700, 10));
+        let (start, stood) = (w.pos, feet(&w));
+        w.make_room(Some((340.0, 220.0)), 0.75, clamp);
+        assert_eq!(w.pos.1, 0);
+        assert!(feet(&w).1 > stood.1);
+        w.make_room(None, 0.75, clamp);
+        assert_eq!(w.pos, start);
+    }
 }

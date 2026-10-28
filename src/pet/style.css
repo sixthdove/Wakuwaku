@@ -71,6 +71,211 @@ body {
   -webkit-line-clamp: 2;
 }
 
+/* Out on the desktop (pet.js, body.her-out): her words over her head in the
+   island's dark capsule, her list under the pointer, a prompt in the
+   island's black panel; at sizes of their own whatever hers, never cut to
+   her window (her window grows for them: pet.js room, pet.rs set_panel). */
+.her-out #bubble {
+  flex: none;
+  position: relative;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 300px;
+  margin-bottom: 8px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #2c2c2c;
+  color: #f5f5f7;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: none;
+  pointer-events: auto;
+  cursor: pointer;
+  /* Its point hangs below it; its lines cut themselves short. */
+  overflow: visible;
+}
+
+/* With Claude's words under the line: wide enough for them to read. */
+.her-out #bubble:has(.reply) {
+  width: 280px;
+}
+
+.her-out #bubble.hidden,
+.listing #bubble,
+.asking #her-list {
+  display: none;
+}
+
+/* A point down to her, where she stands in a window grown wider (--shift). */
+.her-out #bubble::after {
+  content: '';
+  position: absolute;
+  left: clamp(12px, calc(50% + var(--shift, 0px) - 5px), calc(100% - 22px));
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #2c2c2c;
+  transform: rotate(45deg);
+}
+
+.her-out #bubble .row,
+#her-list .row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.her-out #bubble .dot,
+#her-list .dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.her-out #bubble .who,
+#her-list .who {
+  flex: none;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.her-out #bubble .what,
+#her-list .what {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #98989d;
+}
+
+.her-out #bubble .more {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.her-out #bubble .clock,
+#her-list .clock {
+  flex: none;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.her-out #bubble .reply {
+  display: -webkit-box;
+  margin-top: 3px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: #d8d8dc;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+#her-list {
+  flex: none;
+  box-sizing: border-box;
+  width: 300px;
+  margin-bottom: 8px;
+  padding: 8px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: #2c2c2c;
+  color: #f5f5f7;
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+}
+
+#her-list[hidden] {
+  display: none;
+}
+
+#her-list .head,
+#her-list .rest {
+  display: block;
+  padding: 0 9px 5px;
+  color: #98989d;
+  font-size: 11.5px;
+}
+
+#her-list .rest {
+  padding-top: 3px;
+}
+
+#her-list .row {
+  padding: 6px 9px;
+  border-radius: 10px;
+}
+
+#her-list .row.go {
+  cursor: pointer;
+}
+
+#her-list .row.go:hover,
+#her-list .btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#her-list .foot {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 2px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+#her-list .btn {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 9px;
+  color: #c7c7cc;
+  font-size: 11.5px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.her-out #panel {
+  position: relative;
+  width: 316px;
+  margin-bottom: 8px;
+  padding: 12px 13px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: #000;
+  color: #f5f5f7;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+}
+
+.her-out #panel::after {
+  content: '';
+  position: absolute;
+  left: clamp(12px, calc(50% + var(--shift, 0px) - 5px), calc(100% - 22px));
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  transform: rotate(45deg);
+}
+
 /* One 192x208 cell of the 1536x2288 sheet, scaled: the whole sheet (the
    film) behind a cell-sized window, moved to the cell by a transform on its
    own compositor layer, so a frame costs no repaint (it was the cell's
@@ -1120,52 +1325,63 @@ body {
   transition-delay: 0.2s;
 }
 
+/* The same black panel over her head out on the desktop (.her-out). */
 .island #panel .chip,
-.island #panel .more {
+.island #panel .more,
+.her-out #panel .chip,
+.her-out #panel .more {
   background: #2c2c2e;
   color: #c7c7cc;
 }
 
-.island #panel .code {
+.island #panel .code,
+.her-out #panel .code {
   background: #1c1c1e;
   color: #e5e5ea;
 }
 
-.island #panel .btn {
+.island #panel .btn,
+.her-out #panel .btn {
   border-color: #3a3a3c;
   background: #2c2c2e;
   color: #f5f5f7;
   border-radius: 14px;
 }
 
-.island #panel .btn.primary {
+.island #panel .btn.primary,
+.her-out #panel .btn.primary {
   border-color: #34d27b;
   background: #34d27b;
   color: #04220f;
 }
 
-.island #panel .btn.always {
+.island #panel .btn.always,
+.her-out #panel .btn.always {
   border-color: #5e9bff;
   background: #5e9bff;
   color: #04122b;
 }
 
-.island #panel .btn.danger {
+.island #panel .btn.danger,
+.her-out #panel .btn.danger {
   border-color: #3a3a3c;
   color: #ff6b7a;
 }
 
-.island #panel .btn.option.picked {
+.island #panel .btn.option.picked,
+.her-out #panel .btn.option.picked {
   border-color: #5e9bff;
   background: #16233d;
 }
 
-.island #panel .btn.ghost {
+.island #panel .btn.ghost,
+.her-out #panel .btn.ghost {
   background: none;
   color: #8e8e93;
 }
 
-.island #panel .input {
+.island #panel .input,
+.her-out #panel .input {
   border-color: #3a3a3c;
   background: #1c1c1e;
   color: #f5f5f7;
@@ -1175,7 +1391,12 @@ body {
 .island #panel .unit,
 .island #panel .hint,
 .island #panel .qdesc,
-.island #panel .btn.option .desc {
+.island #panel .btn.option .desc,
+.her-out #panel .note,
+.her-out #panel .unit,
+.her-out #panel .hint,
+.her-out #panel .qdesc,
+.her-out #panel .btn.option .desc {
   color: #98989d;
 }
 

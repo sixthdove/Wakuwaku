@@ -331,6 +331,11 @@
   // so, so she lands in her live portrait and not in the still one.
   let isComingHome = false
   let comingHomeTimer
+  // Her window up on the desktop (main.rs payload herUp): out there she says
+  // it herself, the prompts over her head too (pet.js, panel.js), and the
+  // island does not open for them.
+  let herUp = false
+  const herTalks = () => config.out === true && herUp && !isComingHome
   // Her live portrait was showing at the last draw: one showing again is put
   // in its place at once, not sprung there from where she last stood (her
   // whole self, if she was pulled out of the open island).
@@ -5180,7 +5185,7 @@
   // notice, process), and what the island would have opened with ({ clip,
   // text, ms, widget }; a reaction's name, react).
   function cue(kind, show) {
-    const how = Flow.cueFor(kind, { setting: Flow.endCue(config), view, blocked: flowBlocked() })
+    const how = Flow.cueFor(kind, { setting: Flow.endCue(config), view, blocked: flowBlocked(), herOut: herTalks() })
     // Inside a turn: her clip, and nothing kept, no ring, no dot.
     if (how === 'clip') return playReaction(show.react)
     // The newest wins: what is kept for the next look is this one's (an
@@ -5815,6 +5820,7 @@
       oledShift()
     }
     if (config.out !== true) isComingHome = false
+    herUp = data.herUp === true
     spriteUrl = data.sprite
     second = data.second || null
     // Where island.rs put her window at the top of the screen (anchor.js).

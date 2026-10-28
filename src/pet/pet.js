@@ -28,7 +28,11 @@ const sprite = document.getElementById('pet')
 // The whole sheet behind her cell-sized box (style.css #pet-film); made
 // here should the page lack it (a harness with an older index.html).
 const film = document.getElementById('pet-film') || sprite.appendChild(Object.assign(document.createElement('div'), { id: 'pet-film' }))
+// Her words over her head out on the desktop (and, with no pet at all, how
+// to get one); the list she opens under the pointer, made here as the film is.
 const bubble = document.getElementById('bubble')
+const herList = document.getElementById('her-list') || sprite.parentElement.insertBefore(Object.assign(document.createElement('div'), { id: 'her-list', hidden: true }), sprite)
+const panelBox = document.getElementById('panel')
 
 let lang = 'en'
 let now = { mood: 'idle', detail: '', project: '', since: null, took: null, others: 0, sessions: 0, list: [] }
@@ -41,8 +45,9 @@ let spriteVersion = 2
 // island.js); in the island's, she is not drawn here.
 const ROLE = new URLSearchParams(location.search).get('role') === 'island' ? 'island' : 'pet'
 const isIsland = () => ROLE === 'island'
-// Out on the desktop she only acts: her home does the talking. Her bubble
-// speaks only while there is no pet at all, to say how to get one.
+// Out on the desktop she says it herself (the user's call, 2026-10-28: it
+// was all her home's, and the island at the top folds away under a
+// maximized window, so often nothing said anything): see "Her words" below.
 
 // Nobody at the keyboard or mouse for a while (pet:quiet): she stands still.
 let quiet = false
@@ -150,36 +155,240 @@ function kick() {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopIdle()
+    closeList()
+    clearTimeout(tickTimer)
+    // Main may set her window's size anew meanwhile (pet.rs return_to_spot):
+    // the room over her head told again as she shows.
+    roomSent = undefined
     return clearTimeout(frameTimer)
   }
   kick()
   scheduleIdle()
+  talk()
+  room(true)
 })
 
-// --- Bubble -------------------------------------------------------------------
+// --- Her words, out on the desktop -------------------------------------------------
+// Over her head, in the island's dark capsule, what the closed island says:
+// the session shown, what it is doing and for how long; or how its turn
+// ended, how long it took and Claude's last words, for as long as main holds
+// the ending (the hold setting) or until the pointer comes over her (seen).
+// Nothing at rest. A press on it goes to that session's window. A prompt
+// (panel.js) takes its place, and so does the list she opens when the
+// pointer rests on her: every session, a press on one to its window.
 
-// Her tooltip's words: where the session is and for how long; and on a line
-// of its own, another session that wants you, how this turn ended, or whose
-// this is (or '').
-function words() {
-  const detailed = config.details !== false
-  const time = Status.time(now)
-  const main = [Status.status(lang, now, { detailed }), time && (Status.isEnding(now) ? t(lang, 'detail.took', { time }) : time)].filter(Boolean).join(' · ')
-  const others = Status.othersOf(now.list, now).length || now.others || 0
-  const urgent = Status.urgentOf(now.list, now)
-  const name = Status.nameOf(now, detailed)
-  let more = ''
-  if (urgent) {
-    more = `${Status.nameOf(urgent, detailed)}：${Status.status(lang, urgent, { detailed, withClock: false })}`
-  } else if (detailed && Status.isEnding(now) && now.reply) {
-    more = now.reply
-  } else if (name && now.sessions > 1) {
-    more = [name, others > 0 ? t(lang, 'status.moreSessions', { n: others }) : ''].filter(Boolean).join(' · ')
-  } else if (others > 0) {
-    more = t(lang, 'detail.moreSessions', { n: others })
-  }
-  return { main, more }
+// The moods' colours on her dark capsule: the island's on black.
+const ON_DARK = { idle: '#8e8e93', working: '#5e9bff', waiting: '#ffb340', done: '#34d27b', review: '#b18cff', error: '#ff5c6c' }
+// The pointer rests on her this long before her list opens; off her and the
+// list this long before it closes (the way up from her to it crosses a gap).
+const LIST_MS = 400
+const LIST_LEAVE_MS = 300
+const LIST_ROWS = 6
+// Less room over her head is given back this long after: a turn ending and
+// the next starting do not move her window twice.
+const ROOM_KEEP_MS = 1500
+
+const isOut = () => !isIsland() && config.out === true && !!spriteUrl
+const isAsking = () => document.body.classList.contains('asking')
+const detailed = () => config.details !== false
+
+function span(cls, text) {
+  const node = document.createElement('span')
+  node.className = cls
+  if (text) node.textContent = text
+  return node
 }
+
+// A dot in the mood's colour, whose, what, "+N", the clock: her capsule's
+// line, and each line of her list.
+function line({ mood, name, what, clock, others }) {
+  const row = span('row')
+  const dot = span('dot')
+  dot.style.background = ON_DARK[mood] || ON_DARK.idle
+  row.append(dot)
+  if (name) row.append(span('who', name))
+  if (what) row.append(span('what', what))
+  if (others) row.append(span('more', `+${others}`))
+  if (clock) {
+    const c = span('clock', clock)
+    c.style.color = ON_DARK[mood] || ON_DARK.idle
+    row.append(c)
+  }
+  return row
+}
+
+let saidKey = ''
+let tickTimer
+
+// Her capsule as the session shown is now; drawn again only when what it
+// says changes, its clock kept up each second in place (tick).
+function talk() {
+  document.body.classList.toggle('her-out', isOut())
+  const said = isOut() ? Status.talkOf(lang, now, { detailed: detailed() }) : null
+  const key = said ? JSON.stringify({ ...said, clock: Status.isEnding(now) ? said.clock : '' }) : ''
+  if (key !== saidKey) {
+    saidKey = key
+    if (said) {
+      bubble.replaceChildren(line(said), ...(said.reply ? [span('reply', said.reply)] : []))
+      bubble.title = [[said.name, said.what].filter(Boolean).join(' · '), said.reply].filter(Boolean).join('\n')
+      bubble.classList.remove('hidden')
+    } else {
+      bubble.replaceChildren()
+      bubble.title = ''
+      bubble.classList.add('hidden')
+    }
+  }
+  if (listOpen) fillList()
+  tick()
+  room()
+}
+
+// A busy session's clock (and an open list's) each second, while seen.
+function tick() {
+  clearTimeout(tickTimer)
+  if (!isOut() || quiet || document.hidden) return
+  const busy = s => s.mood === 'working' || s.mood === 'waiting'
+  if (!(saidKey && busy(now)) && !(listOpen && (now.list || []).some(busy))) return
+  tickTimer = setTimeout(() => {
+    const c = bubble.querySelector('.clock')
+    if (c && busy(now)) c.textContent = Status.time(now)
+    if (listOpen) fillList()
+    tick()
+    room()
+  }, 1000 - (Date.now() % 1000) + 20)
+}
+
+bubble.addEventListener('click', () => {
+  if (isOut() && now.id) window.pet.jump(now.id)
+})
+bubble.addEventListener('mouseenter', () => isOut() && window.pet.hover(true, false))
+bubble.addEventListener('mouseleave', () => isOut() && window.pet.hover(false, false))
+
+// --- Her list, under the pointer ----------------------------------------------------
+
+let listOpen = false
+let listTimer
+let leaveTimer
+let listKey = ''
+
+// Drawn again only when its lines change; their clocks kept up in place.
+function fillList() {
+  const all = now.list && now.list.length ? now.list : now.id ? [now] : []
+  const sessions = all.slice(0, LIST_ROWS)
+  const said = sessions.map(s => Status.rowOf(lang, s, { detailed: detailed() }))
+  const key = JSON.stringify([lang, all.length, said.map(r => ({ ...r, clock: '' }))])
+  if (key === listKey) {
+    herList.querySelectorAll('.row').forEach((row, i) => {
+      const c = row.querySelector('.clock')
+      if (c && said[i]) c.textContent = said[i].clock
+    })
+    return
+  }
+  listKey = key
+  const rows = said.map(r => {
+    const row = line(r)
+    if (r.id) {
+      row.classList.add('go')
+      row.addEventListener('click', () => {
+        closeList()
+        window.pet.jump(r.id)
+      })
+    }
+    return row
+  })
+  const more = all.length - sessions.length
+  const head = span('head', all.length ? t(lang, all.length === 1 ? 'her.session' : 'her.sessions', { n: all.length }) : t(lang, 'her.noSessions'))
+  const foot = span('foot')
+  const button = (text, act) => {
+    const b = span('btn', text)
+    b.addEventListener('click', () => {
+      closeList()
+      act()
+    })
+    return b
+  }
+  foot.append(button(t(lang, 'her.settings'), () => window.pet.openSettings()), button(t(lang, 'her.home'), () => window.pet.doubleClick()))
+  herList.replaceChildren(head, ...rows, ...(more > 0 ? [span('rest', t(lang, 'status.moreSessions', { n: more }))] : []), foot)
+}
+
+function openList() {
+  clearTimeout(listTimer)
+  if (!isOut() || isAsking() || dragged || listOpen) return
+  listOpen = true
+  fillList()
+  herList.hidden = false
+  document.body.classList.add('listing')
+  tick()
+  room()
+}
+
+function closeList() {
+  clearTimeout(listTimer)
+  clearTimeout(leaveTimer)
+  if (!listOpen) return
+  listOpen = false
+  listKey = ''
+  herList.hidden = true
+  herList.replaceChildren()
+  document.body.classList.remove('listing')
+  room()
+}
+
+// Off her and the list: it closes in a moment, unless the pointer comes back.
+function leaveSoon() {
+  clearTimeout(listTimer)
+  clearTimeout(leaveTimer)
+  leaveTimer = setTimeout(closeList, LIST_LEAVE_MS)
+}
+
+herList.addEventListener('mouseenter', () => {
+  clearTimeout(leaveTimer)
+  window.pet.hover(true, false)
+})
+herList.addEventListener('mouseleave', () => {
+  window.pet.hover(false, false)
+  leaveSoon()
+})
+
+// --- The room over her head ---------------------------------------------------------
+
+// What is over her head (a prompt, her list, her words) measured for main:
+// her window grows up and out for more than it has above her, she staying
+// put (pet.rs set_panel); less is given back a moment later.
+let roomSent
+// Less room on its way (its timer, and how much), not put off again by the
+// clock's tick asking the same.
+let roomTimer = null
+let roomLess
+
+function room(atOnce = false) {
+  if (isIsland()) return
+  requestAnimationFrame(() => {
+    if (isAsking() && listOpen) return closeList()
+    const shown = [panelBox, herList, bubble].find(n => n && !n.hidden && !n.classList.contains('hidden') && n.offsetHeight > 0)
+    const want = shown ? { width: Math.ceil(shown.offsetWidth) + 16, height: Math.ceil(shown.offsetHeight) + 12 } : null
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    const send = () => {
+      clearTimeout(roomTimer)
+      roomTimer = null
+      roomSent = want
+      window.pet.panel(want)
+    }
+    if (same(want, roomSent)) {
+      clearTimeout(roomTimer)
+      roomTimer = null
+      return
+    }
+    const isLess = !want || (roomSent && want.width <= roomSent.width && want.height <= roomSent.height)
+    if (!isLess || atOnce) return send()
+    if (roomTimer && same(want, roomLess)) return
+    clearTimeout(roomTimer)
+    roomLess = want
+    roomTimer = setTimeout(send, ROOM_KEEP_MS)
+  })
+}
+
+window.HerTalk = { room }
 
 // The bubble never pushes her out of her window: one line for the status
 // and one for the others, cut short with an ellipsis; something she says
@@ -209,16 +418,17 @@ function render() {
 
   // No sprite yet: say how to get one, and keep a box to right-click.
   if (!spriteUrl) {
+    document.body.classList.remove('her-out')
+    closeList()
+    saidKey = 'noSprite'
     fillBubble({ main: t(lang, 'say.noSprite') }, true)
     bubble.classList.remove('hidden')
     sprite.classList.add('empty')
     return
   }
   sprite.classList.remove('empty')
-
-  bubble.classList.add('hidden')
-  const { main, more } = words()
-  sprite.title = [main, more].filter(Boolean).join('\n')
+  if (saidKey === 'noSprite') saidKey = '-'
+  talk()
 }
 
 // --- Idle life: walk a little, glance around ---------------------------------------
@@ -324,6 +534,7 @@ window.pet.onUpdate(data => {
 window.pet.onQuiet(({ on }) => {
   quiet = on === true
   kick()
+  tick()
 })
 
 function react({ react: name, say: text, times }) {
@@ -354,7 +565,10 @@ window.pet.onDrag(dx => {
   if (dx === 0) return
   const isNew = !dragged
   dragged = { dir: Math.sign(dx), at: performance.now() }
-  if (isNew) kick()
+  if (isNew) {
+    closeList()
+    kick()
+  }
 })
 
 window.pet.onDragEnd(() => {
@@ -365,11 +579,22 @@ window.pet.onDragEnd(() => {
 
 // --- Pointer: hover turns click-through off, press drags --------------------------------
 
-sprite.addEventListener('mouseenter', () => window.pet.hover(true))
-sprite.addEventListener('mouseleave', () => window.pet.hover(false))
+// Out on the desktop, resting on her opens her list (a press does not).
+sprite.addEventListener('mouseenter', () => {
+  window.pet.hover(true)
+  clearTimeout(leaveTimer)
+  clearTimeout(listTimer)
+  if (isOut() && !listOpen) listTimer = setTimeout(openList, LIST_MS)
+})
+sprite.addEventListener('mouseleave', () => {
+  window.pet.hover(false)
+  if (listOpen) leaveSoon()
+  else clearTimeout(listTimer)
+})
 sprite.addEventListener('mousedown', e => {
   // Into the debug log (when on): which window a press reaches.
   console.log('mousedown on her, button', e.button)
+  closeList()
   if (e.button === 0) {
     stopIdle()
     window.pet.dragStart()
@@ -377,6 +602,7 @@ sprite.addEventListener('mousedown', e => {
 })
 sprite.addEventListener('contextmenu', e => {
   e.preventDefault()
+  closeList()
   window.pet.menu()
 })
 

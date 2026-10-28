@@ -267,20 +267,33 @@
 
   // Tell main how much room the panel needs; null when it is gone.
   function report() {
-    // In the island, the island sizes itself and the window around it.
+    // In the island, the island sizes itself and the window around it; in
+    // hers, she has the room over her head for whatever is there (pet.js).
     if (window.Island?.isOn()) return window.Island.changed()
+    if (window.HerTalk) return window.HerTalk.room()
     requestAnimationFrame(() => {
       window.pet.panel(panel.hidden ? null : { width: panel.offsetWidth + 16, height: panel.offsetHeight + 10 })
     })
   }
 
   // Which page holds the panel: her home's (the island's window), which
-  // talks for her; the open settings have it as a banner.
+  // talks for her; hers while she is out on the desktop and up there, where
+  // she talks for herself and the home does not open for it (the user's
+  // call, 2026-10-28). The open settings have it as a banner.
   const ROLE = typeof location !== 'undefined'
     ? (new URLSearchParams(location.search).get('role') === 'island' ? 'island' : 'pet')
     : 'island'
   let settingsOpen = false
-  const holdsPanel = () => ROLE === 'island'
+  // Her window up on the desktop (main.rs payload herUp).
+  let herUp = false
+  const holdsPanel = () => holderOf({ role: ROLE, out: config.out === true, herUp, hidden: typeof document !== 'undefined' && document.hidden })
+
+  // Hers while she is out and her window up (her page not put away with
+  // it), else the island's: one of the two, so a prompt shows in one place.
+  function holderOf({ role, out, herUp, hidden }) {
+    const hers = out && herUp
+    return role === 'island' ? !hers : hers && !hidden
+  }
 
   function render(armMs = ARM_MS) {
     if (!panel) return
@@ -352,6 +365,7 @@
       const wasHolding = holdsPanel()
       const prevHk = `${config.shortcutsEnabled}:${config.shortcutApprove}:${config.shortcutDeny}`
       settingsOpen = data.settingsOpen === true
+      herUp = data.herUp === true
       config = data.config || config
       const nextHk = `${config.shortcutsEnabled}:${config.shortcutApprove}:${config.shortcutDeny}`
       if ((data.lang && data.lang !== lang) || wasHolding !== holdsPanel() || (shownId && prevHk !== nextHk)) {
@@ -364,6 +378,10 @@
       asks = Array.isArray(list) ? list : []
       render()
     })
+
+    // Her page put away with her window, or up again: the prompt goes, or
+    // comes back over her head.
+    if (ROLE === 'pet') document.addEventListener('visibilitychange', () => render(0))
   }
 
   function decideHotkeyAction({ which, ask, shownId, isArmed, islandOpen }) {
@@ -377,10 +395,15 @@
 
   if (typeof window !== 'undefined' && window.pet) {
     window.pet.onHotkey?.(({ which } = {}) => {
+      // Out on the desktop the prompt is over her head: the keys answer it
+      // there (main sends them to her window then, shortcuts.rs), and the
+      // island stays shut; the island's own key is the island's alone.
+      if (ROLE === 'pet' ? which === 'island' : which !== 'island' && !holdsPanel()) return
       const ask = holdsPanel() ? asks[0] : null
       const actionBtn = panel?.querySelector(`button[data-action="${which}"]`)
       const isArmed = !!panel && !panel.hidden && !!actionBtn && actionBtn.disabled === false
-      const islandOpen = !!window.Island?.isOpen?.()
+      // Over her head it is in sight whenever it is there.
+      const islandOpen = ROLE === 'pet' ? !!panel && !panel.hidden : !!window.Island?.isOpen?.()
 
       const decision = decideHotkeyAction({ which, ask, shownId, isArmed, islandOpen })
       if (decision.type === 'toggle') {
@@ -388,7 +411,7 @@
       } else if (decision.type === 'answer') {
         answer({ action: which })
       } else if (decision.type === 'open') {
-        if (!islandOpen) {
+        if (ROLE === 'island' && !islandOpen) {
           window.Island?.peek?.(true)
         }
       }
@@ -397,12 +420,14 @@
 
   // The panel takes clicks; the rest of the window lets them through. In the
   // island, the island itself does this for the panel inside it.
+  // Over her head it is not her: no drag starts there, and it is not her
+  // being seen (pet.rs hover).
   if (panel) {
-    panel.addEventListener('mouseenter', () => window.Island?.isOn() || window.pet.hover(true))
-    panel.addEventListener('mouseleave', () => window.Island?.isOn() || window.pet.hover(false))
+    panel.addEventListener('mouseenter', () => window.Island?.isOn() || window.pet.hover(true, false))
+    panel.addEventListener('mouseleave', () => window.Island?.isOn() || window.pet.hover(false, false))
   }
 
-  const api = { decideHotkeyAction, ARM_MS }
+  const api = { decideHotkeyAction, holderOf, ARM_MS }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   if (typeof window !== 'undefined') window.Panel = api
 })(this ?? window)
