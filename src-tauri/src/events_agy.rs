@@ -393,6 +393,11 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
     }
 }
 
+// One kind of rule (allow, ask, deny) from a set of grants, as written.
+fn rules_of<'a>(grants: &'a Value, key: &str) -> impl Iterator<Item = &'a str> {
+    grants.get(key).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
+}
+
 // Whether a PreToolUse event in Antigravity will actually prompt the person in EnsurePermissions:
 // - Internal tools (ask_question, task_boundary, search_web, view_file_outline) never prompt.
 // - `--dangerously-skip-permissions` skips all tool prompts.
@@ -406,7 +411,7 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
 // - Desktop config (~/.gemini/config/config.json):
 //   - permissionPreset: "AGENT_PERMISSION_PRESET_TURBO", "AGENT_PERMISSION_PRESET_DEFAULT", etc.
 //   - autoExecutionPolicy: "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
-//   - globalPermissionGrants: { allow, ask, deny }
+//   - globalPermissionGrants: { allow, ask, deny }, which agy CLI honours as well
 pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     let call = e.get("toolCall").unwrap_or(&Value::Null);
     let raw_tool = s(call, "name");
@@ -430,25 +435,19 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     let desktop_grants = settings.get("globalPermissionGrants").unwrap_or(&Value::Null);
     let cli_perms = cli.get("permissions").unwrap_or(&Value::Null);
 
-    let (grants_deny, grants_ask, grants_allow) = if is_cli {
-        (
-            cli_perms.get("deny").and_then(Value::as_array),
-            cli_perms.get("ask").and_then(Value::as_array),
-            cli_perms.get("allow").and_then(Value::as_array),
-        )
-    } else {
-        (
-            desktop_grants.get("deny").and_then(Value::as_array),
-            desktop_grants.get("ask").and_then(Value::as_array),
-            desktop_grants.get("allow").and_then(Value::as_array),
-        )
+    // A CLI session's rules are its settings.json's and also the shared ones in
+    // config.json: agy CLI reads both, deny and ask too ("stored shared config
+    // permissions: allow=… deny=… ask=…" in its log). A desktop session's are
+    // config.json's.
+    let rules = |key: &str| -> Vec<&str> {
+        let cli_rules: Vec<&str> = if is_cli { rules_of(cli_perms, key).collect() } else { Vec::new() };
+        cli_rules.into_iter().chain(rules_of(desktop_grants, key)).collect()
     };
+    let (grants_deny, grants_ask, grants_allow) = (rules("deny"), rules("ask"), rules("allow"));
 
     // 1. Deny rules: Deny > Strict > Ask > Allow.
     // If matching deny, return false (Antigravity natively blocks it without asking).
-    let is_denied = |cmd_or_target: &str| {
-        grants_deny.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths)))
-    };
+    let is_denied = |cmd_or_target: &str| grants_deny.iter().any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths));
     if is_denied(&target) {
         return false;
     }
@@ -464,17 +463,13 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     }
 
     // 3. Ask rules: Ask > Allow.
-    let is_asked = |cmd_or_target: &str| {
-        grants_ask.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_covers(g, action, cmd_or_target, &ws_paths)))
-    };
+    let is_asked = |cmd_or_target: &str| grants_ask.iter().any(|g| grant_covers(g, action, cmd_or_target, &ws_paths));
     if is_asked(&target) {
         return true;
     }
 
     // 4. Allow rules: exact full-line match (commands must match entire line or command(*)).
-    let is_allowed = |cmd_or_target: &str| {
-        grants_allow.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths)))
-    };
+    let is_allowed = |cmd_or_target: &str| grants_allow.iter().any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths));
     if is_allowed(&target) {
         return false;
     }
@@ -871,6 +866,14 @@ mod tests {
         // But for a Desktop session (is_cli: false), Turbo preset auto-allows commands
         let desktop_cmd = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "transcriptPath": "Z:/brain/transcript.jsonl", "toolCall": { "name": "run_command", "args": { "CommandLine": "git status" } } });
         assert!(!needs_approval(&desktop_cmd, &turbo_cfg, &default_cli));
+        // config.json's shared grants count for a CLI session too (agy CLI reads
+        // them): allowed there, it runs unasked; denied there, agy refuses it
+        // itself, so neither comes to the island.
+        let shared_allow = json!({ "userSettings": { "globalPermissionGrants": { "allow": ["command(git status)"] } } });
+        assert!(!needs_approval(&cmd, &shared_allow, &default_cli));
+        let shared_deny = json!({ "userSettings": { "globalPermissionGrants": { "deny": ["command(git status)"] } } });
+        assert!(!needs_approval(&cmd, &shared_deny, &default_cli));
+        assert!(!needs_approval(&cmd, &shared_deny, &cli_allowed));
 
         // In CLI request-review mode:
         // - File write inside workspace STILL NEEDS APPROVAL when agentMode is default ""
