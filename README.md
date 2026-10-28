@@ -1,6 +1,7 @@
-<h1 align="center">Wakuwaku</h1>
-
-<p align="center"><strong>一个认识你所有 AI 会话的 Windows 任务栏。顺便，她是只宠物。</strong></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-zh-dark.jpg">
+  <img src="docs/readme/hero-zh-light.jpg" alt="Wakuwaku：一个认识你所有 AI 会话的 Windows 任务栏。顺便，她是只宠物。" width="100%">
+</picture>
 
 <p align="center">
   <a href="https://github.com/zhoupengjie/Wakuwaku/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/zhoupengjie/Wakuwaku?style=flat-square&amp;label=%E7%89%88%E6%9C%AC&amp;color=ff7eb3"></a>
@@ -9,305 +10,88 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-34d27b?style=flat-square"></a>
 </p>
 
-<p align="center"><a href="README.en.md">English</a> | <strong>简体中文</strong></p>
-
 <p align="center">
-  <a href="#安装">安装</a> ·
-  <a href="#使用">使用</a> ·
-  <a href="#工作原理">工作原理</a> ·
-  <a href="https://codex-pets.net">换一只宠物</a>
+  <a href="https://github.com/zhoupengjie/Wakuwaku/releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/btn-download-zh-dark.png"><img src="docs/readme/btn-download-zh-light.png" alt="下载 Windows 版" height="44"></picture></a>
+  <a href="https://gitee.com/zhoupengjie/Wakuwaku/releases"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/btn-gitee-zh-dark.png"><img src="docs/readme/btn-gitee-zh-light.png" alt="国内下载（Gitee）" height="44"></picture></a>
+  <a href="docs/GUIDE.md"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/btn-guide-zh-dark.png"><img src="docs/readme/btn-guide-zh-light.png" alt="使用说明" height="44"></picture></a>
+  <a href="README.en.md"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/btn-lang-zh-dark.png"><img src="docs/readme/btn-lang-zh-light.png" alt="English" height="44"></picture></a>
 </p>
 
-https://github.com/user-attachments/assets/7814d71a-77f0-43af-97a6-210d2cbb31dc
-
-> 名字来自《间谍过家家》里阿尼亚的口头禅"わくわく"（哇酷哇酷，好期待）：AI 在干活，她在旁边满心期待地盯着。
+<p align="center"><sub>名字来自《间谍过家家》里阿尼亚的口头禅「わくわく」（哇酷哇酷，好期待）：AI 在干活，她在旁边满心期待地盯着。</sub></p>
 
 ## 她能做什么
 
-- **认识你所有 AI 会话。** Claude Code、Codex、Antigravity 和 OpenCode 在干什么、跑了多久，任务栏最左边的胶囊里一眼看到。同时开好几个也分得清。
-- **要批准？任务栏上点一下。** 允许、以后都允许、拒绝，回答 Claude 的问题，批准计划。终端那边照常弹，谁先答算谁的。
-- **做完了，胶囊边上亮一圈。** 一圈彩色的流光绕着胶囊转几圈，她头像上留个小点，不打断你；鼠标停上去，改了几个文件、Claude 回了什么，都写在上面。点一下会话，直接跳到它的窗口：终端、VS Code，或者 Claude 桌面版。
-- **和 Windows 11 一样顺手。** 开始按钮、固定的程序、窗口缩略图、托盘、输入法、快速设置、时钟，用的都是 Windows 自己的图标和面板。
-- **邮件交给 AI 读。** 新邮件先在胶囊里冒出来；一封信交给 Claude Code、Codex 或 Antigravity，它替你总结、起草回信。发不发，你说了算。
-- **插件。** 没有会话时，胶囊里轮流放今天的用量、token、天气、番茄钟、倒计时；系统监控常驻。一行 PowerShell 就能写自己的插件。
-- **外观随你调。** 云母、透明、纯色，深色、浅色，换壁纸；胶囊的颜色、透明度、模糊、边框都能改，屏幕顶部的灵动岛也一样。
-- **宠物随便换。** [codex-pets.net](https://codex-pets.net) 上的宠物，搜一下就能下载。按住往上拉，她就跳到桌面上；双击，她飞回来。
-- **不想换掉任务栏也行。** 切成屏幕顶上的一颗灵动岛，系统监控固定在岛的右边。用 MyDockFinder 这类自己管系统任务栏的工具时也用灵动岛：她发现别的程序在和她抢任务栏，会自己切过去，并在岛上告诉你。
-
-约 11 MB，单个 exe，不用安装，免费开源。下一步（规划中）：让 AI 帮你操作桌面，宠物养成。
-
-| 做完了，鼠标停上去就看到 | 要批准，任务栏上点 |
-| --- | --- |
-| [![做完的会话在胶囊里展开：改了什么、Claude 的回复，下面是另外两个会话](docs/screenshots/done.jpg)](docs/screenshots/done.jpg) | [![任务栏上的确认面板：允许、以后都允许、拒绝](docs/screenshots/approve.jpg)](docs/screenshots/approve.jpg) |
-| **一封信交给 Claude** | **插件：开关、设置、自己写** |
-| [![邮件页：左边收件箱，右边是信和 Claude 写好的回信](docs/screenshots/mail.jpg)](docs/screenshots/mail.jpg) | [![插件页：监控、今天、token、天气、番茄钟、倒计时](docs/screenshots/plugins.jpg)](docs/screenshots/plugins.jpg) |
-| **胶囊的样子，随你调** | **或者，只要一颗灵动岛** |
-| [![外观页：胶囊的预设、底色、不透明度](docs/screenshots/look.jpg)](docs/screenshots/look.jpg) | [![屏幕顶上的灵动岛，右边固定着 CPU、内存、网速](docs/screenshots/island.jpg)](docs/screenshots/island.jpg) |
-
-<sub>截图里的邮件、项目和网页都是虚构的演示内容。宠物来自 codex-pets.net，版权归各自作者：Claude小姐（原角色设计 ZipZipPipe，像素二创 zhoupengjie）、大肥鱼（Dullsaw）、GPT娘（David）。</sub>
-
-## 宠物的动作
-
-每只宠物有 11 组动作，这里每一组都有用处：
-
-| 动作 | 什么时候 | 来自哪个 hook |
-| --- | --- | --- |
-| Idle | 空闲（眨一轮眼，停几秒） | 做完、出错后你看过她（鼠标经过）；`SessionEnd` |
-| Running | Claude 在干活，岛上显示这一轮的用时 | `UserPromptSubmit`、`PreToolUse`、`PostToolUse` |
-| Waiting | 等你：授权、Claude 问你问题、计划等你确认、MCP 要你填表 | `PermissionRequest`；`PreToolUse`（AskUserQuestion / ExitPlanMode）；`Elicitation` |
-| Review | 这一轮改过文件，结束了等你看 | `Stop`（这一轮里 Edit / Write 等工具执行过） |
-| Waving | 这一轮结束、没有改文件；会话开始和她刚出现时打招呼 | `Stop`、`SessionStart` |
-| Jumping | 任务清单里完成了一项；单击她 | `TaskCompleted` |
-| Failed | 请求失败（会一直等你看到）；工具调用失败（闪一下） | `StopFailure`；`PostToolUseFailure` |
-| Run right / left | 空闲时随机走几步；拖动时朝拖动方向跑 | — |
-| Look around（16 个方向） | 空闲时眼睛跟着鼠标转；偶尔自己东张西望 | — |
-
-- **同时开好几个 Claude Code 会话**：每个会话单独记状态。她显示最需要你注意的那个（等你确认 > 出错 > 改好了 > 做完 > 干活），并告诉你另外还有几个在忙；有别的会话在等你时，气泡第二行直接点名。闲置太久的会话不再显示，免得越积越多：空闲（做完的从你看到它算起）30 分钟没有新动静，就从「+N」、展开的岛和设置的会话列表里消失，它窗口在任务栏上的按钮照常在；一有新动静马上回来，状态、名字和今天的统计都在。时间在设置「通用」的「闲置的会话」里改：15 分钟、30 分钟、1 小时、2 小时，或者一直显示。干活和等你确认的会话一直显示。
-- **看一眼就知道做到哪了**：会话用 Claude Code 里的名字（`/rename` 或桌面版给的标题；没有就用你发的第一句话）。干活时说清楚当前这一步：「改 island.rs」「$ cargo test」「子 agent：探索代码」「思考中」，跑久了标上「已跑 1:12」，有任务清单时带上「3/7」和进度条；等你时说等什么（「要批准：$ git push」）；做完时说改了几个文件，再摘一句 Claude 的回复；出错时说原因（「用量到上限了」）。项目名取 git 仓库的名字，在 worktree 里也一样。共享屏幕时，可以在设置「外观」里关掉「显示具体内容」，就只显示项目和状态。
-- **做完不会错过**：做完、改好、出错，还有她打招呼、插件冒头，默认停留 8 秒：自己展开的岛开这么久，流光转两圈后光环静静亮这么久再变成小点；在设置「通用 → 提醒 → 停留多久」里可以改成 30 秒、2 分钟，或者看到为止（一直保持到鼠标经过她）；选「自定义」可以自己填秒数（3 到 600 之间的整数）。可选系统通知和提示音。
-- **上下文自动压缩**时也会触发 `SessionStart`，这时她保持原样，不会被打回空闲。
-
-## 在宠物上直接确认
-
-| 场景 | 面板上能做的 |
-| --- | --- |
-| 授权（"允许 Bash 执行 npm test？"） | **允许** / **以后都允许** / **拒绝**，并显示要执行的命令和项目名 |
-| Claude 问你问题（AskUserQuestion） | 点选项、在「其他答案」里打字、填文字题和数字题，支持多道题和多选 |
-| 计划确认（ExitPlanMode） | **批准** / **拒绝** |
-
-- 终端里的确认框照常弹出，**两边先答的算数**：在宠物上点了，终端的确认框会自动关掉；在终端答了，宠物的面板会收起。
-- **以后都允许**用的是 Claude Code 自己给出的建议规则（和终端里的"以后不再询问"一样），面板上会写清楚要加什么规则、加在哪里。只会加"允许"类的规则。
-- 面板刚弹出的 0.6 秒内按钮是灰的，防止误点。要打字时，点一下输入框她才会接管键盘，不会抢你正在打字的窗口。
-- 面板最多等多久可以在设置里改（30 秒到 5 分钟），到时间就交给终端。勿扰模式下、或者有程序全屏时，确认直接交给终端，不弹面板。
-- 局限：
-  - 在终端答完后，要等这个会话的下一个事件，面板才会收起，所以可能多停留一会儿。这时再点面板，Claude 不会理会。
-  - `claude -p` 这类非交互模式会先等 hook 回复再做决定，没人点的话最多会卡到面板等待时间结束。
-  - MCP 弹出的表单（Elicitation）只做提醒。
-- Codex 的授权请求也会弹到面板上，但只有**允许** / **拒绝**（Codex 不接受 hook 加规则）。Codex 要等面板交出才会弹自己的确认框，所以面板最多等 1 分钟；想在终端里答，点「去终端处理」。
-- OpenCode 要你批准时也会弹到面板上：**允许** / **以后都允许** / **拒绝**。OpenCode 自己同时也在问，两边哪边先答算哪边的；「以后都允许」由 OpenCode 记在这个项目里。
-- omp（oh-my-pi）的计划审批也会弹到面板上：**批准**就按计划执行，**拒绝**就让 omp 接着改计划；终端里的审批框同时开着，在终端里先答了，面板就收起。omp 的工具批准她答不了（omp 没有给扩展回答它的办法），只提醒你去终端。
-- ZCode 的授权请求也一样只有**允许** / **拒绝**；ZCode 自己的确认框同时弹出，两边先答的算数，点「去 ZCode 处理」交回 ZCode。
-- DeepSeek Harness 要你批准时（比如为写工作区外的文件、跑一条命令把沙箱放宽到 danger-full-access），面板上是**允许** / **拒绝**（DSH 只有「允许一次」，没有「以后都允许」），下面附着 DSH 自己说的原因；它用 `ask_user_question` 问你问题时，在面板上点选项、多选或打字回答。DSH 自己的窗口同时在问，**先答的那边算数**：在面板上答了，DSH 窗口里的审批框（或问题卡片）随即收起，它接着往下做；在 DSH 里先答了，面板也收起。点「去 DeepSeek Harness 处理」交回 DSH。
-- Reasonix 的批准暂时还在 Reasonix 里答：岛上只显示它在等你批准什么（「在 Reasonix 里批准：……」）。
-
-## 安装
-
-### 1. 装上宠物
-
-- **单个 exe（Windows）**：`wakuwaku.exe` 约 11 MB（其中 3 MB 是默认宠物），放进哪个文件夹都能直接运行，设置和宠物都存在它旁边的 `wakuwaku-data` 文件夹里；不要了直接删掉这两样。用的是 Windows 11 自带的 WebView2，不用另装运行库。
-
-在 [Releases](https://github.com/zhoupengjie/Wakuwaku/releases) 下载 `wakuwaku-<版本>-windows-x64.exe`，不需要安装；在国内可以从 [Gitee 的发行版](https://gitee.com/zhoupengjie/Wakuwaku/releases) 下载同一个文件。exe 没有代码签名，第一次运行时 Windows SmartScreen 可能会拦下，点「更多信息 → 仍要运行」即可。也可以自己构建，见下面"从源码运行"。
-- **从源码运行**：见下文。
-
-第一次打开时，她会自动下载默认宠物 Claude 小姐（需要联网；没网时设置面板会自己打开，之后再挑）。想换别的，单击灵动岛打开设置，在「宠物」页挑一只（图库直接来自 codex-pets.net，点「下载」即可），或者粘贴宠物页面的地址。
-
-### 2. 连上 Claude Code（推荐用插件）
-
-在 Claude Code 里依次输入（设置的「Agent」页，点开 Claude Code 那一行，有复制按钮）：
-
-```
-/plugin marketplace add zhoupengjie/wakuwaku
-/plugin install wakuwaku@wakuwaku
-```
-
-插件由 Claude Code 自己安装和卸载，**我们不改你的设置文件**（Claude Code 会在它自己的 `enabledPlugins` 里记一笔，卸载时去掉）。插件没法自动启动宠物，所以建议在设置的「通用」页打开「开机自动启动」。开机自动启动写在注册表的 Run 里，还会加一个「登录时」触发的计划任务（家在任务栏还是岛都有）（`Wakuwaku at logon-<你的 SID>`），登录后马上启动她，不用等 Run 里的程序一个个排队。家在任务栏时，她等资源管理器启动完（有了任务栏和桌面、跑满 30 秒）才接管任务栏，在那之前用的是 Windows 自己的任务栏。exe 改了名字或挪了位置，她下次启动时会把两处都改成现在的路径（原来关着的不会被打开）。
-
-不想用插件的话，「Agent」页 Claude Code 那一行点「连接」（或点开它，在「直接写入 settings.json」里点「安装」），会写入 `~/.claude/settings.json`（会先备份，卸载时只删我们加的条目）。这种方式的好处是新会话开始时能自动把宠物拉起来。两种都装了，那一行会变成黄点「修复」：点一下移除 settings.json 里我们的条目，留下插件。
-
-### 3. 连上 Codex（可选）
-
-在「Agent」页 Codex 那一行点「连接」，会写入 `~/.codex/hooks.json`（会先备份，移除时只删我们加的条目）。然后**在 Codex 里输入 `/hooks`，信任 Wakuwaku 的 hook**：Codex 只运行信任过的 hook。她会读 Codex 自己的信任记录（只读，不改），直到它记下信任了现在这几条，「Agent」页都会提醒这一步；信任过以后重启她不会再提醒。程序换了位置要点「修复」并重新信任。
-
-和 Claude Code 的区别：
-
-| | Claude Code | Codex |
-| --- | --- | --- |
-| 显示干活、等你、做完、改好了 | ✓ | ✓（`apply_patch` 改过文件就是"改好了"） |
-| 出错 | ✓ | 没有（Codex 出错时不发事件，她会在 15 分钟后自己回到空闲） |
-| 任务清单完成一项时跳一下 | ✓ | 没有 |
-| 在面板上确认 | 允许 / 以后都允许 / 拒绝，回答问题，批准计划 | 允许 / 拒绝 |
-| 新会话自动启动宠物 | settings.json 方式可以 | 可以 |
-
-Codex 的 hook 只能是命令：运行一次 `wakuwaku.exe --wakuwaku-codex-hook`，把事件转给她。Codex 在 Windows 上用 PowerShell 运行 hook，每次启动约 0.3 秒，所以只有一轮对话的结束、确认请求、会话开始和结束这几处让 Codex 等它（Codex 不在后台运行一轮结束的 hook）；一轮的开始和每一步都放在后台报告。后台 hook 要 Codex 0.148 或更新的版本，旧版本只装必要的几个（一轮的开始和改文件也要等），气泡里不显示具体工具。
-
-Codex 桌面版里装过的宠物（`~/.codex/pets`）格式相同，会直接出现在「宠物」页里，标着「来自 Codex」。
-
-### 4. 连上 Antigravity（可选）
-
-支持 Google 的 Antigravity：`agy` 命令行和 Antigravity 2.0 桌面版。在「Agent」页 Antigravity 那一行点「连接」，会在 `~/.gemini/config/hooks.json` 里加一个名为 `wakuwaku` 的块（先备份，移除时只删这一块，别的工具的 hook 不动）。然后新开一个 agy 会话（Antigravity 2.0 要重开一次）就行。独立的 Antigravity IDE 目前不运行 hook，连不上。
-
-和 Claude Code 的区别：Antigravity 没有「等你批准」的事件，所以她能跟着开始、干活、调用工具、做完和出错，但提醒不了批准，也不能在她这里确认。
-
-Antigravity 的 hook 只能是命令，并且由 `cmd` 运行、不认引号：程序的路径里有空格时，用它的 8.3 短路径写进去；连短路径也没有（有的盘关掉了短文件名），就装不上，把程序放到路径没有空格的文件夹即可。agy 每一步都会等 hook 跑完，大约 0.1–0.2 秒。
-
-### 5. 连上 OpenCode（可选）
-
-支持 [OpenCode](https://opencode.ai/) 2.0 或更新的版本。在「Agent」页 OpenCode 那一行点「连接」，会在 OpenCode 的插件文件夹里放一个 `wakuwaku.js`（`~/.config/opencode/plugins/`；设了 `OPENCODE_CONFIG_DIR` 或 `XDG_CONFIG_HOME` 时跟着 OpenCode 自己找；移除时删掉它）。OpenCode 会自己载入，已经开着的也一样，不用重开。
-
-她能跟着开始、干活、调用工具、做完和出错，显示最后的回复，「今天」也算上它的轮数；OpenCode 要你批准时，面板上能允许、以后都允许或拒绝，OpenCode 自己同时也在问，先答的算。子代理的会话不单独显示，它要的批准算在主会话上。点会话会跳到 OpenCode 所在的终端（同时开着几个 OpenCode 时可能跳错）。
-
-和 Claude Code 的区别：OpenCode 的会话跑在它的后台服务里，插件也在那里，直接把事件发到她的端口，不运行任何程序；所以 OpenCode 不会把她叫醒（打开「开机自动启动」就行），她没开时插件什么都不做，OpenCode 照常自己问。「今天的 token」还不算 OpenCode 的。
-
-### 6. 连上 oh-my-pi（omp，可选）
-
-支持 [oh-my-pi](https://github.com/can1357/oh-my-pi)（命令行 `omp`，18.11 起）。omp 没有 hooks，只有扩展：在「Agent」页 omp 那一行点「连接」，会在 omp 的 agent 文件夹放一个我们自己的扩展 `~/.omp/agent/extensions/wakuwaku.ts`（设了 `PI_CODING_AGENT_DIR` 就放那里；用 `omp --profile` 的，每个 profile 的 `~/.omp/profiles/<名字>/agent/extensions/` 也各放一份），端口和程序的路径写在文件里，omp 的设置一个字都不改；移除时删掉它。之后新开的 omp 会加载它（已经开着的要重开）。
-
-和 Claude Code 的区别：
-
-- 她能跟着会话开始、干活和每一步用的工具、做完（回复的开头）、出错、退出；子 agent 的不算，只显示主会话。
-- omp 默认是 yolo，不问工具批准；设成 `always-ask` / `write` 时，omp 要你批准一个工具，她会显示「在终端里批准：…」，批准要在 omp 里做（omp 没有让扩展回答工具批准的接口）。
-- omp 的计划审批（plan mode）可以在她的面板上批准或拒绝，和终端里的审批框谁先答算谁的。
-- 扩展在 omp 自己的进程里跑：每个事件发出去就不管了，从不让 omp 等她；她没开着时 omp 照常工作。她没开着、也不是你让她退出的（菜单里的「退出」或 `POST /quit`），新的 omp 会话开始时会把她叫起来。点会话能跳到 omp 所在的终端窗口。
-
-### 7. 连上 ZCode（可选）
-
-支持智谱 Z.ai 的 [ZCode](https://zcode.z.ai/)：桌面版（3.15 实测）和它的命令行。在「Agent」页 ZCode 那一行点「连接」，会在 `~/.zcode/cli/config.json` 的 `hooks.events` 里给 7 个事件各加一条我们的 hook，并打开 `hooks.enabled`（先备份；移除时只删我们的条目，`hooks.enabled` 也还原成原来的样子）。之后**新建的任务**就会连上，已经开着的任务不算。ZCode 设置里能看到这几条 hook，也能一条条关掉，关掉后「Agent」页会提示。
-
-和 Claude Code 几乎一样：开始、干活、每一步的工具、做完（带上它最后说的话）、改好了都能显示，「今天」也算上它。ZCode 要你批准时，岛上会弹出**允许** / **拒绝**（ZCode 不给建议规则，所以没有「以后都允许」）；ZCode 自己的确认框同时弹出，**先答的那边算数**：在岛上点了，ZCode 的框会关掉；在 ZCode 里答了，岛上的面板会在这一步做完时收起（拒绝的话，要等这一轮结束）。点「去 ZCode 处理」就交回 ZCode，并把它的窗口拉到前面。她没开时，ZCode 照常只弹自己的框。
-
-ZCode 的 hook 只能是命令，没有 HTTP：每个事件运行一次 `wakuwaku.exe --wakuwaku-zcode-hook <事件名>`（按参数直接启动，不经过 shell，路径里有空格也没关系），把事件转给她。ZCode 每一步都会等它跑完，大约 0.1 秒；确认请求的那条最多等 10 分钟（面板自己的等待时间更短，到时间就交回 ZCode）。新任务开始时她没开，也会把她拉起来（除非你让她退出了：菜单里的「退出」或 `POST /quit`）。
-
-### 8. 连上 DeepSeek Harness（可选）
-
-支持 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）：桌面版（0.2.0-rc.2 和 0.2.1-rc.2 实测）和 `dsh` 命令行。DSH 没有自己的 hooks 文件，一切都是插件；她带着自己的一个小插件（`integrations/dsh/wakuwaku.js`，不依赖任何 npm 包，不联网）。在「Agent」页 DeepSeek Harness 那一行点「连接」：她把插件写进 DSH 的文件夹 `~/.dsh/wakuwaku/`，再在 `~/.dsh/cordis.patch.yml` 里按路径插入它（`./wakuwaku/wakuwaku.js`，所有 profile 都会叠上这一层，包括桌面版自己的；先备份，移除时只删我们加的几行，前后有 `# wakuwaku begin` / `# wakuwaku end` 标着）。按路径插入，不进 profile 的 `node_modules`，DSH 的插件管理器跑 pnpm 时也不会把它清掉。开着的 DSH 一般会马上加载它（它监视这个文件），不用重开；插件更新以后要重开一次 DSH。
-
-插件在 DSH 自己的进程里跑，把事件直接 POST 到她的端口：不启动任何程序，DSH 从不等她（每个事件最多 2 秒，她没开就先不发）。「连接」后「Agent」页如实说插件有没有被加载：加载了写着时间和 profile；DSH 没开时写「DeepSeek Harness 启动时加载」；DSH 在装之前就开着、没有加载时写「重开后生效」；DSH 已经开了一会儿却没加载，是黄色的「DSH 插件没生效」，写着原因和「修复」。0.3.2 及以前借用 DSH 的 Claude Code 兼容桥（`@deepseek-ai/dsh-hooks-claude-code`），DSH 0.2.1 起不再自带它，于是收不到任何事件（zhoupengjie/Wakuwaku#61）：升级到这一版后她一启动就把那种旧的接法换成插件（原文件备份在旁边）；桥的包还在、还能用的保持原样。
-
-也可以在 DeepSeek Harness 那一行展开后的「接入方式」里改用 DSH 官方的钩子桥：她用 DSH 自带的 Node 和 pnpm，按 DSH 的版本把 `@deepseek-ai/dsh-hooks-claude-code` 和 `@deepseek-ai/dsh-hook-protocol` 装进每个 profile（要联网，从 pnpm 配好的源下载，几秒到一两分钟；连不上时可以点「改用 npmmirror 再试」；装不上时 profile 恢复原样，仍用插件）。桥的每个事件由 DSH 用 PowerShell 跑一次她的程序，约 1 秒，只挂了几处，每一步的工具不显示，也不能在岛上批准或回答它的提问。换回插件时，这两个包和装它们时改动的文件都恢复原样。两种方式随时切换，开着的 DSH 当场换上，不用重开。
-
-能做的：会话开始、干活、每一步的工具、做完（改过文件就是「改好了」），岛上显示会话名（DSH 自己起的）、它最后说的话、改了哪些文件、任务清单；它要你批准或问你问题时，岛上弹出面板，能直接答（见上面的「面板」），DSH 自己的窗口同时在问，先答的算；你在 DSH 里停下的一轮回到空闲，出错的一轮显示出错；「今天」也算上它的轮次、时长和在岛上点的批准；点会话能跳到 DSH 的窗口。DSH 启动的子代理（它的 subagent 工具，或者插件启动的，比如 dsh-mnemon 的空闲评审）不单独占一行，也不拿它的任务当名字：它改的文件算进启动它的会话正在做的那一轮，那个会话空闲时什么都不显示。做不到的：
-
-- 没有「以后都允许」：DSH 的批准只有一次性的。
-- 她不在眼前时（勿扰、有程序全屏），面板不弹，岛上只显示「在 DeepSeek Harness 里批准：……」，在 DSH 里答。面板等到时间（设置里的等待时间）、或者点了「去 DeepSeek Harness 处理」，就交回 DSH，那个会话的一行改成「在 DeepSeek Harness 里批准：……」（提问是「在 DeepSeek Harness 里回答：……」）；DSH 的窗口一直能答。她没开时 DSH 一切照旧。
-- 插件更新到能答批准的这一版后，要重开一次 DSH 才用上（「Agent」页会提示）。
-- 新会话开始时不会把她拉起来：插件只把事件发给她，不启动程序。
-
-### 9. 连上 Reasonix（可选）
-
-支持 [Reasonix](https://github.com/esengine/DeepSeek-Reasonix)：Reasonix Studio 桌面版和命令行（Go 写的 1.x、2.x；Studio 2.44 实测）。在「Agent」页 Reasonix 那一行点「连接」，会在 Reasonix 的全局 `settings.json`（Windows 上是 `%APPDATA%\reasonix\settings.json`，设了 `REASONIX_HOME` 就在那里）的 `hooks` 里给 10 个事件各加一条我们的 hook（先备份；移除时只删我们的条目）。原来只有老位置的 `~/.reasonix/settings.json` 时，你在那里的 hook 会一起抄过来，因为新文件一出现 Reasonix 就不再读老的；移除后新文件又拿掉，回到原样。之后**在 Studio 里新开的会话、重开的命令行**（或 `/reload`）就会连上，已经开着的会话不算。
-
-能做的：会话开始、干活、每一步的工具、做完（带上它最后说的话）、改好了、出错（Reasonix 自己的报错原文），「今天」也算上它的轮次和时长（2.x 还算「今天的 token」）；它的子代理、计划和守护（guardian）调用的工具算进启动它们的那个会话，不单独占一行；点会话跳回 Studio 的窗口，或命令行所在的终端、VS Code。做不到的：
-
-- **批准还在 Reasonix 里答**：写在 settings.json 里的 hook 只能看、不能替它答（只有插件包里的 Claude Code 格式 hook 能答）。它要你批准时，岛上显示「在 Reasonix 里批准：……」；它问你问题时显示「有问题问你」。
-- 在 Studio 里按「停下」时，它会在对话里提示一条 Wakuwaku 的 hook「could not run · context canceled」：Reasonix 在取消之后才去跑那一步的 hook，跑不起来，不影响使用。
-
-Reasonix 的 hook 只能是命令：每个事件经 `cmd.exe` 运行一次 `"wakuwaku.exe" --wakuwaku-reasonix-hook <事件名>`，把事件转给她，什么都不输出（Reasonix 会把 `SessionStart` 的输出塞给模型）。Reasonix 每一步都等它跑完，大约 0.1 秒；她没开时它马上退出，Reasonix 照常。新会话开始时她没开，也会把她拉起来（除非你让她退出了）。Node 版的 Reasonix 0.x 不支持：它的 hook 只有 4 种事件，也不带会话编号，「Agent」页会写出它的版本，不去改它的设置。
-
-### 从源码运行
-
-需要 Rust（Windows 上用 MSVC 工具链）。目前只在 Windows 11 上测试过；Tauri 也能在 macOS / Linux 上构建，但全屏检测、开机自启、系统通知和按键状态只写了 Windows 的。
-
-```bash
-git clone https://github.com/zhoupengjie/wakuwaku.git
-cd wakuwaku/src-tauri
-cargo run                 # 调试版
-cargo build --release     # target/release/wakuwaku.exe，单个文件
-```
-
-不需要 Node，也不需要 Tauri CLI。第一次运行会自动下载默认宠物；连接 Claude Code 等在设置的「Agent」页里点就行（第一次打开时，「通用」页最上面的欢迎卡片也能一键连接）。从源码运行时，她的设置、下载的宠物和日志都放在项目里的 `data/` 文件夹（不进仓库）。
-
-## 使用
-
-- **拖动**：按住她拖到任意位置，她会朝拖动方向跑，位置会记住。
-- **单击**：跳一下，并把她正在显示的那个会话的窗口叫到前面。**双击**：她在桌面上时，飞回她的家。
-- **点会话就到它的窗口**：展开的灵动岛里点一个会话、设置「现在」页里点一行、确认面板上点「去终端处理」，都会把那个会话所在的窗口叫到前面：Windows Terminal、控制台窗口、VS Code，或者 Claude 桌面版（桌面版会直接打开那个会话）。收到托盘里的应用（比如 Codex 桌面版）会先被叫出来。会话的进程已经结束时，岛上会说「找不到它的窗口了」。Windows Terminal 只能到窗口，到不了具体的标签页。
-- **邮件**：设置里的「邮件」页，像 Thunderbird 那样填邮箱地址和密码，它去找收信和发信服务器（找不到就手动填服务器、端口、加密方式）；表单下面有照 Thunderbird 做的「高级设置」，收件和发件服务器都可以改主机名、端口、连接安全性、验证方式、用户名，「重新测试」只连不登录，看服务器支持什么。TU Dresden 的邮箱（`tu-dresden.de`、`mailbox.tu-dresden.de`）是内置的，填地址和 ZIH 密码就行。登录成功后，新邮件到了岛上会冒出来，说谁发来的、什么主题，平时显示几封未读（岛上的提醒不会把邮件标成已读）。邮件像 Thunderbird 那样存在本机：信头全存，最近一年的整封信也离线保存（可以改成 90 天、全部或只存打开过的，邮件页写着占了多少；第一次会花一阵子下载，邮箱那一行写着进度），打开邮件页和点开一封信都不用等服务器，服务器那边有了新信、删了信、在别处读过，都会自己同步过来；收件箱按会话显示，几封来回的信是一张卡片，点开是按回复顺序缩进的小卡片，你自己发出的回信（「已发送」里的）也在里面。邮件页默认是双栏，像 Thunderbird：左边收件箱，右边读信、写信（↑ ↓ 看上一封、下一封），也可以换回单栏。收件箱里有几个邮箱时默认是「全部邮箱」合在一起，也能切到单个邮箱（都标着未读数）；可以只看未读或星标，每封信都能加星。点开一封就能读；在一封信上点右键（或打开后点「交给 …」），交给邮件页上选的 AI：它的回答就出现在信的下面，边写边显示，下面有输入框可以接着问（比如「帮我写回复」），回答完岛上告诉你，点一下就回到这封信；对话会存下来，下次打开还在。想在终端里聊也可以（右键菜单里）。邮件页上「交给谁看」一处选好，所有邮箱、所有信都用它：Claude Code、Codex 或 Antigravity（用的是它的命令行 agy；只装了 Antigravity 桌面版时，它在这里是灰的，下面写着要装 agy 和安装方法，装好后几秒内自己变成能选，不用重启她；agy 在 PATH、自定义的 npm 前缀、scoop 或 winget 下都找得到），以及用什么模型、思考强度（Antigravity 的模型名里就带着强度）。它只读：Claude 不能跑命令、不能上网；Codex 在只读沙箱里；Antigravity 没有只读模式，改东西要批准，在信下面的对话里没人批准，它就只读，你在 Antigravity 里设了「总是允许」的除外。信里让它做的事，它只告诉你，不会去做。也能写信：收件箱上「写信」，读信时「回复」，⋯ 或右键里「回复全部」「转发」（原信的附件一起带上）；可以加附件、抄送、密送，Ctrl+Enter 发送，发出去的信存进「已发送」，回过的信前面一个 ↩。agent 在对话里写的回信，下面点「用这段回信」就成了一封回复，你改好再发；它自己不会发信。写到一半的信会留着，收件箱最上面可以接着写。在国内收发 Gmail 这类邮箱：邮件页的「代理」默认跟随通用页的「网络代理」（它没设时就是 Windows 的系统代理：Clash、v2rayN 打开「系统代理」就走它），也可以跟随系统代理、手动填地址和端口（HTTP 或 SOCKS5），或者不用代理；每个邮箱还能在「高级设置」里单独设（比如 Gmail 走代理，QQ、163 直连）。收信、发信、找服务器都走它，SOCKS5 让代理去解析域名；出错时说清楚是连不上代理，还是代理连不上服务器。QQ、163、Gmail 这些要填授权码或应用专用密码（找到服务器后表单里会说去哪生成）。Gmail 的表单分三步带你做：开两步验证（不用绑手机号，装一个身份验证器 App 就行）、生成应用专用密码、粘贴回来；填的不是 16 个字母的应用专用密码时，她先拦下、不去登录。登录失败时说清楚是哪一种：要应用专用密码、密码不对或已失效、Google 要你先在浏览器里确认、同时连接太多、IMAP 被关了，还是网络或代理的问题。Gmail 暂时不能用「使用 Google 登录」：在浏览器里登录 Gmail 收发信，要的是 Google 的受限权限，公开发布的应用得先通过 Google 的应用审核；没通过审核时，登录页会提示「此应用未经验证」，而且总共最多 100 个用户。Wakuwaku 是个人开发的，没必要走这套审核，所以用应用专用密码，表单里也这样说明。Outlook、Hotmail 只能在浏览器里登录，还不支持。密码存在 Windows 凭据管理器里。
-- **岛上的插件**：没有会话需要你时，岛上轮流显示插件，比如「今天 12 轮 · 1:43 · 批准 5」，或者天气、股票；会话永远优先。移上去会列出全部插件，滚轮切换下一个，点一个就显示它，并打开它的设置。内置「今天」（几轮、AI 干了多久、在她这里批准几次；不满一分钟按秒显示；Antigravity 的批准不经过她，今天只有它的会话时批准显示「—」）、「今天的 token」（Claude Code、Codex、Antigravity、omp、DeepSeek Harness 和 Reasonix 的，默认打开），以及「监控」（默认关闭）：CPU、内存、网速、电池各一个开关，岛上显示成一串图标加数字，1 到 10 秒更新一次，默认 2 秒，CPU 读的是任务管理器用的同一个计数器，数字和它一致。监控的设置里还能按硬件勾选更多读数，「数据来源」两种（没选过时，LibreHardwareMonitor 在运行就用它，否则用内置）：「内置」直接读 Windows 自带的接口，不要管理员权限、不装任何东西，有 CPU 的实际频率，显卡的温度、占用、核心频率、显存（有读数时还有风扇），每块硬盘的温度（NVMe，按它自己的警告温度变橙）、活动时间和读写速度，设置里还能看到 NVMe 的健康（寿命已用、备用空间、通电时间，不上岛），默认只显示 CPU、内存和上下行网速，别的勾上才显示；CPU 温度和功耗 Windows 的公开接口读不到，内置来源里有个可选开关「CPU 温度和功耗」可以读（经 namazso 的 PawnIO 签名驱动——LHM 和 FanControl 也用它——和一个以管理员身份运行、**只读**的小助手，设置时弹一次 UAC；没装 PawnIO 时点开关下载安装它的官方程序，驱动和模块都校验哈希；关掉再弹一次 UAC，删掉助手、保留 PawnIO 驱动。虚拟机可能不提供 CPU 温度寄存器），也可以换成「LibreHardwareMonitor」看：在运行 [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) 并打开了它的 Remote Web Server 时，勾选它的传感器（CPU、显卡的温度和占用、功耗、风扇转速等，默认 CPU 温度、独显温度和占用）。没有它的话，点设置里的「下载 LibreHardwareMonitor」：她从 GitHub 下载它的最新正式版（不用另装 .NET 的那个，核对 GitHub 给的 SHA-256），再以管理员身份（Windows 问你一次：允许 Wakuwaku）把它装进 `C:\Program Files\LibreHardwareMonitor`：它要以管理员身份运行、还可能随 Windows 启动，所以放在只有管理员能改的文件夹里；在它的配置里打开网页服务器（端口和她设的一样，启动后只在托盘里），再启动它（第一次启动时它自己会问要不要装它的驱动 PawnIO）；默认还用 LHM 自己的计划任务「LibreHardwareMonitor」让它随 Windows 启动，以后不用每次确认，在 LHM 的「Options → Run On Windows Startup」里也能关掉。装了但网页服务器没开、又没在运行时，她替你在配置里打开再启动；在运行时告诉你在 LHM 里怎么开。LHM 是另一个程序（开源，MPL-2.0 许可）；以管理员身份运行的是 LHM 自己，以及她安装、改它的配置、建或删它的任务、移除它时的那一步（她的 exe 加 `--wakuwaku-lhm`，每次 Windows 都会问）。要移除：托盘里右键它 → Exit，再在设置里点「移除 LibreHardwareMonitor」（文件夹和任务一起删掉）；或者自己关掉随 Windows 启动，以管理员身份删掉那个文件夹。你自己装在别处的 LHM 她不动，只告诉你它在哪。不点就什么都不下载。两种来源各记各的勾选，读数都和别的一样显示成图标加数字；还有她能替你跑的：天气、股票汇率币价、番茄钟、倒计时、久坐提醒、GitHub CI、开发服务器，在「插件」页打开开关、填上城市或仓库就行，不用开终端，跟她一起开机启动；它们就在她自己的进程里跑，不用 PowerShell，也不另开进程。其他的由脚本往 `127.0.0.1:47213/widget` 发一条数据就行，格式见 [docs/WIDGETS.md](docs/WIDGETS.md)；用 Thunderbird 收信的，有个 [Thunderbird 扩展](integrations/thunderbird) 把未读数发过来。邮件这类私密插件，「显示具体内容」关掉时只显示数量。插件可以叫开灵动岛提醒你一次（比如开会前），有会话在等你时不会。设置的「插件」页里可以开关、排序、调轮换间隔。展开的胶囊里每个插件一行，小的一行字，中的两行（下面一行是补充，比如天气的气温范围），有曲线的右边带一条小曲线；有大档的（天气、系统监控、股票、邮件、Claude 今天）右边有个 ›，点一下就地展开成一张卡片，再点收回：天气是之后 24 小时的温度曲线和每两小时的天气、明后天，系统监控是最近 60 秒的 CPU 曲线和内存、显卡、硬盘、网速、运行时长（显卡和硬盘只在鼠标在她身上时才读，平时不多花一点），股票是当天的走势、最高最低、成交量和同一插件的其他几只，邮件是最新几封未读，Claude 今天是每小时的轮次；读不到的写「暂无数据」。右键一个插件：大小（小、中、大，没有的那档灰着，鼠标移上去说为什么）、放到任务栏、胶囊或桌面；「插件」页每一行也能选放在哪。放到桌面上的（Windows）在壁纸上、窗口下面，按 Win+D 显示桌面时也在：一块磨砂玻璃，底下是那块屏的壁纸模糊后的样子；贴着 72px 的网格，放到桌面图标上会挪到最近的空位，每块屏各记各的位置；鼠标移上去右上角有「大小」「更多」两个按钮，双击打开它的设置；把一个拖到同样大小的另一个上停半秒就叠成一摞，拖动就挪整摞，滚轮或点右边的点来翻，右键菜单里可以拿出一张或拆开。一个插件只放在一处：放到桌面或任务栏以后，收起的胶囊里不再轮到它，也不在右边固定显示它（比如监控的读数）；移上去展开的岛照旧列出全部，当作总览。还可以放进「工作台」：一块更大的磨砂玻璃，标题栏上有名字（双击改名）、「添加」（从小工具库里挑，放进第一个空格）、「更多」和「折叠」（折叠后只剩标题栏和里面小工具的小图标）；里面的小工具是平的小块，按同一个网格排，最多 4 行；把单独放的拖上去就落到最近的空格，满了工作台会轻轻抖一下，拖出它的边就又变回单独放的；叠放不能放进工作台。邮件的发件人和主题在「显示具体内容」关掉时是模糊的，鼠标移上去才看得清。股票的涨跌颜色在它的设置里选（红涨绿跌或绿涨红跌；没选过时中文是红涨绿跌，其他语言是绿涨红跌），任务栏、胶囊、卡片和桌面上都照它画。
-- **别人写的插件**：一个插件是一个 .zip，里面只有网页文件和图片，不含程序；它在沙盒里运行，只能联网访问自己写明的网站，读不了你的文件。设置「插件」页 →「显示」→「从文件安装…」，选别人发给你的 .zip 或你自己写的插件：装之前列出它会做的事，标着「未经审核」；包里有可执行程序的一律不装。装好后和内置的插件排在一起，用「添加小工具…」放到任务栏、胶囊或桌面上就开始运行；点它的名字能看它能做什么，也能卸载。有的插件自己画界面（「自绘界面」），只画在桌面上的中、大卡片和胶囊里展开的卡片里，别处照常用它给的数据画；没人在电脑前、桌面被盖住时也换回数据画的样子。不回应或太忙的插件会被停用，「插件」页上写着为什么，点「重新启用」再试。市场：「插件」页最上面「获取更多 ›」（小工具库底部的「获取更多…」也到这里），里面的都经过审核；要读 agent 会话、硬件读数或提醒你的，装之前先问一句。从市场装的每天和她一起看一次更新，新版不多要权限就自己更新，要更多权限的在「插件」页上等你点「全部更新」（「显示」里可以关掉「插件自动更新」）。市场的仓库还没开张时，页面就这么说。资源包（宠物、壁纸）只有图片，没有代码，从市场或文件装：宠物和你的别的宠物排在一起，「外观」里点「使用」；壁纸包在「外观」的「壁纸」里一行，「用这一包」就把它设成桌面的幻灯片放映，和「选文件夹…」一样。外观页的「获取更多宠物…」「获取更多壁纸…」直达市场。装好的资源包在「插件」页的「资源包」里，点名字可以卸载：正用着的宠物换回默认的，正在轮换的壁纸停在现在这一张；你自己的同名宠物不会被覆盖。 怎么写一个见 [docs/PLUGINS.md](docs/PLUGINS.md)。
-- **右键**（或右键任务栏托盘图标）：切换宠物、调大小、走动、眼睛跟着鼠标、她的家（灵动岛、任务栏）、放她出来或叫她回家、回到右下角、勿扰、设置、退出。左键托盘图标可以显示或隐藏她（勿扰时打开设置）。托盘图标会随状态变脸：空闲、干活、等你、做完、改好了、出错各一种。
-- **她的家，两种**（设置「外观 → 显示方式」，默认是任务栏）：
-  - **灵动岛**：见下。
-  - **任务栏**：代替 Windows 的任务栏。原来的藏起来，屏幕底部换成她的：最左边是她和最需要你的会话，然后是开始按钮、打开的程序（同一个程序的窗口合成一个按钮，鼠标停上去有窗口缩略图，有几个窗口时单击也直接弹出缩略图让你选一个，再点一次收起，和 Windows 11 一样；点缩略图就切到那个窗口，已经在前面的也不会被最小化；右键可以新开窗口、固定到任务栏、关闭，Windows 设置里打开了「结束任务」（系统 → 开发者选项）时还能结束任务；固定的程序没开时一点就启动；也和 Windows 一样：中键或 Shift+单击再开一个，Ctrl+Shift+单击以管理员身份运行，Ctrl+单击合并的按钮在它的几个窗口之间轮流切换，Shift+右键是窗口菜单（还原、移动、大小、最小化、最大化、关闭；几个窗口时是还原、最小化、关闭所有窗口）；拖着文件停在按钮上半秒，那个窗口就到前面（几个窗口时弹出缩略图，再停在一个上面），好把文件拖进去），每个 Claude Code / Codex 会话在它所在窗口的按钮上标一个状态色的小点；没有会话在忙时，最左边她的旁边轮流显示插件；右边是系统监控（固定时）、托盘（和 Windows 一样一部分固定在外面，其余收在 ^ 里，拖动就能换）、输入法（和 Windows 一样：微软拼音显示中/英，搜狗、微信输入法等显示它们自己的图标，鼠标停上去显示输入法的名字；点一下切换中/英，右键列出所有输入法和各自的图标，点一下就切过去）、大写锁定、快速设置（网络、音量图标，在上面滚动滚轮调音量，笔记本上还有电池，和 Windows 自己任务栏上的一样：用的是 Windows 自带的电池图标，充电时绿、节能模式黄、电量严重不足红，接着电源没在充电（比如电池保养停在 80%）时是插头，Windows 设置里打开了「电池百分比」就在旁边显示百分比，鼠标停上去显示电量；点开是 Windows 自己的快速设置：Wi-Fi、蓝牙、飞行模式、音量等；右键音量、网络图标是和 Windows 一样的菜单：声音问题疑难解答、音量合成器、声音设置，诊断网络问题、网络和 Internet 设置）、时钟（点开是通知和日历；右键是调整日期和时间、通知设置；鼠标停上去显示带星期的完整日期，设了附加时钟时还有它们的时间；Windows 设了在时钟里显示秒，她的也显示秒）；和 Windows 11 一样右下角没有设置按钮，点胶囊、右键任务栏或托盘图标就能进设置；设置面板浮在任务栏上方，和 Windows 自己的弹出面板一样，不盖住任务栏。任务栏可以放在屏幕的下、上、左、右（「外观 → 任务栏 → 任务栏位置」；左右两边是竖着的胶囊，只显示图标；开始菜单、搜索、快速设置和通知中心是 Windows 自己的面板，仍从屏幕底部弹出）。布局可以改：设置「外观 → 任务栏 → 布局」有三个预设（Windows 11、全部靠左、胶囊在右），也可以右键任务栏 →「编辑任务栏布局」，把各部分拖进左、中、右三段，胶囊放哪都行。编辑时点「添加部件」，插件也能放上任务栏：内置的（今天、token）、天气股票等插件、邮箱未读、自己脚本发的，还有间隔和分隔线；每个可选小（图标和数值）或中（数值加名字），点一下弹出详情和设置，拖离任务栏就移除，放上去的不再在胶囊里轮流；系统监控那两行读数也能这样拖走（拖走后它回到胶囊里轮流，部件库里再拖回来），开始、程序、托盘、输入法、快速设置、时钟和胶囊拖不走，拖离时会写「这一部分不能移除」。几个插件可以共用一格：「轮播」每 6 秒向上换一个，鼠标停在上面暂停，滚轮手动翻，来了新邮件就插队先显示一轮；「叠放」显示最上面那个，顶上露出两道细边，点一下向上升起一张卡片列出全部，拖动一行改顺序，拖出卡片就拆出来。编辑时把一个插件拖到另一个中间就叠在一起；平时右键任务栏上的插件也能叠放、改成轮播、拆开。点一下任务栏上的插件看它的卡片。系统关了动画时，轮播不自动换，翻页和展开都改成淡入淡出；没人在电脑前时轮播也停着。右键菜单里还有任务管理器。有程序全屏时它让开。切到别的方式、退出时，Windows 的任务栏还回来；她被强行结束时，一个守护进程负责还原。
-- **灵动岛**：嫌整只宠物太大，可以换成屏幕顶部正中的一颗小黑岛，像 iPhone 的灵动岛，她就住在里面。默认是黑色的，「外观」里也能换底色、不透明度、边框，或者挑一个预设（Windows 深灰、云母毛玻璃……），和任务栏模式的外观分开保存；半透明时，Windows 11 会把它后面的窗口模糊掉，用不了模糊时，后面有窗口最大化会自动加深底色。收起时左边是她，中间一行字，右边贴边是用时或插件的数值；宽度固定（设置里选窄、标准、宽），内容换了也不伸缩。「监控」默认固定显示：岛往右加宽一段，一直显示 CPU、内存、网速，中间照常轮换；在它的设置里关掉「固定显示」，它就和别的插件一样轮流出现。平时是她的圆形小头像，外圈颜色表示状态，旁边是当前这一步（做完时是哪个会话）和用时；有会话等你确认、回答或选择时，岛自己展开成面板，她站在旁边。做完、改好了、出错、她打招呼、插件冒头时，岛不弹开，而是流光提醒：一圈细细的彩色光环绕着收起的胶囊转三圈，然后静静亮着，到「停留多久」的时间再淡出（选「看到为止」就一直亮到鼠标停上去；每种事一组颜色：做完是彩虹，改好是蓝紫，出错是红橙，打招呼是黄粉，插件用它自己的颜色；任务栏的纯黑条带上绕着她的头像转），她头像右上角留一个小点，鼠标停上去（或岛因为别的原因展开过）就消失；连着来时不从头再转，几秒内又来只让小点跳一下；有程序全屏、开着勿扰、没人在电脑前时不转，只留小点；Windows 关掉了动画效果时光环不转，一开始就静静亮着，停同样久；新版本的提示只留小点；干活中途的事（工具调用失败、任务清单完成一项）只让她的小头像做个对应的动作，不转也不留点，只有一轮真的出错结束才亮红圈、留红点。鼠标停在岛上就展开，小头像长成她的全身，站在里面播对应的动作，旁边是会话名、做到哪了、Claude 的回复（刚才打招呼、插件冒头时说的话，或新版本那一行，也在这里），下面每个别的会话一行；点会话那一行是跳到它的窗口。想要以前那样自己展开，在设置「通用」的「提醒」里把「她有事告诉你时」选成「展开胶囊」，做完、改好、出错、打招呼、插件冒头就都和以前一样自己展开，开「停留多久」那么久（干活中途的那几件也自己展开，开几秒；选「看到为止」就开着等鼠标经过；那个会话又开始干活时也收起；自己展开时点它一下马上收起，不会打开设置；鼠标在上面停过再移开也马上收起）；选「什么都不做」就都只留小点。另外还有会话在忙时，用时旁边会标一个小小的「+1」。岛下面有窗口时（比如最大化的浏览器），收起的岛会往上收起让开，屏幕顶边只留一道细边，下面的标签页照样点得到、关得掉；鼠标在那道细边上停一下它就下来，有事要你看（确认、做完、出错）时也会自己下来；不想要可以在「外观」里关掉「有窗口在下面时自动收起」。
-- **任务栏上的 Win 键**（任务栏模式，和 Windows 自己的一样）：Win+1…9、Win+0（第十个）按她任务栏上的顺序打开那个位置的程序：没开的启动，一个窗口的切到前台（已在前台就最小化），几个窗口的每按一下换下一个；Win+Shift+数字再开一个，Win+Ctrl+Shift+数字以管理员身份再开一个，Win+Ctrl+数字切到它最后用过的窗口（Win+Alt+数字在 Windows 上是跳转列表，她的任务栏还没有）。Win+T 把键盘焦点放到程序按钮上（Win+Shift+T 从最后一个开始），Win+B 放到托盘：方向键移动，回车或空格打开，Shift+F10 是右键，Tab 在程序和托盘之间切换，Esc 把焦点还回去；读屏软件能读出按钮。以前这些键交给藏起来的 Windows 任务栏，按的是它自己的顺序，可能打开别的程序。以管理员身份运行的窗口在前台时她收不到这些键，仍由 Windows 处理。
-- **把她放出来、放回去**：按住岛里的她往下拉，岛会像水滴一样拉出一截把她托着；拉够远，水滴"啵"地断开，她就跟着鼠标走，拖到哪都行，松手的地方就是她落脚的地方。她出门后灵动岛还在，座位空着，状态、用时和确认面板照样在岛上（她在桌面上只做动作，不说话）。想让她回家，把她拖到岛下面，岛会伸出一滴去够她，靠得够近时松手，她就被吸回岛里；或者直接双击她，她会自己飞回去。右键菜单里也有「放她出来」「叫她回岛里」。
-- **设置长在岛里**：没有单独的主窗口。单击灵动岛，岛就展开成设置面板（它自己展开着的时候，单击是收起），这时它才拿键盘焦点；悬停展开、自动展开、来了确认请求都不抢焦点，不会吃掉你在终端里打的字。按 Esc、点岛外面、点 ✕ 或点面板头部就收起，焦点还给原来的窗口。五个页签：「通用」是会话列表、4 个快捷开关、提醒、开机自启和语言、更新和关于，最上面一行说连上了几个 agent（点一下去「Agent」页），还没连接时是欢迎卡片；「Agent」是连接 agent 的地方（见下）；「外观」是她的家、样子和宠物（带 codex-pets.net 图库）；「插件」「邮件」。← → 切换页签。设置开着时来了确认请求，它会以横幅插在页签下面，「通用」上出现一个小圆点；有 agent 的连接要修复时，「Agent」上也有一个。
-- **Agent 页**：这台电脑上找到的 agent 一行一个（没找到的收在下面的「其他支持的工具」里，带官网链接）。每行一个圆点说它的状态，只有四种颜色（绿：连上了、收到过事件；蓝：装好了，等它的第一轮，你什么都不用做；黄：要你动手：修复、被关掉了、在 Codex 的 /hooks 里信任、它的文件读不了或写不进去，「Agent」页签上同时有一个小圆点；灰：没连接），名字和版本（有文件写着的才显示：Codex 问 `codex --version`，Claude Code、ZCode、DeepSeek Harness 读程序文件的版本信息，OpenCode 读 npm 包的 package.json），五个图标说她能替它做什么：状态（跟着会话）、批准（在岛上答，指上去写着有哪几个按钮）、选方案（它问你问题时在岛上选答案：Claude Code 和 DeepSeek Harness）、统计（算进「今天」，Claude Code、Codex、Antigravity、omp、DeepSeek Harness、Reasonix 2.x 还算 token）、邮件（能把信交给它读）；亮的能做，半亮的只做一部分（omp 只答计划审批），暗的做不到，指上去写着为什么（比如「批准还在 Reasonix 里，岛上只显示它在等你批准什么」）。只有要你做点什么时行尾才有按钮：没连接是「连接」，坏了是「修复」，Codex 装好了还没信任是「怎么信任」（点开那一行，最上面写着怎么做）；别的行尾是一个淡淡的 ›，说这一行能点开。点一行在原地展开：连接方式（hooks、插件或扩展）、写在哪个文件（完整路径，家目录写成 ~）和备份、能做和做不到的、要注意的（Codex 要在 /hooks 里信任、DeepSeek Harness 有没有加载她的插件、omp 的工具批准留在 omp 里、OpenCode 要 2.0 以上），以及「重新安装」「移除」（只在这里有）；Claude Code 展开后是两种方式：插件（推荐）和直接写入 settings.json。最上面「全部连接（N）」把找到了还没连的都连上（没有可连的就不显示，鼠标停上去写着连哪几个）。只有整只宠物时，打开设置会在屏幕顶部临时升起一颗岛，收起后岛就消失。
-- 透明区域会点击穿透，不挡你操作下面的窗口。
-- **找不到她了**：再运行一次程序，她会回到右下角；窗口每 2 秒也会自查一次，跑出屏幕就自己回来。
-
-### 换一只宠物
-
-在设置的「宠物」页粘贴地址（比如 `https://codex-pets.net/#/pets/deepseek-chan`）下载，只写 id（地址最后那一段）也行；或者在下面的图库里直接点「下载」。只接受 codex-pets.net 上的地址，也只会从那里下载。
-
-### 附带的壁纸
-
-仓库的 [`wallpapers/`](wallpapers/) 文件夹里附带 5 张桌面壁纸（3072×1728 的 PNG 原图，每张 6.5–7.4 MB）。软件不会下载或设置它们；想用就下载下来，在 Windows 的「设置 → 个性化 → 背景」里选。
-
-### 暂时关掉
-
-| 想要 | 怎么做 |
-| --- | --- |
-| 现在先关掉 | 右键 → 退出（脚本里是 `POST http://127.0.0.1:47213/quit`，一样算你让她退出的）。之后 Claude Code、Codex、Antigravity、ZCode、omp 的会话都不会再把她叫起来（新会话、`resume`、`/clear`、自动压缩也不会）；想用时自己打开她，或者等下次开机自动启动（她崩溃了才会被会话自动拉起）。脚本想退出、又让之后的会话还能叫醒她，用 `POST /quit?wake=1` |
-| 暂时别打扰我 | 右键 → 勿扰：她藏起来、不发通知、确认都交给终端 |
-| 不要她自动出来，想用时手动开 | 用插件连接（插件不会启动她），关掉「开机自动启动」；想用时手动打开 |
-
-她没开的时候，Claude Code 照常工作：发给她的事件会被立即拒绝连接（约 1ms），不会卡住你。
-
-### 更新
-
-下载的 exe 启动时会同时看一次 GitHub 和 Gitee 上的最新发布（GitHub 的 `https://api.github.com/repos/zhoupengjie/Wakuwaku/releases/latest`，Gitee 上仓库的 tag 列表和发行版里的 `.sha256` 文件，都不带任何账号信息），之后每天看一次。草稿和预发布不算。有新版本时灵动岛提示一次，点一下打开设置「通用」页的「软件更新」，那里能看说明，点「更新」才会下载。
-
-- 下载的是发布页上的 `wakuwaku-v<版本>-windows-x64.exe`：在中国先从 Gitee 下载，其他地方先从 GitHub，一边下载失败就换另一边（「软件更新」里的「从哪里下载」可以指定）。检查和下载都照通用页「网络代理」走：默认跟随系统（先走 Windows 的系统代理，Clash、v2rayN 打开「系统代理」就是它，不行再直连），也可以手动填代理（HTTP 或 SOCKS5，「测试」能连一下 GitHub 看通不通），或者不用代理。崩溃报告、插件联网、下载 LibreHardwareMonitor 也走它，邮件没另设时也走它。开着 VPN 的 TUN 模式、只开了本地代理端口时下载超时的话，在那里选「手动」填上（比如 Clash 的 7890）。出错时写着走的哪条路、卡在哪个地址，下面一行直接指到「网络代理」。
-- 下载后先校验 SHA-256：用 GitHub 给出的校验值，GitHub 没给时用 Gitee 发布里的 `.sha256` 文件。对不上、没有校验值、或者两边给的不一样，就不装，也不改动任何文件。
-- 校验通过后，原来的 exe 改名为 `<原名>.old.exe`，新 exe 放到原来的位置（保留你的文件名），然后启动新版；新版说它起来了、又正常跑了几秒，旧版才退出。有确认请求在等你时，会等你处理完再重启。新版正常运行一分钟后删掉 `.old.exe`。
-- 被杀毒软件拦下时（exe 没有签名，有的杀毒软件会把刚下载、刚启动的新版当成可疑程序结束或删掉）：旧版不退出，改回原来的名字照常运行，岛上和「软件更新」里会说更新被拦下了。可以在杀毒软件里把 Wakuwaku（或它所在的文件夹）加入信任再点「更新」，或者去发布页手动下载。新版起来以后才被删的，文件夹里只剩 `<原名>.old.exe`：直接打开它，它会自己改回原来的名字。
-- 新版起不来、新 exe 还在时：退出她，删掉新的 exe，把 `.old.exe` 改回原来的名字就是原来的版本。
-- 不想自动检查：在「软件更新」里关掉「自动检查更新」，需要时点「现在检查」。
-- 从源码运行时不检查也不更新，重新构建就是更新。
-
-### 崩溃报告
-
-她意外退出（崩溃）后，下次启动时会在灵动岛上问你一次：要不要从现在起自动发送崩溃报告。点进去能看到要发的全部内容，选「以后自动发送」或「不发送」。之后可以在设置「通用」页的「崩溃报告」里随时开关。
-
-- 报告会**公开**发成 issue：在中国发到 Gitee 上的 Wakuwaku，其他地方发到 GitHub 上的。同一个崩溃只开一个 issue，再来只加计数。
-- 报告里有：版本、崩溃的类型和位置、Windows 和 WebView2 的版本、她的家是灵动岛还是任务栏、运行了多久、崩溃前几分钟的日志。
-- 发之前先去掉：用户名和计算机名、路径（换成 `%USERPROFILE%`）、别的程序的名字（只留下 Windows 资源管理器和她自己）、窗口标题和托盘提示、邮箱和邮件账号、会话和项目的名字、像 token 的字符串，以及所有中文等非英文的词。
-- exe 里没有任何账号或 token：报告先发到一个中转（代码在 `relay/`），由它开 issue，并限制每个 IP 能发多少。
-- 发不出去的报告留在数据文件夹的 `crashes/` 里，之后再试。从源码运行时只在本地记录，不问也不发。
-
-### 卸载
-
-1. 如果打开过**开机自动启动**，先在设置的「通用」页里关掉（Run 里的 `Wakuwaku` 和任务计划程序里的 `Wakuwaku at logon-…` 一起去掉）。
-2. 用插件连接的：在 Claude Code 里 `/plugin uninstall wakuwaku@wakuwaku`，再 `/plugin marketplace remove wakuwaku`。写入 settings.json 的：在「Agent」页点开 Claude Code，点「移除」，只会删掉本项目加的条目，你自己的 hooks 不受影响，第一次修改前的原文件备份在 `~/.claude/settings.json.wakuwaku.bak`。连过 Codex 的：在「Agent」页点开 Codex，点「移除」，备份在 `~/.codex/hooks.json.wakuwaku.bak`。连过 OpenCode 的：点开 OpenCode，点「移除」，删掉 `~/.config/opencode/plugins/wakuwaku.js`。连过 omp 的：点开 omp，点「移除」，删掉 `extensions/wakuwaku.ts`。连过 ZCode 的：点开 ZCode，点「移除」，备份在 `~/.zcode/cli/config.json.wakuwaku.bak`。连过 DeepSeek Harness 的：点开它，点「移除」，`~/.dsh/cordis.patch.yml` 里我们的几行会删掉（只剩我们的就整个删掉），`~/.dsh/wakuwaku/` 里的插件也删掉，原文件（如果原来有）备份在旁边的 `.wakuwaku.bak`；用官方钩子桥的，它的两个包也从 profile 里拿掉。
-3. 退出她，然后删掉 exe 或项目文件夹。系统通知用的应用登记在注册表 `HKCU\Software\Classes\AppUserModelId\com.zhoupengjie.wakuwaku`，可以一并删掉。
-4. 删除她的设置和下载的宠物：exe 旁边的 `wakuwaku-data`，从源码运行是项目里的 `data/`。
-
-> 从源码运行时，一定要先移除 hooks 再删文件夹：hooks 里记的是程序的路径。移动了文件夹的话，设置里会显示「指向了别的位置」，点「修复」就行。
-
-## 工作原理
-
-```
-Claude Code ──HTTP hooks──▶ 宠物窗口 (127.0.0.1:47213/hook)
-            └─SessionStart─▶ 程序本身 --wakuwaku-ensure-running（后台运行，她没开就启动）
-Codex ──命令 hooks──▶ 程序本身 --wakuwaku-codex-hook ──▶ 宠物窗口 (/hook?agent=codex)
-OpenCode ──它后台服务里的插件 wakuwaku.js──▶ 宠物窗口 (/hook?agent=opencode)
-omp ──扩展 wakuwaku.ts（在 omp 进程里）──▶ 宠物窗口 (/hook?agent=omp)
-ZCode ──process hooks──▶ 程序本身 --wakuwaku-zcode-hook <事件> ──▶ 宠物窗口 (/hook?agent=zcode)
-DeepSeek Harness ──插件 wakuwaku.js（在 DSH 进程里）──▶ 宠物窗口 (/hook?agent=dsh)
-Reasonix ──command hooks（cmd）──▶ 程序本身 --wakuwaku-reasonix-hook <事件> ──▶ 宠物窗口 (/hook?agent=reasonix)
-```
-
-- 所有事件都用 Claude Code 的 **HTTP hook** 直接发给她，调用工具时不启动任何进程（本机实测每次约 0.3ms）。她立刻回 `{}`，表示不做任何决定；只有确认请求会等你在面板上点了再回。
-- Claude Code 不对 `SessionStart` 运行 HTTP hook。写入 settings.json 的方式给它配了一条后台命令：直接运行程序本身，她在就把事件转给她（打招呼），不在就启动她，不需要 Node。插件方式没有这条命令，靠开机自动启动。
-- 空闲时约占单核 1% 的 CPU（Windows 11 实测），私有内存约 185MB，大部分是 WebView2（也就是 Chromium）本身。
-
-| 环境变量 | 作用 |
-| --- | --- |
-| `WAKUWAKU_PORT` | 换端口（默认 47213），她和 hooks 两边都要设 |
-| `CLAUDE_CONFIG_DIR` | Claude Code 的配置目录不在 `~/.claude` 时 |
-| `CODEX_HOME` | Codex 的配置目录不在 `~/.codex` 时 |
-| `REASONIX_HOME` | Reasonix 的家目录不在 `%APPDATA%\reasonix` 时（和 Reasonix 自己一样找） |
-| `OPENCODE_CONFIG_DIR`、`XDG_CONFIG_HOME` | OpenCode 的配置目录不在 `~/.config/opencode` 时（和 OpenCode 自己一样找） |
-
-## 测试
-
-```bash
-cd src-tauri && cargo test     # Rust：hook 映射、多会话状态机、确认面板的回复格式和排队、hooks 安装、宠物地址解析……
-node --test "test/*.test.js"   # 页面：多语言、16 方向注视（不需要 npm install）
-```
-
-开发相关的说明见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+<table>
+<tr>
+<td width="50%" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-sessions-zh-dark.jpg"><img src="docs/readme/card-sessions-zh-light.jpg" alt="展开的胶囊：三个会话在忙，各自做到哪一步、跑了多久" width="100%"></picture>
+<p><b>认识你所有 AI 会话</b><br>几个会话在干什么、做到第几步、跑了多久，胶囊里一眼看到。点一下，就跳到它的窗口：终端、VS Code，或者 Claude 桌面版。</p>
+</td>
+<td width="50%" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-ask-zh-dark.jpg"><img src="docs/readme/card-ask-zh-light.jpg" alt="任务栏上的确认面板：允许、以后都允许、拒绝" width="100%"></picture>
+<p><b>要批准？任务栏上点一下</b><br>允许、以后都允许、拒绝，回答它的问题，批准计划。终端那边照常弹，谁先答算谁的。</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-ring-zh-dark.jpg"><img src="docs/readme/card-ring-zh-light.jpg" alt="做完了：一圈彩色流光绕着胶囊" width="100%"></picture>
+<p><b>做完了，胶囊亮一圈</b><br>流光绕着胶囊转几圈，她头像上留个小点，不打断你。鼠标停上去，改了几个文件、Claude 回了什么，都写在上面。</p>
+</td>
+<td width="50%" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-island-zh-dark.jpg"><img src="docs/readme/card-island-zh-light.jpg" alt="屏幕顶上展开的灵动岛：会话、系统监控、天气" width="100%"></picture>
+<p><b>或者，只要一颗灵动岛</b><br>不想换掉任务栏，她就住进屏幕顶上的灵动岛。用 MyDockFinder 这类自己管任务栏的工具时，她会自己切过去。</p>
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-taskbar-zh-dark.jpg"><img src="docs/readme/card-taskbar-zh-light.jpg" alt="她的任务栏：开始、固定的程序、天气、邮件、托盘、输入法、时钟" width="100%"></picture>
+<p><b>和 Windows 11 一样顺手</b><br>开始按钮、固定的程序、窗口缩略图、托盘、输入法、快速设置、时钟，用的都是 Windows 自己的图标和面板。插件也能放上任务栏。</p>
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/card-desktop-zh-dark.jpg"><img src="docs/readme/card-desktop-zh-light.jpg" alt="桌面上的工作台：Claude 今天、邮件、股票、系统监控、番茄钟、倒计时" width="100%"></picture>
+<p><b>插件和桌面小工具</b><br>今天的用量和 token、天气、股票、番茄钟、倒计时、邮件……放在任务栏、胶囊里或桌面上，几个拼成一块工作台。一行 PowerShell 就能写自己的插件。</p>
+</td>
+</tr>
+</table>
+
+还有：新邮件先在胶囊里冒出来，一封信可以交给 Claude Code、Codex 或 Antigravity 总结、起草回信，发不发你说了算；[codex-pets.net](https://codex-pets.net) 上的宠物随便换，按住往上拉她就跳到桌面上；云母、透明、纯色，深浅色，胶囊和灵动岛的样子都能调。约 11 MB，单个 exe，不用安装，免费开源。
+
+<sub>配图是用她真实的界面代码渲染的（[`tools/preview`](tools/preview/README.md)），会话、邮件和数字都是虚构的演示内容；背景是仓库附带的[壁纸](wallpapers/)。</sub>
+
+## 支持的 AI
+
+| | 跟着会话 | 在她这里批准 | 回答它的提问 | 算进「今天」 | 把信交给它读 |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| Claude Code | ✓ | 允许 · 以后都允许 · 拒绝 · 计划 | ✓ | ✓ 含 token | ✓ |
+| Codex | ✓ | 允许 · 拒绝 | | ✓ 含 token | ✓ |
+| DeepSeek Harness | ✓ | 允许 · 拒绝 | ✓ | ✓ 含 token | |
+| OpenCode | ✓ | 允许 · 以后都允许 · 拒绝 | | ✓ 不含 token | |
+| ZCode | ✓ | 允许 · 拒绝 | | ✓ 不含 token | |
+| Antigravity | ✓ | | | ✓ 含 token | ✓ |
+| oh-my-pi（omp） | ✓ | 只有计划审批 | | ✓ 含 token | |
+| Reasonix | ✓ | | | ✓ 2.x 含 token | |
+
+空着的格子是那个工具没给办法，批准和提问就留在它自己那里答。每一个怎么连、改了哪个文件、要注意什么，见[使用说明 → 安装](docs/GUIDE.md#安装)。
+
+## 三步开始
+
+1. 从 [Releases](https://github.com/zhoupengjie/Wakuwaku/releases/latest)（国内用 [Gitee](https://gitee.com/zhoupengjie/Wakuwaku/releases)）下载 `wakuwaku-<版本>-windows-x64.exe`，放进哪个文件夹都能直接运行。exe 没有代码签名，SmartScreen 拦下时点「更多信息 → 仍要运行」。
+2. 第一次打开时设置会自己弹出来，最上面是欢迎卡片：在你用的 agent 旁边点「**一键连接**」（设置的「Agent」页也有「全部连接」）。还差一步的（比如 Codex 要在它的 `/hooks` 里信任一次），卡片上会写。Claude Code 也可以装插件：`/plugin marketplace add zhoupengjie/wakuwaku`，再 `/plugin install wakuwaku@wakuwaku`。
+3. 开工。AI 要你批准、做完了、出错了，她都会告诉你。
+
+不要了，退出她，删掉 exe 和旁边的 `wakuwaku-data` 文件夹；先在设置里移除连接，见[卸载](docs/GUIDE.md#卸载)。
+
+## 看演示
+
+https://github.com/user-attachments/assets/7814d71a-77f0-43af-97a6-210d2cbb31dc
+
+## 文档
+
+- [使用说明](docs/GUIDE.md)：安装和连接每个 agent、她的家、批准面板、插件、邮件、更新、崩溃报告、卸载、工作原理
+- [写插件](docs/PLUGINS.md)（英文）：一个 .zip，只有网页文件和图片，在沙盒里运行；也可以[用脚本发数据](docs/WIDGETS.md)
+- [开发](docs/DEVELOPMENT.md)：从源码运行、测试、各个模块怎么做的
 
 ## 许可与致谢
 
