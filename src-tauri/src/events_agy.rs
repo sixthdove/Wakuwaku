@@ -103,28 +103,56 @@ pub fn is_relative_path(path: &str) -> bool {
     !p.is_empty() && !p.starts_with('/') && !p.starts_with('\\') && p.as_bytes().get(1) != Some(&b':')
 }
 
+fn resolve_relative_in_ws(ws: &str, rel: &str) -> PathBuf {
+    let mut base = PathBuf::from(ws);
+    for comp in Path::new(rel).components() {
+        match comp {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                base.pop();
+            }
+            std::path::Component::Normal(c) => base.push(c),
+            _ => {}
+        }
+    }
+    base
+}
+
 // Antigravity's isFilePathAllowed allows any path inside workspacePaths,
 // artifactDirectoryPath, or its own ~/.gemini/antigravity or ~/.gemini/antigravity-cli folders.
 fn is_workspace_or_artifact_path(e: &Value, path: &str) -> bool {
-    if path.trim().is_empty() || is_relative_path(path) {
+    let p = path.trim();
+    if p.is_empty() {
         return true;
     }
-    if let Some(ws) = e.get("workspacePaths").and_then(Value::as_array) {
-        if ws.iter().filter_map(Value::as_str).any(|root| path_within(path, root)) {
+    let ws_list = e.get("workspacePaths").and_then(Value::as_array);
+    if is_relative_path(p) {
+        if let Some(ws) = ws_list {
+            for root in ws.iter().filter_map(Value::as_str) {
+                let resolved = resolve_relative_in_ws(root, p);
+                if path_within(&resolved.to_string_lossy(), root) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    if let Some(ws) = ws_list {
+        if ws.iter().filter_map(Value::as_str).any(|root| path_within(p, root)) {
             return true;
         }
     }
     let artifact = s(e, "artifactDirectoryPath");
-    if !artifact.is_empty() && path_within(path, artifact) {
+    if !artifact.is_empty() && path_within(p, artifact) {
         return true;
     }
     let gemini = crate::connection::gemini_dir();
     let agy_dir = gemini.join("antigravity");
-    if path_within(path, &agy_dir.to_string_lossy()) {
+    if path_within(p, &agy_dir.to_string_lossy()) {
         return true;
     }
     let cli_dir = gemini.join("antigravity-cli");
-    path_within(path, &cli_dir.to_string_lossy())
+    path_within(p, &cli_dir.to_string_lossy())
 }
 
 // Extract hostname/domain from a URL (e.g. "https://mail.google.com/a" -> "mail.google.com").
@@ -195,6 +223,17 @@ fn path_matches_target(path: &str, target: &str, ws_paths: &[String]) -> bool {
         }
         let file_name = path.rsplit(['/', '\\']).next().unwrap_or(path);
         if file_name.starts_with(prefix) {
+            return true;
+        }
+    }
+    if let Some(suffix) = target.strip_prefix('*') {
+        let norm_p = norm_path(path);
+        let norm_suf = norm_path(suffix);
+        if norm_p.ends_with(&norm_suf) {
+            return true;
+        }
+        let file_name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+        if file_name.to_ascii_lowercase().ends_with(&suffix.to_ascii_lowercase()) {
             return true;
         }
     }
@@ -277,7 +316,7 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
             if !desc.is_empty() {
                 input["description"] = json!(desc);
             }
-            let rule = cmd.lines().next().unwrap_or(cmd).trim().to_string();
+            let rule = cmd.trim().to_string();
             ("Bash".into(), input, Some(("command", rule)))
         }
         "send_command_input" => {
@@ -287,8 +326,7 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
             if !desc.is_empty() {
                 input["description"] = json!(desc);
             }
-            let rule = cmd.lines().next().unwrap_or(cmd).trim().to_string();
-            ("Bash".into(), input, Some(("command", rule)))
+            ("Bash".into(), input, None)
         }
         "write_file" | "write_to_file" => {
             let path = first_str(raw_args, &["Path", "TargetFile", "file_path"]);
@@ -343,9 +381,11 @@ fn classify_tool(raw_tool: &str, raw_args: &Value) -> (String, Value, Option<(&'
         }
         other if other.starts_with("mcp_") => {
             let target = if let Some(rest) = other.strip_prefix("mcp__") {
-                rest.split_once("__").map_or_else(|| "*".into(), |(srv, tl)| format!("{srv}/{tl}"))
+                rest.split_once("__").map_or_else(|| rest.replace('_', "/"), |(srv, tl)| format!("{srv}/{tl}"))
+            } else if let Some(rest) = other.strip_prefix("mcp_") {
+                rest.split_once('_').map_or_else(|| rest.to_string(), |(srv, tl)| format!("{srv}/{tl}"))
             } else {
-                "*".into()
+                other.to_string()
             };
             (other.into(), raw_args.clone(), Some(("mcp", target)))
         }
@@ -407,18 +447,13 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     // 1. Deny rules: Deny > Strict > Ask > Allow.
     // If matching deny, return false (Antigravity natively blocks it without asking).
     let is_denied = |cmd_or_target: &str| {
-        let check = |arr: Option<&Vec<Value>>| {
-            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths)))
-        };
-        check(grants_deny)
-            || check(desktop_grants.get("deny").and_then(Value::as_array))
-            || check(cli_perms.get("deny").and_then(Value::as_array))
+        grants_deny.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_deny(g, action, cmd_or_target, &ws_paths)))
     };
     if is_denied(&target) {
         return false;
     }
 
-    // 2. Strict mode: in strict mode, agy rejects auto_approve hook decisions
+    // 2. Strict mode: in strict mode, agy CLI rejects auto_approve hook decisions
     // ("soft-denying tool confirmation") and reprompts on the terminal anyway.
     // Return false immediately so it yields to agy natively without showing on island.
     if is_cli {
@@ -426,21 +461,11 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
         if tool_perm == "strict" {
             return false;
         }
-    } else {
-        let preset = s(settings, "permissionPreset");
-        if preset == "AGENT_PERMISSION_PRESET_STRICT" {
-            return false;
-        }
     }
 
     // 3. Ask rules: Ask > Allow.
     let is_asked = |cmd_or_target: &str| {
-        let check = |arr: Option<&Vec<Value>>| {
-            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_covers(g, action, cmd_or_target, &ws_paths)))
-        };
-        check(grants_ask)
-            || check(desktop_grants.get("ask").and_then(Value::as_array))
-            || check(cli_perms.get("ask").and_then(Value::as_array))
+        grants_ask.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_covers(g, action, cmd_or_target, &ws_paths)))
     };
     if is_asked(&target) {
         return true;
@@ -448,12 +473,7 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
 
     // 4. Allow rules: exact full-line match (commands must match entire line or command(*)).
     let is_allowed = |cmd_or_target: &str| {
-        let check = |arr: Option<&Vec<Value>>| {
-            arr.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths)))
-        };
-        check(grants_allow)
-            || check(desktop_grants.get("allow").and_then(Value::as_array))
-            || check(cli_perms.get("allow").and_then(Value::as_array))
+        grants_allow.is_some_and(|arr| arr.iter().filter_map(Value::as_str).any(|g| grant_matches_allow(g, action, cmd_or_target, &ws_paths)))
     };
     if is_allowed(&target) {
         return false;
@@ -487,7 +507,12 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
         "write_file" => {
             let inside_ws = is_workspace_or_artifact_path(e, &target);
             if is_cli {
-                let agent_mode = e.get("cli_mode").and_then(Value::as_str).unwrap_or("");
+                let agent_mode = e
+                    .get("cli_mode")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| cli.get("agentMode").and_then(Value::as_str))
+                    .unwrap_or("");
                 if inside_ws {
                     // In CLI: "accept-edits" and "auto" allow workspace file edits without asking.
                     // Default mode "" in request-review asks for write_file even inside workspace.
@@ -588,6 +613,20 @@ pub fn with_seen(e: &mut Value) {
     }
 }
 
+fn atomic_write_file(file: &Path, content: &str) -> std::io::Result<()> {
+    if let Some(parent) = file.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp_file = file.with_extension(format!("tmp.{}", std::process::id()));
+    std::fs::write(&tmp_file, content)?;
+    if std::fs::rename(&tmp_file, file).is_err() {
+        let res = std::fs::write(file, content);
+        let _ = std::fs::remove_file(&tmp_file);
+        return res;
+    }
+    Ok(())
+}
+
 // Persist "Always Allow" grants into ~/.gemini/config/config.json
 // (userSettings.globalPermissionGrants.allow), which language_server watches.
 pub fn save_always_grants_to_config(file: &Path, rules: &[String]) {
@@ -616,11 +655,8 @@ pub fn save_always_grants_to_config(file: &Path, rules: &[String]) {
         }
     }
     if changed {
-        if let Some(parent) = file.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
         if let Ok(text) = serde_json::to_string_pretty(&root) {
-            let _ = std::fs::write(file, format!("{text}\n"));
+            let _ = atomic_write_file(file, &format!("{text}\n"));
         }
     }
 }
@@ -651,11 +687,8 @@ pub fn save_always_grants_to_cli(file: &Path, rules: &[String]) {
         }
     }
     if changed {
-        if let Some(parent) = file.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
         if let Ok(text) = serde_json::to_string_pretty(&root) {
-            let _ = std::fs::write(file, format!("{text}\n"));
+            let _ = atomic_write_file(file, &format!("{text}\n"));
         }
     }
 }
@@ -1032,5 +1065,48 @@ mod tests {
         with_seen(&mut post);
         assert_eq!(asks.seen(&post), vec![id]);
         assert!(asks.is_empty());
+    }
+
+    #[test]
+    fn security_and_edge_cases() {
+        let default_cfg = json!({});
+        let default_cli = json!({});
+
+        // 1. Multiline command: single line does NOT bypass, exact multiline allows
+        let multiline = event("PreToolUse", json!({ "toolCall": { "name": "run_command", "args": { "CommandLine": "echo safe\nrm -rf /" } } }));
+        let first_line_allow = json!({ "permissions": { "allow": ["command(echo safe)"] } });
+        assert!(needs_approval(&multiline, &default_cfg, &first_line_allow));
+        let exact_multiline = json!({ "permissions": { "allow": ["command(echo safe\nrm -rf /)"] } });
+        assert!(!needs_approval(&multiline, &default_cfg, &exact_multiline));
+
+        // 2. Interactive stdin send_command_input never prompts on island
+        let send_input = event("PreToolUse", json!({ "toolCall": { "name": "send_command_input", "args": { "CommandId": "123", "Input": "y" } } }));
+        assert!(!needs_approval(&send_input, &default_cfg, &default_cli));
+
+        // 3. Suffix wildcard matching (*.log)
+        let log_allow = json!({ "permissions": { "allow": [r"read_file(*.log)"] } });
+        let read_log = event("PreToolUse", json!({ "toolCall": { "name": "read_file", "args": { "Path": r"C:\outside\debug.log" } } }));
+        assert!(!needs_approval(&read_log, &default_cfg, &log_allow));
+        let read_rs = event("PreToolUse", json!({ "toolCall": { "name": "read_file", "args": { "Path": r"C:\outside\debug.rs" } } }));
+        assert!(needs_approval(&read_rs, &default_cfg, &log_allow));
+
+        // 4. Relative path directory traversal (..\..\outside) is NOT inside workspace
+        let traversal = event("PreToolUse", json!({ "toolCall": { "name": "write_file", "args": { "Path": r"..\..\outside\secret.txt" } } }));
+        assert!(needs_approval(&traversal, &default_cfg, &default_cli));
+
+        // Valid relative path inside workspace
+        let in_ws_rel = event("PreToolUse", json!({ "cli_mode": "accept-edits", "toolCall": { "name": "write_file", "args": { "Path": r"src\lib.rs" } } }));
+        assert!(!needs_approval(&in_ws_rel, &default_cfg, &default_cli));
+
+        // 5. MCP tool naming without mcp(*) wildcard regression
+        let mcp_call = json!({ "name": "mcp_github_create_issue", "args": {} });
+        let mcp_pre = json!({ "hook_event_name": "PreToolUse", "conversationId": "5064aa2e", "workspacePaths": ["Z:/nowhere/agyws"], "is_cli": true, "toolCall": mcp_call, "stepIdx": 8 });
+        let mcp_ask = for_ask(&mcp_pre);
+        assert_eq!(mcp_ask["permission_suggestions"][0]["rules"][0], json!({ "toolName": "mcp", "ruleContent": "github/create_issue" }));
+
+        // 6. CLI agentMode fallback from settings.json
+        let cli_agent_mode = json!({ "agentMode": "accept-edits" });
+        let in_ws_write = event("PreToolUse", json!({ "toolCall": { "name": "write_to_file", "args": { "TargetFile": r"Z:\nowhere\agyws\src\lib.rs" } } }));
+        assert!(!needs_approval(&in_ws_write, &default_cfg, &cli_agent_mode));
     }
 }
