@@ -458,7 +458,6 @@ pub fn needs_approval(e: &Value, config: &Value, cli: &Value) -> bool {
     if is_allowed(&target) {
         return false;
     }
-    }
 
     // 5. Global bypass presets
     if is_cli {
