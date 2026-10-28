@@ -33,6 +33,8 @@ const film = document.getElementById('pet-film') || sprite.appendChild(Object.as
 const bubble = document.getElementById('bubble')
 const herList = document.getElementById('her-list') || sprite.parentElement.insertBefore(Object.assign(document.createElement('div'), { id: 'her-list', hidden: true }), sprite)
 const panelBox = document.getElementById('panel')
+// Under her feet while she is carried out of her home: a double-click sends her back.
+const hint = document.getElementById('her-hint') || sprite.parentElement.appendChild(Object.assign(document.createElement('div'), { id: 'her-hint', hidden: true }))
 
 let lang = 'en'
 let now = { mood: 'idle', detail: '', project: '', since: null, took: null, others: 0, sessions: 0, list: [] }
@@ -156,6 +158,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     stopIdle()
     closeList()
+    hint.hidden = true
     clearTimeout(tickTimer)
     // Main may set her window's size anew meanwhile (pet.rs return_to_spot):
     // the room over her head told again as she shows.
@@ -187,6 +190,8 @@ const LIST_ROWS = 6
 // Less room over her head is given back this long after: a turn ending and
 // the next starting do not move her window twice.
 const ROOM_KEEP_MS = 1500
+// What is over her head goes back into it this fast (style.css her-unpop).
+const POP_OUT_MS = 160
 
 const isOut = () => !isIsland() && config.out === true && !!spriteUrl
 const isAsking = () => document.body.classList.contains('asking')
@@ -217,11 +222,50 @@ function line({ mood, name, what, clock, others }) {
   return row
 }
 
+// Out of her head with the island's spring as it comes, back into it as it
+// goes, and once in place nothing moves (the design's motion: quick, light,
+// played once). Her capsule hides by a class, the rest by their hidden.
+const isUp = node => (node === bubble ? !node.classList.contains('hidden') : !node.hidden) && !node.classList.contains('out')
+const goTimers = new Map()
+
+function replayIn(node) {
+  node.classList.remove('in')
+  void node.offsetWidth
+  node.classList.add('in')
+}
+
+function popIn(node) {
+  const was = isUp(node)
+  clearTimeout(goTimers.get(node))
+  node.classList.remove('out')
+  if (node === bubble) node.classList.remove('hidden')
+  else node.hidden = false
+  if (!was) replayIn(node)
+}
+
+function popOut(node, then) {
+  clearTimeout(goTimers.get(node))
+  if (!isUp(node)) return then?.()
+  node.classList.remove('in')
+  node.classList.add('out')
+  goTimers.set(
+    node,
+    setTimeout(() => {
+      node.classList.remove('out')
+      if (node === bubble) node.classList.add('hidden')
+      else node.hidden = true
+      then?.()
+      room()
+    }, POP_OUT_MS),
+  )
+}
+
 let saidKey = ''
 let tickTimer
 
 // Her capsule as the session shown is now; drawn again only when what it
-// says changes, its clock kept up each second in place (tick).
+// says changes, its clock kept up each second in place (tick). Something
+// else said while it is up slides in, as the closed island's words do.
 function talk() {
   document.body.classList.toggle('her-out', isOut())
   const said = isOut() ? Status.talkOf(lang, now, { detailed: detailed() }) : null
@@ -229,13 +273,16 @@ function talk() {
   if (key !== saidKey) {
     saidKey = key
     if (said) {
-      bubble.replaceChildren(line(said), ...(said.reply ? [span('reply', said.reply)] : []))
+      const lines = [line(said), ...(said.reply ? [span('reply', said.reply)] : [])]
+      if (isUp(bubble) && bubble.childElementCount) for (const n of lines) n.classList.add('turn')
+      bubble.replaceChildren(...lines)
       bubble.title = [[said.name, said.what].filter(Boolean).join(' · '), said.reply].filter(Boolean).join('\n')
-      bubble.classList.remove('hidden')
+      popIn(bubble)
     } else {
-      bubble.replaceChildren()
-      bubble.title = ''
-      bubble.classList.add('hidden')
+      popOut(bubble, () => {
+        bubble.replaceChildren()
+        bubble.title = ''
+      })
     }
   }
   if (listOpen) fillList()
@@ -316,22 +363,24 @@ function openList() {
   if (!isOut() || isAsking() || dragged || listOpen) return
   listOpen = true
   fillList()
-  herList.hidden = false
+  popIn(herList)
   document.body.classList.add('listing')
   tick()
   room()
 }
 
+// Back into her head; her capsule, under it meanwhile, comes out again.
 function closeList() {
   clearTimeout(listTimer)
   clearTimeout(leaveTimer)
   if (!listOpen) return
   listOpen = false
   listKey = ''
-  herList.hidden = true
-  herList.replaceChildren()
-  document.body.classList.remove('listing')
-  room()
+  popOut(herList, () => {
+    herList.replaceChildren()
+    document.body.classList.remove('listing')
+    if (isUp(bubble) && !isAsking()) replayIn(bubble)
+  })
 }
 
 // Off her and the list: it closes in a moment, unless the pointer comes back.
@@ -361,10 +410,19 @@ let roomSent
 let roomTimer = null
 let roomLess
 
+// A prompt comes out of her head; once it is answered, her capsule again.
+let wasAsking = false
+
 function room(atOnce = false) {
   if (isIsland()) return
   requestAnimationFrame(() => {
-    if (isAsking() && listOpen) return closeList()
+    const asking = isAsking()
+    if (asking !== wasAsking) {
+      wasAsking = asking
+      if (asking) replayIn(panelBox)
+      else if (isUp(bubble)) replayIn(bubble)
+    }
+    if (asking && listOpen) return closeList()
     const shown = [panelBox, herList, bubble].find(n => n && !n.hidden && !n.classList.contains('hidden') && n.offsetHeight > 0)
     const want = shown ? { width: Math.ceil(shown.offsetWidth) + 16, height: Math.ceil(shown.offsetHeight) + 12 } : null
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
@@ -428,6 +486,8 @@ function render() {
   }
   sprite.classList.remove('empty')
   if (saidKey === 'noSprite') saidKey = '-'
+  // Her language heard only as her window shows, after the hint came.
+  if (!hint.hidden) fillHint()
   talk()
 }
 
@@ -575,6 +635,17 @@ window.pet.onDragEnd(() => {
   dragged = null
   kick()
   scheduleIdle()
+})
+
+// Carried out of her home, the button still held: under her feet, that a
+// double-click sends her back (main makes the room for it, pet.rs carry).
+function fillHint() {
+  hint.replaceChildren(span('', t(lang, 'her.dblHome')))
+}
+
+window.pet.onCarried?.(({ on }) => {
+  if (on) fillHint()
+  hint.hidden = on !== true
 })
 
 // --- Pointer: hover turns click-through off, press drags --------------------------------

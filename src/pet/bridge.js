@@ -50,6 +50,8 @@
     onCursor: on('pet:cursor'),
     onDrag: on('pet:drag'),
     onDragEnd: on('pet:drag-end'),
+    // Carried out of her home, the button still held, or let go ({ on }).
+    onCarried: on('pet:carried'),
     onAsks: on('pet:asks'),
     onShift: on('pet:shift'),
     answer: (id, choice) => send('pet_answer', { id, choice }),
