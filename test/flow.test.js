@@ -26,6 +26,13 @@ test('the setting decides all that needs no answer: open, a ring, or just the do
   assert.equal(Flow.cueFor('notice', { setting: 'none' }), 'dot')
 })
 
+test('out on the desktop the prompt is over her head: the island does not open for it', () => {
+  for (const setting of ['open', 'ring', 'none']) assert.equal(Flow.cueFor('waiting', { setting, herOut: true }), null, setting)
+  // The rest as ever.
+  assert.equal(Flow.cueFor('done', { herOut: true }), 'ring')
+  assert.equal(Flow.cueFor('done', { setting: 'open', herOut: true }), 'open')
+})
+
 test('inside a turn (a tool failed, an item done): her clip alone, never a ring or a dot', () => {
   for (const setting of ['ring', 'none']) {
     for (const view of ['compact', 'expanded', 'ask', 'settings']) assert.equal(Flow.cueFor('process', { setting, view }), 'clip', `${setting} ${view}`)

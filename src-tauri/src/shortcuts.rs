@@ -243,7 +243,10 @@ mod win {
                             HOTKEY_ISLAND => "island",
                             _ => continue,
                         };
-                        let _ = sh_worker.app.emit_to("island", "island:hotkey", json!({ "which": which }));
+                        // Out on the desktop the prompt is over her head
+                        // (panel.js holderOf): approve and deny go to her window.
+                        let to = if which != "island" && crate::pet::is_shown(&sh_worker) { "pet" } else { "island" };
+                        let _ = sh_worker.app.emit_to(to, "island:hotkey", json!({ "which": which }));
                     }
                     WM_USER_RELOAD => {
                         let Some(failed) = register_all(&sh_worker) else { continue };
