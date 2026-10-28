@@ -31,6 +31,9 @@ const DOUBLE_MS: u64 = 500;
 const CLICK_GOES_MS: u64 = 60_000;
 // Flying back into the island, from wherever she is.
 const FLY_MS: f64 = 380.0;
+// Room under her feet (logical) for the hint while she is carried out of
+// her home: a double-click sends her back (pet.js, style.css #her-hint).
+const HINT_H: f64 = 30.0;
 
 struct Drag {
     // The cursor's offset in the window.
@@ -76,6 +79,8 @@ pub struct Win {
     // to exactly; and where she stood (her middle, her feet) as it was last
     // grown: moved since, she goes back to where she is instead.
     parked: Option<((i32, i32), (i32, i32))>,
+    // Room under her feet (physical) while she is carried out: the hint.
+    below: i32,
 }
 
 // Her window's display's scale.
@@ -93,13 +98,27 @@ impl Win {
     }
 
     // The window now: taller, and wider, should what is over her head need
-    // more room than her own window has above her.
+    // more room than her own window has above her; taller by the room under
+    // her while she is carried out (below).
     fn size_for(&self, scale: f64) -> (i32, i32) {
         let base = self.base_size(scale);
-        match self.panel {
+        let (w, h) = match self.panel {
             Some((w, h)) => (base.0.max((w * self.sf()).ceil() as i32), base.1.max(((CELL_H * scale + h) * self.sf()).ceil() as i32)),
             None => base,
-        }
+        };
+        (w, h + self.below)
+    }
+
+    // Her middle and her feet on the screen.
+    fn feet(&self) -> (i32, i32) {
+        (self.pos.0 + self.size.0 / 2 + self.shift, self.pos.1 + self.size.1 - self.below)
+    }
+
+    // Room under her feet for the hint, or none: the window grows or
+    // shrinks at its bottom, she where she is.
+    fn hint(&mut self, on: bool, scale: f64) {
+        self.below = if on { (HINT_H * self.sf()).round() as i32 } else { 0 };
+        self.size = self.size_for(scale);
     }
 
     // The room over her head as measured (set_panel): the window's size and
@@ -109,9 +128,8 @@ impl Win {
         if self.panel == measured {
             return false;
         }
-        let (old, before) = (self.pos, self.size);
-        let pet_x = old.0 + before.0 / 2 + self.shift;
-        let pet_bottom = old.1 + before.1;
+        let old = self.pos;
+        let (pet_x, pet_bottom) = self.feet();
         // Where to go back to once nothing is over her head: where she was
         // before it came, unless she has been moved since (dragged, a walk:
         // her words are up all through a turn); then where she is now.
@@ -129,13 +147,13 @@ impl Win {
             }
             (panel, back) => {
                 let want_x = pet_x - self.size.0 / 2;
-                let p = clamp((want_x, pet_bottom - self.size.1), self.size);
+                let p = clamp((want_x, pet_bottom + self.below - self.size.1), self.size);
                 self.pos = p;
                 self.shift = if panel.is_some() { want_x - p.0 } else { 0 };
                 if panel.is_some() {
                     let base = self.base_size(scale);
                     let back = back.unwrap_or((pet_x - base.0 / 2, pet_bottom - base.1));
-                    self.parked = Some((back, (p.0 + self.size.0 / 2 + self.shift, p.1 + self.size.1)));
+                    self.parked = Some((back, self.feet()));
                 }
             }
         }
@@ -144,8 +162,8 @@ impl Win {
 
     // Her middle on the screen, for the island to reach for.
     fn her_point(&self, scale: f64) -> (i32, i32) {
-        let (x, y) = self.pos;
-        (x + self.size.0 / 2 + self.shift, y + self.size.1 - (CELL_H * scale * self.sf() / 2.0).round() as i32)
+        let (x, y) = self.feet();
+        (x, y - (CELL_H * scale * self.sf() / 2.0).round() as i32)
     }
 }
 
@@ -214,7 +232,8 @@ fn remember(sh: &Shared) {
     let (x, y) = {
         let w = sh.win.lock().unwrap();
         let base = w.base_size(scale);
-        (w.pos.0 + w.size.0 / 2 + w.shift - base.0 / 2, w.pos.1 + w.size.1 - base.1)
+        let (x, y) = w.feet();
+        (x - base.0 / 2, y - base.1)
     };
     let mut settings = sh.settings.lock().unwrap();
     settings.insert("x".into(), json!(x));
@@ -682,6 +701,8 @@ pub fn let_go(sh: &Arc<Shared>) {
     let _ = sh.app.emit_to("pet", "pet:drag-end", ());
     if drag.carried {
         island::end_hold(sh);
+        // Let go: the hint under her goes (absorbed, it goes with her).
+        unhint(sh);
     }
     if drag.moved {
         // Not into a notch's out-of-sight home by a drag (notch::in_notch).
@@ -786,24 +807,48 @@ fn fly_home(sh: &Arc<Shared>) {
 pub fn carry(sh: &Arc<Shared>, offset: &Value) {
     let Some(cursor) = crate::screen::cursor(sh, sf(sh)) else { return };
     let scale = scale(sh);
-    let p = {
+    let (p, size) = {
         let mut w = sh.win.lock().unwrap();
         let sf = w.sf();
+        // Room under her for the hint while the button is held (let_go).
+        w.hint(true, scale);
         let dx = offset["dx"].as_f64().unwrap_or(0.0) * sf;
         let dy = offset["dy"].as_f64().unwrap_or(0.0) * sf;
-        let x = cursor.0 + dx as i32 - w.size.0 / 2;
-        let y = cursor.1 + dy as i32 - (w.size.1 - (CELL_H * scale * sf / 2.0) as i32);
+        let x = cursor.0 + dx as i32 - w.size.0 / 2 - w.shift;
+        let y = cursor.1 + dy as i32 - (w.size.1 - w.below - (CELL_H * scale * sf / 2.0) as i32);
         w.pos = (x, y);
         w.walk_gen += 1;
         w.walking = false;
         w.drag = Some(Drag { dx: cursor.0 - x, dy: cursor.1 - y, x, y, x0: x, y0: y, moved: true, carried: true });
         w.ct.reset(true);
-        (x, y)
+        ((x, y), w.size)
     };
     sh.log(&format!("pet: carried out of the island at {p:?}"));
+    let _ = sh.app.emit_to("pet", "pet:carried", json!({ "on": true }));
+    if let Some(win) = window(sh) {
+        let _ = win.set_size(PhysicalSize::new(size.0 as u32, size.1 as u32));
+    }
     place(sh, p);
     set_ignore(sh, Some(true));
     sh.change(json!({ "out": true }));
+}
+
+// The room under her for the hint given back (let go, gone home): the
+// window shrinks at its bottom, she where she is.
+fn unhint(sh: &Shared) {
+    let scale = scale(sh);
+    let size = {
+        let mut w = sh.win.lock().unwrap();
+        if w.below == 0 {
+            return;
+        }
+        w.hint(false, scale);
+        w.size
+    };
+    let _ = sh.app.emit_to("pet", "pet:carried", json!({ "on": false }));
+    if let Some(win) = window(sh) {
+        let _ = win.set_size(PhysicalSize::new(size.0 as u32, size.1 as u32));
+    }
 }
 
 // Gone into the island at once, before the island's animation starts.
@@ -820,6 +865,7 @@ pub fn hide_now(sh: &Shared) {
     if let Some(win) = window(sh) {
         hide_window(&win);
     }
+    unhint(sh);
 }
 
 // --- Walks ------------------------------------------------------------------------------
@@ -904,9 +950,8 @@ mod tests {
         (p.0.max(0).min(2560 - size.0), p.1.max(0).min(1380 - size.1))
     }
 
-    // Her middle and her feet on the screen.
     fn feet(w: &Win) -> (i32, i32) {
-        (w.pos.0 + w.size.0 / 2 + w.shift, w.pos.1 + w.size.1)
+        w.feet()
     }
 
     fn standing(at: (i32, i32)) -> Win {
@@ -955,5 +1000,21 @@ mod tests {
         assert!(feet(&w).1 > stood.1);
         w.make_room(None, 0.75, clamp);
         assert_eq!(w.pos, start);
+    }
+
+    #[test]
+    fn carried_out_the_room_for_the_hint_is_under_her_feet() {
+        let mut w = standing((1700, 900));
+        let stood = feet(&w);
+        w.hint(true, 0.75);
+        assert_eq!((feet(&w), w.size.1), (stood, w.base_size(0.75).1 + 38));
+        // A prompt comes meanwhile: over her head, she where she was.
+        w.make_room(Some((340.0, 220.0)), 0.75, clamp);
+        assert_eq!(feet(&w), stood);
+        // Let go, then the prompt answered: all back as it was.
+        w.hint(false, 0.75);
+        assert_eq!(feet(&w), stood);
+        w.make_room(None, 0.75, clamp);
+        assert_eq!((w.pos, w.size), ((1700, 900), w.base_size(0.75)));
     }
 }
