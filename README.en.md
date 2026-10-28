@@ -61,7 +61,7 @@ And more: new mail shows up in the capsule first, and you can hand a letter to C
 
 ## The AI tools she works with
 
-| | Follows its sessions | Approve on her | Answer its questions | Counted in Today | Hand it a letter |
+| | Status | Approve on her | Questions | Stats | Mail |
 | --- | :---: | :---: | :---: | :---: | :---: |
 | Claude Code | ✓ | Allow · Always allow · Deny · plans | ✓ | ✓ with tokens | ✓ |
 | Codex | ✓ | Allow · Deny | | ✓ with tokens | ✓ |
@@ -72,7 +72,7 @@ And more: new mail shows up in the capsule first, and you can hand a letter to C
 | oh-my-pi (omp) | ✓ | Plan reviews only | | ✓ with tokens | |
 | Reasonix | ✓ | | | ✓ tokens in 2.x | |
 
-A blank cell means the tool gives her no way to do it, so you answer that in the tool itself. How to connect each one, the file it writes and what to look out for: [User guide → Install](docs/GUIDE.en.md#install).
+Status: she follows its sessions working, waiting for you, done, failed. Stats: its turns and time counted in Today. Mail: you can hand it a letter to sum up and draft a reply. A blank cell means the tool gives her no way to do it, so you answer that in the tool itself. How to connect each one, the file it writes and what to look out for: [User guide → Install](docs/GUIDE.en.md#install).
 
 ## Get started
 
