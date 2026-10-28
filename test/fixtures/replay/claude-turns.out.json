@@ -48,12 +48,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "idle",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -113,12 +115,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -262,12 +266,14 @@
         "at": 3000,
         "detail": "TodoWrite",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -352,12 +358,22 @@
         "at": 3100,
         "detail": "TodoWrite",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -457,12 +473,22 @@
         "at": 4000,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -549,12 +575,31 @@
         "at": 4500,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -654,12 +699,31 @@
         "at": 5000,
         "detail": "Edit",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -751,12 +815,42 @@
         "at": 6000,
         "detail": "Edit",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -856,12 +950,42 @@
         "at": 7000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -959,12 +1083,51 @@
         "at": 9000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1089,12 +1252,51 @@
           }
         },
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "waiting",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -1189,12 +1391,51 @@
         "at": 15000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1283,12 +1524,60 @@
         "at": 16000,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "git push origin fix-login"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1376,12 +1665,60 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "review",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "git push origin fix-login"
+              }
+            }
+          }
+        ],
         "reply": "Done: Fixed the login page; the tests pass.",
         "since": null,
         "step": null,
@@ -1447,12 +1784,60 @@
         "at": 30000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/login.ts"
+        ],
         "files": 1,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "idle",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "login.ts"
+              }
+            }
+          },
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "npm test"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "git push origin fix-login"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1529,12 +1914,14 @@
         "at": 40000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [],
         "reply": "",
         "since": 40000,
         "step": {
@@ -1626,12 +2013,14 @@
           "vars": {}
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "waiting",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [],
         "reply": "",
         "since": 40000,
         "step": null,
@@ -1713,12 +2102,24 @@
         "at": 50000,
         "detail": "AskUserQuestion",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "working",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "AskUserQuestion"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 40000,
         "step": {
@@ -1813,12 +2214,24 @@
           "key": "error.rate_limit",
           "vars": {}
         },
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "error",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "AskUserQuestion"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1888,12 +2301,24 @@
           "key": "error.rate_limit",
           "vars": {}
         },
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "error",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "AskUserQuestion"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1956,12 +2381,24 @@
         "at": 7252001,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-1",
         "jump": false,
         "mood": "idle",
         "name": "Login fix",
         "project": "web",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.tool",
+              "vars": {
+                "tool": "AskUserQuestion"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,

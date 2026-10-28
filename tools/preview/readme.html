@@ -1,0 +1,79 @@
+<!doctype html>
+<!-- The README's own pictures, not her pages: the picture at its top (hero)
+     and its buttons, in Chinese or English, Windows' dark or light. Shot by
+     readme.ps1 from a folder of its own, where it puts beside this page the
+     wallpaper (wall.jpg) and the capsule's shots (readme-ring-<lang>-<mode>.png).
+       readme.html?part=hero&lang=zh&mode=dark      1280 x 600
+       readme.html?part=buttons&lang=en&mode=light  every button in a row, apart -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0 }
+  html, body { background: transparent }
+  body { font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif; -webkit-font-smoothing: antialiased }
+
+  .hero { position: relative; width: 1280px; height: 600px; overflow: hidden; background: #111 url(wall.jpg) 12% 40% / auto 138% no-repeat }
+  .hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(270deg, var(--scrim) 0%, var(--scrim-mid) 36%, transparent 66%) }
+  .hero .text { position: absolute; right: 64px; top: 92px; width: 520px }
+  .kick { font: 600 17px/1 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI'; letter-spacing: .06em; color: var(--kick) }
+  h1 { margin: 12px 0 16px; font: 600 92px/1 'Segoe UI Variable Display', 'Segoe UI'; letter-spacing: -.01em; color: var(--ink) }
+  .tag { font: 400 28px/1.5 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI'; color: var(--ink-soft) }
+  .tag.en { font-size: 26px }
+  /* The capsule as she shows it: the ring shot's capsule (3..307 x 133..179 of its 320 x 180), at 1.25. */
+  .capsule { position: absolute; right: 64px; bottom: 132px; width: 380px; height: 58px; border-radius: 29px; overflow: hidden;
+    background: var(--ring) -3.75px -166.25px / 400px 225px no-repeat; box-shadow: 0 10px 34px var(--shadow) }
+  .agents { position: absolute; right: 64px; bottom: 44px; width: 520px; font: 400 17px/1 'Segoe UI Variable Text', 'Segoe UI'; color: var(--chip-ink) }
+  .agents span { display: inline-block; margin: 0 6px 10px 0; padding: 6px 13px; border-radius: 99px; border: 1px solid var(--chip-line); background: var(--chip) }
+
+  .dark { --scrim: rgba(13, 12, 16, .95); --scrim-mid: rgba(13, 12, 16, .84); --ink: #fff; --ink-soft: #ebe4dc; --kick: #e3b08e; --shadow: rgba(0, 0, 0, .5);
+    --chip: rgba(255, 255, 255, .06); --chip-line: rgba(255, 255, 255, .17); --chip-ink: #cfc7be }
+  .light { --scrim: rgba(250, 246, 241, .96); --scrim-mid: rgba(250, 246, 241, .86); --ink: #1d1916; --ink-soft: #3d3630; --kick: #a4552c; --shadow: rgba(60, 30, 10, .22);
+    --chip: rgba(255, 255, 255, .6); --chip-line: rgba(60, 40, 20, .16); --chip-ink: #4a423b }
+
+  /* The buttons: pills on nothing (the page's own colour behind them), 48 px apart. */
+  .buttons { display: flex; gap: 48px; padding: 4px; width: max-content }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 22px; white-space: nowrap;
+    font: 600 16px/1 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI'; color: var(--btn-ink); background: var(--btn); border: 1px solid var(--btn-line) }
+  .btn.main { color: #fff; background: #e0703f; border-color: #e0703f }
+  .btn svg { width: 18px; height: 18px }
+  .buttons.dark { --btn: #212830; --btn-line: #3d444d; --btn-ink: #f0f6fc }
+  .buttons.light { --btn: #f6f8fa; --btn-line: #d1d9e0; --btn-ink: #1f2328 }
+</style>
+</head>
+<body>
+<script>
+  const Q = new URLSearchParams(location.search)
+  const lang = Q.get('lang') === 'en' ? 'en' : 'zh'
+  const mode = Q.get('mode') === 'light' ? 'light' : 'dark'
+  const WORDS = {
+    zh: {
+      kick: 'WINDOWS 11 · AI 会话 · 桌面宠物',
+      tag: '一个认识你所有 AI 会话的<br>Windows 任务栏。<br>顺便，她是只宠物。',
+      buttons: [['download', '下载 Windows 版', true], ['gitee', '国内下载（Gitee）'], ['guide', '使用说明'], ['lang', 'English']],
+    },
+    en: {
+      kick: 'WINDOWS 11 · AI SESSIONS · DESKTOP PET',
+      tag: 'A Windows taskbar that knows<br>all your AI sessions.<br>She also happens to be a pet.',
+      buttons: [['download', 'Download for Windows', true], ['guide', 'User guide'], ['lang', '简体中文']],
+    },
+  }[lang]
+  const AGENTS = ['Claude Code', 'Codex', 'Antigravity', 'OpenCode', 'ZCode', 'DeepSeek Harness', 'Reasonix', 'oh-my-pi']
+  const arrow = '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5v9M5 8l4 4 4-4M3 15.5h12"/></svg>'
+
+  if (Q.get('part') === 'buttons') {
+    const row = document.createElement('div')
+    row.className = `buttons ${mode}`
+    row.innerHTML = WORDS.buttons.map(([id, text, main]) => `<span class="btn${main ? ' main' : ''}" data-id="${id}">${main ? arrow : ''}${text}</span>`).join('')
+    document.body.append(row)
+  } else {
+    const hero = document.createElement('div')
+    hero.className = `hero ${mode}`
+    hero.style.setProperty('--ring', `url(readme-ring-${lang}-${mode}.png)`)
+    hero.innerHTML = `<div class="text"><div class="kick">${WORDS.kick}</div><h1>Wakuwaku</h1><div class="tag ${lang}">${WORDS.tag}</div></div>
+      <div class="capsule"></div><div class="agents">${AGENTS.map(a => `<span>${a}</span>`).join('')}</div>`
+    document.body.append(hero)
+  }
+</script>
+</body>
+</html>

@@ -48,12 +48,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "idle",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -135,12 +137,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "idle",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -153,12 +157,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -235,12 +241,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -256,12 +264,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -380,12 +390,14 @@
         "at": 2500,
         "detail": "TaskCreate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -405,12 +417,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -500,12 +514,22 @@
         "at": 2600,
         "detail": "TaskCreate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -525,12 +549,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -655,12 +681,22 @@
         "at": 2700,
         "detail": "TaskCreate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -680,12 +716,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -781,12 +819,29 @@
         "at": 2800,
         "detail": "TaskCreate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -806,12 +861,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -934,12 +991,29 @@
         "at": 3000,
         "detail": "TaskUpdate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -959,12 +1033,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1061,12 +1137,36 @@
         "at": 3100,
         "detail": "TaskUpdate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1086,12 +1186,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1198,12 +1300,36 @@
         "at": 3500,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1226,12 +1352,14 @@
         "at": 1500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -1332,12 +1460,36 @@
         "at": 3500,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1360,12 +1512,14 @@
         "at": 4000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": 4000,
         "step": {
@@ -1490,12 +1644,36 @@
         "at": 3500,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1518,12 +1696,14 @@
         "at": 4100,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": 4000,
         "step": {
@@ -1654,12 +1834,36 @@
         "at": 3500,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1687,12 +1891,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "waiting",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": 4000,
         "step": null,
@@ -1805,12 +2011,46 @@
         "at": 5000,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1835,12 +2075,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "waiting",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": 4000,
         "step": null,
@@ -1935,12 +2177,46 @@
         "at": 5000,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1965,12 +2241,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "waiting",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [],
         "reply": "",
         "since": 4000,
         "step": null,
@@ -2066,12 +2344,46 @@
         "at": 5000,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -2091,12 +2403,24 @@
         "at": 6000,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 4000,
         "step": {
@@ -2197,12 +2521,46 @@
         "at": 5000,
         "detail": "mcp__github__get_issue",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -2222,12 +2580,24 @@
         "at": 6000,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 4000,
         "step": {
@@ -2353,12 +2723,46 @@
         "at": 7000,
         "detail": "TaskUpdate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -2378,12 +2782,24 @@
         "at": 6000,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 4000,
         "step": {
@@ -2483,12 +2899,53 @@
         "at": 7100,
         "detail": "TaskUpdate",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "working",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -2508,12 +2965,24 @@
         "at": 6000,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 4000,
         "step": {
@@ -2612,12 +3081,53 @@
         "at": 8000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "done",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "Done.",
         "since": null,
         "step": null,
@@ -2634,12 +3144,24 @@
         "at": 6000,
         "detail": "Agent",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "working",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 4000,
         "step": {
@@ -2739,12 +3261,53 @@
         "at": 8000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "done",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "Done.",
         "since": null,
         "step": null,
@@ -2761,12 +3324,24 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "done",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "The README is up to date.",
         "since": null,
         "step": null,
@@ -2845,12 +3420,53 @@
         "at": 8000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "done",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "Done.",
         "since": null,
         "step": null,
@@ -2867,12 +3483,24 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "done",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "The README is up to date.",
         "since": null,
         "step": null,
@@ -2951,12 +3579,53 @@
         "at": 38500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "idle",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -2973,12 +3642,24 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "done",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "The README is up to date.",
         "since": null,
         "step": null,
@@ -3057,12 +3738,53 @@
         "at": 38500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-a",
         "jump": false,
         "mood": "idle",
         "name": "API refactor",
         "project": "api",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.mcp",
+              "vars": {
+                "server": "github",
+                "tool": "get_issue"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.plan",
+              "vars": {}
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -3079,12 +3801,24 @@
         "at": 39500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -3143,12 +3877,24 @@
         "at": 39500,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-cc-b",
         "jump": false,
         "mood": "idle",
         "name": "Update the README",
         "project": "docs",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.agent",
+              "vars": {
+                "what": "Explore the docs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,

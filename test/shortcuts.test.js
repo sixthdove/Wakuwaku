@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const { describe, it } = require('node:test')
 
-const { decideHotkeyAction } = require('../src/pet/panel')
+const { decideHotkeyAction, holderOf } = require('../src/pet/panel')
 const { STRINGS } = require('../src/shared/i18n')
 
 describe('global shortcuts behavioral tests', () => {
@@ -124,5 +124,28 @@ describe('global shortcuts behavioral tests', () => {
         assert.ok(k in STRINGS.en, `missing in en: ${k}`)
       }
     })
+  })
+})
+
+describe('who holds a prompt (panel.js holderOf)', () => {
+  it('her window while she is out and up, the island otherwise: one of the two', () => {
+    const cases = [
+      { out: false, herUp: false, hidden: true },
+      { out: true, herUp: true, hidden: false },
+      // Out, but hidden (full screen, do not disturb): the island has it.
+      { out: true, herUp: false, hidden: true },
+      // Main says she is up before her page has shown: not hers yet.
+      { out: true, herUp: true, hidden: true },
+    ]
+    for (const c of cases) {
+      const hers = holderOf({ role: 'pet', ...c })
+      const island = holderOf({ role: 'island', ...c, hidden: false })
+      assert.ok(!(hers && island), JSON.stringify(c))
+    }
+    assert.equal(holderOf({ role: 'pet', out: true, herUp: true, hidden: false }), true)
+    assert.equal(holderOf({ role: 'island', out: true, herUp: true, hidden: false }), false)
+    assert.equal(holderOf({ role: 'island', out: true, herUp: false, hidden: false }), true)
+    assert.equal(holderOf({ role: 'island', out: false, herUp: false, hidden: false }), true)
+    assert.equal(holderOf({ role: 'pet', out: false, herUp: false, hidden: false }), false)
   })
 })

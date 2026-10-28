@@ -2083,6 +2083,7 @@
 }
 
 #island-settings .ag-row.open,
+#island-settings .s-row.open,
 #island-settings .ag-det {
   background: rgba(255, 255, 255, 0.035);
 }
@@ -2289,6 +2290,7 @@
 }
 
 .tb-light #island-settings .ag-row.open,
+.tb-light #island-settings .s-row.open,
 .tb-light #island-settings .ag-det {
   background: rgba(0, 0, 0, 0.025);
 }
@@ -3283,4 +3285,97 @@
   opacity: 0.65;
   margin-left: 5px;
   font-weight: normal;
+}
+
+/* --- Session row details (pageNow) ----------------------------------------- */
+#island-settings .s-exp,
+#island-settings .s-exp-space {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: -2px -4px -2px 2px;
+}
+
+#island-settings .s-exp {
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--g4);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+#island-settings .s-exp:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+}
+
+.tb-light #island-settings .s-exp:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+#island-settings .s-exp .chev {
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+  font-size: 10px;
+  opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+#island-settings .s-exp .chev.open {
+  transform: rotate(90deg);
+}
+
+#island-settings .s-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+#island-settings .s-file {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--g2);
+  color: var(--fg);
+  font-size: 11.5px;
+}
+
+#island-settings .s-more {
+  color: var(--g4);
+  font-size: 11.5px;
+  align-self: center;
+}
+
+#island-settings .s-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#island-settings .s-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--g5);
+}
+
+#island-settings .s-st-ic {
+  flex: none;
+  color: var(--g4);
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+  font-size: 10px;
+}
+
+#island-settings .s-step.err .s-st-ic {
+  color: #ff5c6c;
+}
+
+.tb-light #island-settings .s-step.err .s-st-ic {
+  color: #c42b3c;
 }

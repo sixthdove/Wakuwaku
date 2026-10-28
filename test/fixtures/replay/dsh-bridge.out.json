@@ -48,12 +48,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "idle",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -113,12 +115,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -199,12 +203,14 @@
         "at": 3000,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -275,12 +281,24 @@
         "at": 3500,
         "detail": "Read",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -353,12 +371,35 @@
         "at": 4000,
         "detail": "Write",
         "error": null,
+        "fileList": [
+          "copy.txt"
+        ],
         "files": 1,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "working",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -429,12 +470,35 @@
         "at": 5000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "copy.txt"
+        ],
         "files": 1,
         "id": "replay-dsh-c96",
         "jump": false,
         "mood": "review",
         "name": "Read note.txt and copy it",
         "project": "dsh-bridge",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.read",
+              "vars": {
+                "file": "note.txt"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.write",
+              "vars": {
+                "file": "copy.txt"
+              }
+            }
+          }
+        ],
         "reply": "Done — note.txt contained hi, and copy.txt now has the same text.",
         "since": null,
         "step": null,

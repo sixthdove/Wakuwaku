@@ -375,6 +375,9 @@ impl Shared {
         // An app full screen on her display: no flow light's ring then, the
         // dot alone (island.js cue; pet:full-screen as it changes).
         now["fullScreen"] = json!(self.is_fullscreen());
+        // Her window up on the desktop: she says it herself there, a prompt
+        // over her head, and her home does not open for it (panel.js holderOf).
+        now["herUp"] = json!(pet::is_shown(self));
         // Whether a blur of what is behind the island can be put under it
         // (backplate.rs): Windows 11, transparency effects on.
         now["plate"] = json!(backplate::available());
@@ -398,11 +401,6 @@ impl Shared {
             now["tools"] = json!(connection::tools_here());
         }
         now
-    }
-
-    // Everything the pages draw from, for her window as it shows.
-    pub fn send_to_pet(&self) {
-        let _ = self.app.emit_to("pet", "pet:update", self.payload());
     }
 
     fn to_pages(&self, event: &str, payload: Value) {
@@ -889,9 +887,9 @@ async fn pet_ready(app: AppHandle, window: WebviewWindow) {
 }
 
 #[tauri::command]
-async fn pet_hover(app: AppHandle, window: WebviewWindow, is_over: bool) {
+async fn pet_hover(app: AppHandle, window: WebviewWindow, is_over: bool, her: Option<bool>) {
     let sh = shared(&app);
-    if is_island(&window) { island::hover(&sh, is_over) } else { pet::hover(&sh, is_over) }
+    if is_island(&window) { island::hover(&sh, is_over) } else { pet::hover(&sh, is_over, her != Some(false)) }
 }
 
 #[tauri::command]

@@ -82,7 +82,49 @@
   // The one of them that most wants you, if one does.
   const urgentOf = (list, shown) => othersOf(list, shown).find(x => x.mood === 'waiting' || x.mood === 'error')
 
-  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, othersOf, urgentOf }
+  // What she says over her head out on the desktop (pet.js), as the closed
+  // island would: nothing at rest; a busy one what it is doing and for how
+  // long; an ending how it went, how long it took and (with the specifics)
+  // Claude's last words. { mood, name, what, clock, reply, others }, or null.
+  function talkOf(lang, s, { detailed = true, now = Date.now() } = {}) {
+    if (!s || !s.mood || s.mood === 'idle') return null
+    const name = nameOf(s, detailed)
+    const what = s.mood === 'done' ? t(lang, 'island.done') : status(lang, s, { detailed, now, withClock: false })
+    const took = isEnding(s) && s.took ? t(lang, 'detail.took', { time: clock(s.took) }) : ''
+    return {
+      mood: s.mood,
+      name,
+      what: what === name ? '' : what,
+      clock: isBusy(s) ? time(s, now) : took,
+      reply: detailed && isEnding(s) && s.reply ? s.reply : '',
+      others: Math.max(0, Number(s.others) || 0),
+    }
+  }
+
+  // A session's row in the list she opens under the pointer: whose, where it
+  // is (or how it ended), and its clock. { id, mood, name, what, clock }.
+  function rowOf(lang, s, { detailed = true, now = Date.now() } = {}) {
+    const mood = s.mood || 'idle'
+    const name = nameOf(s, detailed) || t(lang, `mood.${mood}`)
+    const what = mood === 'idle' ? t(lang, 'mood.idle') : isBusy(s) ? status(lang, s, { detailed, now, withClock: false }) : t(lang, `island.${mood}`)
+    return { id: s.id || '', mood, name, what: what === name ? '' : what, clock: time(s, now) }
+  }
+
+  // What a session's expanded row shows: the files its turn edited (up to 15)
+  // and its last few tool steps; null when specifics are off or it has neither.
+  function detailsOf(lang, s, { detailed = true } = {}) {
+    if (!detailed || !s) return null
+    const files = Array.isArray(s.fileList) ? s.fileList.slice(0, 15) : []
+    const totalFiles = Math.max(Number(s.files) || 0, files.length)
+    const moreFiles = Math.max(0, totalFiles - files.length)
+    const steps = Array.isArray(s.recentSteps)
+      ? s.recentSteps.map(x => ({ text: render(lang, x?.step), ok: x?.ok !== false })).filter(x => x.text)
+      : []
+    if (!files.length && !steps.length) return null
+    return { files, moreFiles, totalFiles, steps }
+  }
+
+  const api = { STEP_CLOCK_MS, clock, time, isEnding, nameOf, stepOf, status, brief, talkOf, rowOf, othersOf, urgentOf, detailsOf }
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api

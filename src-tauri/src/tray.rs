@@ -34,8 +34,9 @@ pub enum Over {
 
 // The menu, over the tray, her or her home. Over the taskbar (her home as
 // the taskbar): what a taskbar's right press is for (do not disturb, the
-// settings, Windows' own, quit); hers (pets, size, her home…) are in the
-// settings, and on her.
+// settings, Windows' own, quit). On her and the tray: what is about her
+// (home or out, her pet, her size), do not disturb, the settings, quit.
+// Over her island at the top of the screen: its widgets and the rest of hers.
 pub fn menu(sh: &Shared, over: Over) -> tauri::Result<Menu<Wry>> {
     let app = &sh.app;
     let lang = sh.lang();
@@ -73,16 +74,6 @@ pub fn menu(sh: &Shared, over: Over) -> tauri::Result<Menu<Wry>> {
         return Ok(menu);
     }
 
-    if is_tray {
-        let label = if sh.is_visible() { t("menu.hide") } else { t("menu.show") };
-        menu.append(&MenuItem::with_id(app, "toggle", label, !flag("dnd"), None::<&str>)?)?;
-    }
-    if home != "taskbar" {
-        menu.append(&MenuItem::with_id(app, "addWidgets", t("menu.addWidgets"), isle_up, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "editCapsule", t("menu.editCapsule"), isle_up, None::<&str>)?)?;
-        menu.append(&PredefinedMenuItem::separator(app)?)?;
-    }
-
     let pets = Submenu::new(app, t("menu.pet"), true)?;
     let found = data::pets(&sh.dir);
     if found.is_empty() {
@@ -92,16 +83,45 @@ pub fn menu(sh: &Shared, over: Over) -> tauri::Result<Menu<Wry>> {
     for p in &found {
         pets.append(&CheckMenuItem::with_id(app, format!("pet:{}", p.id), &p.name, true, p.id == current, None::<&str>)?)?;
     }
-    menu.append(&pets)?;
-
     let sizes = Submenu::new(app, t("menu.size"), true)?;
     let scale = settings.get("scale").and_then(|v| v.as_f64()).unwrap_or(0.55);
     for (name, value) in data::SCALES {
         let label = t(&format!("menu.{name}"));
         sizes.append(&CheckMenuItem::with_id(app, format!("size:{name}"), label, true, (scale - value).abs() < 1e-9, None::<&str>)?)?;
     }
-    menu.append(&sizes)?;
+    // Let her out onto the desktop, or call her back home.
+    let out_label = if flag("out") { t("menu.callBack") } else { t("menu.letOut") };
 
+    // On her, and the tray's: what is about her alone (the user's call,
+    // 2026-10-28). Calling her home first; her walk, her eyes and her home
+    // are the settings' (Appearance), the taskbar's own things its menu's.
+    // The tray keeps showing or hiding her, and the corner, to find her by.
+    if over != Over::Home {
+        if is_tray {
+            let label = if sh.is_visible() { t("menu.hide") } else { t("menu.show") };
+            menu.append(&MenuItem::with_id(app, "toggle", label, !flag("dnd"), None::<&str>)?)?;
+        }
+        menu.append(&MenuItem::with_id(app, "out", out_label, true, None::<&str>)?)?;
+        if is_tray {
+            menu.append(&MenuItem::with_id(app, "corner", t("menu.backToCorner"), true, None::<&str>)?)?;
+        }
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+        menu.append(&pets)?;
+        menu.append(&sizes)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+        menu.append(&CheckMenuItem::with_id(app, "dnd", t("menu.dnd"), true, flag("dnd"), None::<&str>)?)?;
+        menu.append(&MenuItem::with_id(app, "settings", t("menu.settings"), true, None::<&str>)?)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+        menu.append(&MenuItem::with_id(app, "quit", t("menu.quit"), true, None::<&str>)?)?;
+        return Ok(menu);
+    }
+
+    // Her island's own, at the top of the screen.
+    menu.append(&MenuItem::with_id(app, "addWidgets", t("menu.addWidgets"), isle_up, None::<&str>)?)?;
+    menu.append(&MenuItem::with_id(app, "editCapsule", t("menu.editCapsule"), isle_up, None::<&str>)?)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    menu.append(&pets)?;
+    menu.append(&sizes)?;
     for key in ["walk", "look"] {
         menu.append(&CheckMenuItem::with_id(app, key, t(&format!("menu.{key}")), true, flag(key), None::<&str>)?)?;
     }
@@ -111,22 +131,11 @@ pub fn menu(sh: &Shared, over: Over) -> tauri::Result<Menu<Wry>> {
         homes.append(&CheckMenuItem::with_id(app, format!("display:{id}"), t(&format!("menu.{id}")), true, home == id, None::<&str>)?)?;
     }
     menu.append(&homes)?;
-    // Let her out onto the desktop, or call her back home.
-    let label = if flag("out") { t("menu.callBack") } else { t("menu.letOut") };
-    menu.append(&MenuItem::with_id(app, "out", label, true, None::<&str>)?)?;
+    menu.append(&MenuItem::with_id(app, "out", out_label, true, None::<&str>)?)?;
     menu.append(&MenuItem::with_id(app, "corner", t("menu.backToCorner"), true, None::<&str>)?)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&CheckMenuItem::with_id(app, "dnd", t("menu.dnd"), true, flag("dnd"), None::<&str>)?)?;
     menu.append(&MenuItem::with_id(app, "settings", t("menu.settings"), true, None::<&str>)?)?;
-    // In place of Windows' taskbar, the way to Windows' own settings too.
-    if home == "taskbar" {
-        menu.append(&MenuItem::with_id(app, "addWidgets", t("menu.addWidgets"), isle_up, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "editTaskbar", t("menu.editTaskbar"), true, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "taskManager", t("menu.taskManager"), true, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "winSettings", t("menu.winSettings"), true, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "controlPanel", t("menu.controlPanel"), true, None::<&str>)?)?;
-        menu.append(&MenuItem::with_id(app, "deviceManager", t("menu.deviceManager"), true, None::<&str>)?)?;
-    }
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "quit", t("menu.quit"), true, None::<&str>)?)?;
     Ok(menu)

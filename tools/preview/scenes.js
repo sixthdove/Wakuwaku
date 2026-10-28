@@ -85,6 +85,7 @@
     ['widgets', '小工具'],
     ['desktop', '桌面'],
     ['quiet', '没人在（不该有一直播放的动画）'],
+    ['readme', 'README 的配图（readme.ps1）'],
   ]
 
   // The strip's foot is the screen's: a view's top this far above it.
@@ -451,6 +452,49 @@
     { id: `${section}-card`, section, title: '展开 · 天气的卡片打开', page: 'island', home, view: view.card, world: F => ({ ...busy(F), home }), steps: openCard },
   ]
 
+  // The README's cards (readme.ps1 puts them in docs/readme/): a close view
+  // of a scene each, 16:9 (the taskbar's a strip), in Chinese and in
+  // English (lang). In English the world's own words are English too: the
+  // fixtures' names and labels, as EN has them (inEnglish, in worldFor).
+  const EN = {
+    任务栏设计: 'Taskbar design',
+    胶囊的流光: 'Capsule glow',
+    邮件同步: 'Mail sync',
+    周报: 'Weekly notes',
+    发布说明: 'Release notes',
+    '写好了。': 'Done.',
+    'Dresden · 阴': 'Dresden · Cloudy',
+    工作: 'Work',
+    '周五见：我订好了那家餐厅': 'See you Friday, I booked the restaurant',
+    'Anna：周五见：我订好了那家餐厅': 'Anna: See you Friday, I booked the restaurant',
+    'v0.4 发布': 'v0.4 release',
+    '还有 3 天': '3 days left',
+    '10 月 20 日 周二': 'Tue, Oct 20',
+    天: 'days',
+    部署: 'Deploy',
+    成功: 'Succeeded',
+    苹果: 'Apple',
+    专注: 'Focus',
+  }
+  // And the keyboard English (US), no input method: her taskbar shows ENG.
+  const inEnglish = w => {
+    const words = JSON.parse(JSON.stringify(w), (k, v) => (typeof v === 'string' && Object.hasOwn(EN, v) ? EN[v] : v))
+    return { ...words, lang: 'en', ...(words.keys ? { keys: { ...words.keys, lang: 0x0409, ime: null } } : {}) }
+  }
+  const README_CARDS = [
+    ['sessions', '会话', { scene: 'three-busy', page: 'island', view: [0, above(243), 432, 243], steps: openIsland }],
+    ['ask', '批准', { scene: 'ask', page: 'island', view: [0, above(292), 520, 292], settle: 900 }],
+    ['ring', '流光', { scene: 'hold-ring', page: 'island', view: [0, above(180), 320, 180], budget: 8000, steps: p => p.wait(4500) }],
+    ['island', '灵动岛', { scene: 'island-home', page: 'island', view: [580, 0, 440, 248], steps: openIsland }],
+    // A strip across both columns: Start to the clock, widgets on it (as
+    // many as leave the clock its room).
+    ['taskbar', '任务栏', { scene: 'taskbar-full', page: 'island', view: [620, above(64), 980, 64], world: F => ({ taskbarLayout: { ...F.TASKBAR.widgets, right: F.TASKBAR.widgets.right.filter(p => p.type !== 'stack') } }) }],
+    ['desktop', '桌面小工具', { scene: 'desktop', page: 'screen', view: [436, 20, 704, 396], budget: 4000 }],
+  ]
+  const readmeShots = README_CARDS.flatMap(([id, title, shot]) =>
+    ['zh', 'en'].map(lang => ({ id: `readme-${id}-${lang}`, section: 'readme', title: `${title}（${lang === 'zh' ? '中文' : 'English'}）`, lang, ...shot })),
+  )
+
   const LIST = [
     // --- The scenes, each as it is best seen ------------------------------------------------
     { id: 'scene-first-run', section: 'scenes', scene: 'first-run', title: '新用户第一次打开 · 设置里的欢迎卡片', page: 'island', view: [0, above(660), 560, 660], settle: 700 },
@@ -487,6 +531,9 @@
     { id: 'scene-edit-capsule', section: 'scenes', scene: 'edit-capsule', title: '编辑胶囊 · 她的胶囊上方的面板', page: 'island', view: [0, above(440), 720, 440], settle: 700 },
     { id: 'scene-combos', section: 'scenes', scene: 'combos', title: '组合 · 小工具库里存好的工作台', page: 'screen', view: WHOLE, budget: 4000, settle: 700 },
     { id: 'scene-multi-select', section: 'scenes', scene: 'multi-select', title: 'Ctrl 多选 · 选中四个，右键的菜单', page: 'screen', view: WHOLE, budget: 4000 },
+
+    // --- The README's cards, Chinese and English ---------------------------------------------
+    ...readmeShots,
 
     // --- Nobody there: quiet, and nothing playing endlessly (boot.js fails the shot) --------
     { id: 'quiet-taskbar', section: 'quiet', scene: 'taskbar-full', play: false, title: '没人在 · 放满小工具的任务栏', page: 'island', view: STRIP_VIEW, world: () => ({ sessions: [], quiet: true }) },
@@ -727,6 +774,41 @@
         await p.wait(600)
       },
     })),
+    {
+      id: 'settings-general-open',
+      section: 'settings',
+      title: '设置 · 通用，会话展开（改过的文件、最近几步）',
+      page: 'island',
+      home: 'taskbar',
+      view: [0, above(660), 560, 660],
+      world: F => ({ ...busy(F), sessions: [F.session('review'), ...F.others()], widgets: F.widgets('monitor', 'today', 'tokens', 'weather', 'stock-aapl', 'stock-nvda', 'pomodoro', 'countdown', 'inbox-a1', 'deploy'), deskLayout: F.DESK.everyday }),
+      steps: async p => {
+        p.emit('island:settings', { tab: 'now' })
+        await p.wait(600)
+        p.click('#island-settings [data-sess-open="s1"]')
+        p.click('#island-settings [data-sess-open="s2"]')
+        await p.wait(300)
+      },
+    },
+    {
+      id: 'settings-general-nodetails',
+      section: 'settings',
+      title: '设置 · 通用，关掉具体内容（对齐计时）',
+      page: 'island',
+      home: 'taskbar',
+      view: [0, above(660), 560, 660],
+      world: F => ({
+        ...busy(F),
+        config: { details: false },
+        sessions: [F.session('review'), ...F.others()],
+        widgets: F.widgets('monitor', 'today', 'tokens', 'weather', 'stock-aapl', 'stock-nvda', 'pomodoro', 'countdown', 'inbox-a1', 'deploy'),
+        deskLayout: F.DESK.everyday,
+      }),
+      steps: async p => {
+        p.emit('island:settings', { tab: 'now' })
+        await p.wait(600)
+      },
+    },
     // The Agent page: the agents found here (fake-tauri.js: Claude Code,
     // Codex and Reasonix, the others not on this computer), then Reasonix's
     // row opened to its details, and a Reasonix 0.x's, which she does not
@@ -1273,7 +1355,9 @@
     const own = s.world ? s.world(F) : {}
     // The shot's own settings over its scene's (where the island sits kept).
     const config = base.config || own.config ? { ...(base.config || {}), ...(own.config || {}) } : undefined
-    return withPos({ ...base, ...own, ...(config ? { config } : {}), ...(s.home ? { home: s.home } : {}) }, s.islandPos)
+    const world = withPos({ ...base, ...own, ...(config ? { config } : {}), ...(s.home ? { home: s.home } : {}) }, s.islandPos)
+    // A shot in English (the README's): her pages, and the world's own words.
+    return s.lang === 'en' ? inEnglish(world) : world
   }
   // What plays before a shot's own steps: its scene's, unless left out.
   const playOf = s => (s.scene && s.play !== false ? sceneById(s.scene)?.play || null : null)

@@ -78,8 +78,11 @@
   //   clip    her portrait plays the reaction's clip, and nothing else
   //   null    nothing (an ending while the island is open: it shows it)
   // Set to open, everything is as it was before the flow light: whatever
-  // opened the island by itself still does.
-  function cueFor(kind, { setting = 'ring', view = 'compact', blocked = false } = {}) {
+  // opened the island by itself still does. A session waiting on you while
+  // she is out on the desktop (herOut): nothing, the prompt is over her head
+  // (pet.js, panel.js).
+  function cueFor(kind, { setting = 'ring', view = 'compact', blocked = false, herOut = false } = {}) {
+    if (kind === 'waiting' && herOut) return null
     if (kind === 'waiting' || setting === 'open') return 'open'
     // A tool failed, an item of the turn's list done: how it goes, not how
     // it ended. An agent mostly finds its way round a failed tool, and a

@@ -111,11 +111,12 @@ struct Look {
     // been quiet), and out of sight as last looked at (is_shown).
     seen_at: Option<u64>,
     hidden: bool,
+    recent_steps: Vec<Value>,
 }
 
 impl Look {
     fn new() -> Look {
-        Look { rested: None, detail: json!(""), settle_at: None, title: String::new(), task: String::new(), thought_at: None, chain: Vec::new(), seen_at: None, hidden: false }
+        Look { rested: None, detail: json!(""), settle_at: None, title: String::new(), task: String::new(), thought_at: None, chain: Vec::new(), seen_at: None, hidden: false, recent_steps: Vec::new() }
     }
 
     // What it is called: its title, or the person's words.
@@ -197,6 +198,39 @@ fn todo_view(s: &Session) -> Value {
     json!({ "done": done, "total": s.todos.len(), "active": events::clip(active, 80) })
 }
 
+// A file's path relative to its session's folder (cwd), keeping it whole when outside.
+fn relative_file(file: &str, cwd: Option<&str>) -> String {
+    let norm_file = file.replace('\\', "/");
+    let Some(cwd) = cwd.filter(|c| !c.is_empty()) else {
+        return norm_file;
+    };
+    let file_path = std::path::Path::new(file);
+    let cwd_path = std::path::Path::new(cwd);
+    if let Ok(rel) = file_path.strip_prefix(cwd_path) {
+        let rel_str = rel.to_string_lossy().replace('\\', "/");
+        if !rel_str.is_empty() {
+            return rel_str;
+        }
+    }
+    let norm_cwd = cwd.replace('\\', "/");
+    let prefix = if norm_cwd.ends_with('/') { norm_cwd } else { format!("{norm_cwd}/") };
+    if let Some(rest) = norm_file.strip_prefix(&prefix) {
+        if !rest.is_empty() {
+            return rest.to_string();
+        }
+    }
+    if let Some(head) = norm_file.get(..prefix.len()) {
+        if head.eq_ignore_ascii_case(&prefix) {
+            if let Some(rest) = norm_file.get(prefix.len()..) {
+                if !rest.is_empty() {
+                    return rest.to_string();
+                }
+            }
+        }
+    }
+    norm_file
+}
+
 // A session as the pages draw it.
 fn view(s: &Session, look: &Look) -> Value {
     let mood = mood_of(s, look);
@@ -210,6 +244,7 @@ fn view(s: &Session, look: &Look) -> Value {
         (Status::Failed { error }, "error") => text(Some(&events::error_of(error)), 80),
         _ => Value::Null,
     };
+    let file_list: Vec<String> = s.files.iter().take(15).map(|f| relative_file(f, s.cwd.as_deref())).collect();
     json!({
         "id": s.id,
         "project": s.project.as_deref().unwrap_or(""),
@@ -226,6 +261,8 @@ fn view(s: &Session, look: &Look) -> Value {
         "stepSince": step_since,
         "todo": todo_view(s),
         "files": s.files.len(),
+        "fileList": file_list,
+        "recentSteps": look.recent_steps.clone(),
         "reply": reply,
         "error": error,
     })
@@ -235,7 +272,7 @@ fn view(s: &Session, look: &Look) -> Value {
 fn no_session(now: u64) -> Value {
     json!({
         "id": "", "project": "", "agent": "", "jump": false, "mood": "idle", "detail": "", "at": now, "since": null, "took": null,
-        "name": "", "step": null, "stepSince": null, "todo": null, "files": 0, "reply": "", "error": null,
+        "name": "", "step": null, "stepSince": null, "todo": null, "files": 0, "fileList": [], "recentSteps": [], "reply": "", "error": null,
     })
 }
 
@@ -298,6 +335,21 @@ impl Pet {
                 out.worked_ms += at.saturating_sub(since);
             }
             look.thought_at = Some(now);
+            look.recent_steps.clear();
+        }
+        let step_record = match &ev.kind {
+            Kind::ToolDone { call } => Some((call, true)),
+            Kind::ToolFailed { call, .. } => Some((call, false)),
+            _ => None,
+        };
+        if let Some((call, ok)) = step_record {
+            let step = text(Some(&events::step_for(s.agent, call)), 80);
+            if step.get("key").and_then(Value::as_str).is_some_and(|k| k != "step.thinking") {
+                if look.recent_steps.len() >= 5 {
+                    look.recent_steps.remove(0);
+                }
+                look.recent_steps.push(json!({ "step": step, "ok": ok }));
+            }
         }
         if matches!(ev.kind, Kind::ToolDone { .. } | Kind::ToolFailed { .. }) && s.running.is_empty() {
             look.thought_at = Some(now);
@@ -875,5 +927,53 @@ mod tests {
         assert_eq!(pet.sessions.sessions().count(), 2);
         pet.check_stale(STALE_MS + 1 + FORGET_MS + 1);
         assert_eq!(pet.sessions.sessions().count(), 1);
+    }
+    #[test]
+    fn file_list_capped_and_relative_to_cwd() {
+        let mut pet = Pet::default();
+        apply(&mut pet, ev_in("a", "pet", start()), 1);
+        for i in 1..=18 {
+            let file = if i == 18 {
+                "D:\\external\\tools\\config.rs".to_string()
+            } else {
+                format!("Z:\\nowhere\\pet\\src\\file{i}.rs")
+            };
+            apply(&mut pet, ev("a", Kind::ToolDone { call: Call { file: Some(file.clone()), ..call(&format!("c{i}"), "Edit") } }), i + 1);
+        }
+        let now = pet.get(30);
+        assert_eq!(now["files"], 18);
+        let list = now["fileList"].as_array().unwrap();
+        assert_eq!(list.len(), 15);
+        assert_eq!(list[0], "src/file1.rs");
+        assert_eq!(list[14], "src/file15.rs");
+        // Verify external files retain whole path with forward slashes
+        assert_eq!(relative_file("D:\\external\\tools\\config.rs", Some("Z:\\nowhere\\pet")), "D:/external/tools/config.rs");
+        // Verify non-ASCII (UTF-8) paths do not panic when prefix boundary splits multi-byte char
+        assert_eq!(relative_file("C:/项目/main.rs", Some("C:/a")), "C:/项目/main.rs");
+    }
+
+    #[test]
+    fn recent_steps_records_five_and_clears_on_new_turn() {
+        let mut pet = Pet::default();
+        apply(&mut pet, ev("a", start()), 1);
+        for i in 1..=6 {
+            let ok = i % 2 == 1;
+            let kind = if ok {
+                Kind::ToolDone { call: call(&format!("t{i}"), "Bash") }
+            } else {
+                Kind::ToolFailed { call: call(&format!("t{i}"), "Bash"), quiet: false }
+            };
+            apply(&mut pet, ev("a", kind), (i + 1) * 10);
+        }
+        let s = pet.list().as_array().unwrap()[0].clone();
+        let steps = s["recentSteps"].as_array().unwrap();
+        assert_eq!(steps.len(), 5);
+        // Step 1 was pushed out by step 6
+        assert_eq!(steps[0]["ok"], false);
+        assert_eq!(steps[4]["ok"], false);
+        // New turn begins: cleared
+        apply(&mut pet, ev("a", start()), 100);
+        let s2 = pet.list().as_array().unwrap()[0].clone();
+        assert_eq!(s2["recentSteps"].as_array().unwrap().len(), 0);
     }
 }

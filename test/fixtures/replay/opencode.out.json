@@ -60,12 +60,14 @@
         "at": 1000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "idle",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": null,
         "step": null,
@@ -138,12 +140,14 @@
         "at": 2000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -253,12 +257,14 @@
         "at": 2500,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -427,12 +433,14 @@
           }
         },
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "waiting",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -519,12 +527,14 @@
         "at": 5000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": 2000,
         "step": {
@@ -620,12 +630,24 @@
         "at": 5500,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -744,12 +766,24 @@
         "at": 6000,
         "detail": "Edit",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -854,12 +888,35 @@
         "at": 6500,
         "detail": "Edit",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -946,12 +1003,35 @@
           "vars": {}
         },
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "waiting",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": null,
@@ -1021,12 +1101,35 @@
         "at": 9000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1126,12 +1229,44 @@
         "at": 9500,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1181,12 +1316,44 @@
         "at": 9500,
         "detail": "Bash",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 2000,
         "step": {
@@ -1272,12 +1439,44 @@
         "at": 10000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "review",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "Done — the command output hi.",
         "since": null,
         "step": null,
@@ -1325,12 +1524,44 @@
         "at": 10000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "review",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "Done — the command output hi.",
         "since": null,
         "step": null,
@@ -1380,12 +1611,44 @@
         "at": 20000,
         "detail": "",
         "error": null,
+        "fileList": [
+          "src/a.rs"
+        ],
         "files": 1,
         "id": "replay-oc",
         "jump": false,
         "mood": "idle",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "echo hi"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.edit",
+              "vars": {
+                "file": "a.rs"
+              }
+            }
+          },
+          {
+            "ok": true,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "rm -rf build"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
@@ -1455,12 +1718,14 @@
         "at": 21000,
         "detail": "",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [],
         "reply": "",
         "since": 21000,
         "step": {
@@ -1567,12 +1832,24 @@
         "at": 22000,
         "detail": "Bash",
         "error": null,
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "working",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "false"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": 21000,
         "step": {
@@ -1663,12 +1940,24 @@
           "key": "error.rate_limit",
           "vars": {}
         },
+        "fileList": [],
         "files": 0,
         "id": "replay-oc",
         "jump": false,
         "mood": "error",
         "name": "Shell echo command",
         "project": "oc",
+        "recentSteps": [
+          {
+            "ok": false,
+            "step": {
+              "key": "step.command",
+              "vars": {
+                "what": "false"
+              }
+            }
+          }
+        ],
         "reply": "",
         "since": null,
         "step": null,
