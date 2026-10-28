@@ -73,3 +73,15 @@ node tools/preview/compare.js --base main --head <分支> --only scene-*,capsule
 | `publish.js`、`gitinfo.js` | dev / build / serve；从 git 取标签。 |
 | `compare.js` + `pairs.ps1` | 改前改后：两边各拍一遍、比像素、拼图、写 index.html。 |
 | `assets/wall.jpg` | 仓库 `wallpapers/gpt-cloud-terrace.png` 缩到 1920×1080。 |
+| `readme.ps1` + `readme.html` | README 的配图，见下面「README 的配图」。 |
+
+## README 的配图（readme.ps1）
+
+```powershell
+pwsh tools/preview/readme.ps1             # 全部重拍，写进 docs/readme/
+```
+
+- 出来的：`card-<id>-<lang>-<mode>.jpg`（样例页「README 的配图」那一组：`scenes.js` 的 `README_CARDS`，每张一个场景的近景，16:9，任务栏那张是长条）、`hero-<lang>-<mode>.jpg`（页首的大图：她的壁纸 `wallpapers/claude-cheek-rest.png`、名字、标语、亮着流光的胶囊、支持的 agent）、`btn-<id>-<lang>-<mode>.png`（页首的按钮，透明底）。`lang` 是 zh、en，`mode` 是 dark、light；README 用 `<picture>` 按 GitHub 的深浅色挑一张。
+- 英文的卡片（`lang: 'en'`）：她的页面用英文，世界里 fixtures 自己的字（会话名、小工具的标签）照 `scenes.js` 的 `EN` 换成英文，键盘换成英文（任务栏上是 ENG）。新加一张卡片、里面有中文的数据时，往 `EN` 里补。
+- 头图和按钮由 `readme.html` 画：脚本把它和壁纸（缩到 2400 宽）、胶囊的图放进临时文件夹再拍（别的文件夹里的图，Edge 拍的时候可能还没画上）。按钮一种语言一行拍，按透明的空隙切开，所以 `readme.ps1` 里的按钮顺序要和 `readme.html` 一致。
+- 界面变了、发版前，重拍一遍，看一眼 `docs/readme/` 的改动再提交。
